@@ -23,6 +23,7 @@ const (
 	PPC64   = goarch.PPC64
 	RISCV64 = goarch.RISCV64
 	S390X   = goarch.S390X
+	SPARC64 = goarch.SPARC64
 	Wasm    = goarch.WASM
 )
 
@@ -256,6 +257,23 @@ var ArchS390X = &Arch{
 	FixedFrameSize: 8, // LR
 }
 
+var ArchSPARC64 = &Arch{
+	Name:      "sparc64",
+	Family:    SPARC64,
+	ByteOrder: binary.BigEndian,
+	PtrSize:   8,
+	RegSize:   8,
+	MinLC:     4,
+	// SPARC V9 traps on unaligned access (SIGBUS); there is no
+	// kernel fixup path worth relying on.
+	Alignment: 8,
+	// Big-endian and strict-alignment: load merging is both incorrect
+	// here (the optimization assumes little-endian) and illegal.
+	CanMergeLoads:  false,
+	HasLR:          true, // %o7 holds the return address after CALL
+	FixedFrameSize: 8,    // saved %o7
+}
+
 var ArchWasm = &Arch{
 	Name:           "wasm",
 	Family:         Wasm,
@@ -283,5 +301,6 @@ var Archs = [...]*Arch{
 	ArchPPC64LE,
 	ArchRISCV64,
 	ArchS390X,
+	ArchSPARC64,
 	ArchWasm,
 }
