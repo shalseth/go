@@ -16,6 +16,7 @@ import (
 	"cmd/compile/internal/ppc64"
 	"cmd/compile/internal/riscv64"
 	"cmd/compile/internal/s390x"
+	"cmd/compile/internal/sparc64"
 	"cmd/compile/internal/ssagen"
 	"cmd/compile/internal/wasm"
 	"cmd/compile/internal/x86"
@@ -39,6 +40,7 @@ var archInits = map[string]func(*ssagen.ArchInfo){
 	"ppc64le":  ppc64.Init,
 	"riscv64":  riscv64.Init,
 	"s390x":    s390x.Init,
+	"sparc64":  sparc64.Init,
 	"wasm":     wasm.Init,
 }
 

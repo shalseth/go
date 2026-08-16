@@ -195,6 +195,35 @@ const (
 	REG_YTMP = REG_Y0
 )
 
+// Conventional names shared with the other backends. cmd/compile's SSA
+// generator emits references to REGSP, REGG and REGZERO by those exact
+// names, and the runtime and linker use REGCTXT, REGTMP and REGLINK.
+const (
+	REGZERO = REG_ZR
+	REGSP   = REG_RSP
+	REGG    = REG_G
+	REGCTXT = REG_CTXT
+	REGTMP  = REG_TMP
+	REGLINK = REG_LR
+)
+
+// SPARCDWARFRegisters maps Go's register numbers onto the DWARF
+// numbering, which follows the architectural register file: 0-7 are
+// %g0-%g7, 8-15 %o0-%o7, 16-23 %l0-%l7 and 24-31 %i0-%i7. The 32
+// single-precision float registers follow at 32.
+var SPARCDWARFRegisters = map[int16]int16{}
+
+func init() {
+	// f maps [from, to] to DWARF numbers starting at base.
+	f := func(from, to, base int16) {
+		for r := int16(from); r <= to; r++ {
+			SPARCDWARFRegisters[r] = (r - from) + base
+		}
+	}
+	f(REG_R0, REG_R31, 0)
+	f(REG_F0, REG_F31, 32)
+}
+
 const (
 	REG_MIN = REG_R0
 	REG_MAX = REG_R25

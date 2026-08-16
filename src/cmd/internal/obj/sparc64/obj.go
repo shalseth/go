@@ -719,7 +719,8 @@ var Linksparc64 = obj.LinkArch{
 	Preprocess: preprocess,
 	Assemble:   span,
 	Progedit:   progedit,
-	UnaryDst:   unaryDst,
+	UnaryDst:       unaryDst,
+	DWARFRegisters: SPARCDWARFRegisters,
 }
 
 // buildop is called once per Link to prepare any derived tables. The

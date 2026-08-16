@@ -1,0 +1,150 @@
+// Copyright 2026 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Lowering for linux/sparc64.
+//
+// SPARC V9 is a 64-bit big-endian RISC with a 13-bit signed immediate
+// field. Sub-word arithmetic is done in 64-bit registers and narrowed
+// on store or when the width matters, as on the other 64-bit RISC
+// backends.
+
+// Arithmetic.
+(Add(64|32|16|8|Ptr) ...) => (ADD ...)
+(Add(32|64)F ...) => (FADD(S|D) ...)
+
+(Sub(64|32|16|8|Ptr) ...) => (SUB ...)
+(Sub(32|64)F ...) => (FSUB(S|D) ...)
+
+(Mul(64|32|16|8) ...) => (MULD ...)
+(Mul(32|64)F ...) => (FMUL(S|D) ...)
+
+(Div(32|64)F ...) => (FDIV(S|D) ...)
+(Div64 [false] x y) => (SDIVD x y)
+(Div64u x y) => (UDIVD x y)
+
+(Neg(64|32|16|8) x) => (NEG x)
+(Neg(32|64)F ...) => (FNEG(S|D) ...)
+
+// Logical.
+(And(64|32|16|8|B) ...) => (AND ...)
+(Or(64|32|16|8|B) ...) => (OR ...)
+(Xor(64|32|16|8) ...) => (XOR ...)
+(Com(64|32|16|8) x) => (XNOR x (MOVDconst [0]))
+
+// Shifts. Go defines shifts by counts >= width as producing zero, which
+// SPARC does not, so those are handled by the generic rules that guard
+// with a comparison; the bare lowerings below are the unguarded forms.
+(Lsh64x64 x y) => (SLLD x y)
+(Rsh64x64 x y) => (SRAD x y)
+(Rsh64Ux64 x y) => (SRLD x y)
+
+// Comparisons produce condition codes; the block rules below consume them.
+(Less64 x y) => (LessThan (CMP x y))
+(Leq64 x y) => (LessEqual (CMP x y))
+(Eq64 x y) => (Equal (CMP x y))
+(Neq64 x y) => (NotEqual (CMP x y))
+
+// Constants.
+(Const(64|32|16|8) [val]) => (MOVDconst [int64(val)])
+(Const(32|64)F ...) => (FMOV(S|D)const ...)
+(ConstNil) => (MOVDconst [0])
+(ConstBool [t]) => (MOVDconst [b2i(t)])
+
+// Addresses.
+(Addr {sym} base) => (MOVDaddr {sym} base)
+(LocalAddr <t> {sym} base mem) && t.Elem().HasPointers() => (MOVDaddr {sym} (SPanchored base mem))
+(LocalAddr <t> {sym} base _) && !t.Elem().HasPointers() => (MOVDaddr {sym} base)
+(OffPtr [off] ptr) => (ADDconst [off] ptr)
+
+// Loads.
+(Load <t> ptr mem) && t.IsBoolean() => (MOVUBload ptr mem)
+(Load <t> ptr mem) && is8BitInt(t) && t.IsSigned() => (MOVBload ptr mem)
+(Load <t> ptr mem) && is8BitInt(t) && !t.IsSigned() => (MOVUBload ptr mem)
+(Load <t> ptr mem) && is16BitInt(t) && t.IsSigned() => (MOVHload ptr mem)
+(Load <t> ptr mem) && is16BitInt(t) && !t.IsSigned() => (MOVUHload ptr mem)
+(Load <t> ptr mem) && is32BitInt(t) && t.IsSigned() => (MOVWload ptr mem)
+(Load <t> ptr mem) && is32BitInt(t) && !t.IsSigned() => (MOVUWload ptr mem)
+(Load <t> ptr mem) && (is64BitInt(t) || isPtr(t)) => (MOVDload ptr mem)
+(Load <t> ptr mem) && is32BitFloat(t) => (FMOVSload ptr mem)
+(Load <t> ptr mem) && is64BitFloat(t) => (FMOVDload ptr mem)
+
+// Stores.
+(Store {t} ptr val mem) && t.Size() == 1 => (MOVBstore ptr val mem)
+(Store {t} ptr val mem) && t.Size() == 2 => (MOVHstore ptr val mem)
+(Store {t} ptr val mem) && t.Size() == 4 && !t.IsFloat() => (MOVWstore ptr val mem)
+(Store {t} ptr val mem) && t.Size() == 8 && !t.IsFloat() => (MOVDstore ptr val mem)
+(Store {t} ptr val mem) && t.Size() == 4 && t.IsFloat() => (FMOVSstore ptr val mem)
+(Store {t} ptr val mem) && t.Size() == 8 && t.IsFloat() => (FMOVDstore ptr val mem)
+
+// Conversions.
+(SignExt8to(16|32|64) ...) => (MOVB ...)
+(SignExt16to(32|64) ...) => (MOVH ...)
+(SignExt32to64 ...) => (MOVW ...)
+(ZeroExt8to(16|32|64) ...) => (MOVUB ...)
+(ZeroExt16to(32|64) ...) => (MOVUH ...)
+(ZeroExt32to64 ...) => (MOVUW ...)
+(Trunc(16|32|64)to8 ...) => (Copy ...)
+(Trunc(32|64)to16 ...) => (Copy ...)
+(Trunc64to32 ...) => (Copy ...)
+
+(Cvt32Fto64F ...) => (FSTOD ...)
+(Cvt64Fto32F ...) => (FDTOS ...)
+(Cvt64to(32|64)F ...) => (FXTO(S|D) ...)
+(Cvt(32|64)Fto64 ...) => (F(S|D)TOX ...)
+
+// Calls.
+(StaticCall ...) => (CALLstatic ...)
+(ClosureCall ...) => (CALLclosure ...)
+(InterCall ...) => (CALLinter ...)
+(TailCall ...) => (CALLtail ...)
+
+// Runtime support.
+(GetClosurePtr ...) => (LoweredGetClosurePtr ...)
+(GetCallerSP ...) => (LoweredGetCallerSP ...)
+(GetCallerPC ...) => (LoweredGetCallerPC ...)
+(IsNonNil ptr) => (NotEqual (CMPconst [0] ptr))
+(IsInBounds idx len) => (LessThanU (CMP idx len))
+(IsSliceInBounds idx len) => (LessEqualU (CMP idx len))
+(NilCheck ...) => (LoweredNilCheck ...)
+(PubBarrier ...) => (LoweredPubBarrier ...)
+
+// TODO(sparc64): PanicBounds needs the bounds-call ABI; not lowered yet.
+
+// Write barrier.
+(WB ...) => (LoweredWB ...)
+
+// TODO(sparc64): atomics need a CASD retry loop; not lowered yet.
+
+// Optimizations. Fold a constant into the immediate field when it fits
+// SPARC's 13-bit signed range; otherwise leave it in a register.
+(ADD (MOVDconst [c]) x) && is13Bit(c) => (ADDconst [c] x)
+(SUB x (MOVDconst [c])) && is13Bit(c) => (SUBconst [c] x)
+(AND (MOVDconst [c]) x) && is13Bit(c) => (ANDconst [c] x)
+(OR  (MOVDconst [c]) x) && is13Bit(c) => (ORconst  [c] x)
+(XOR (MOVDconst [c]) x) && is13Bit(c) => (XORconst [c] x)
+(CMP x (MOVDconst [c])) && is13Bit(c) => (CMPconst [c] x)
+
+(SLLD x (MOVDconst [c])) => (SLLDconst [c&63] x)
+(SRLD x (MOVDconst [c])) => (SRLDconst [c&63] x)
+(SRAD x (MOVDconst [c])) => (SRADconst [c&63] x)
+
+(ADDconst [0] x) => x
+(SUBconst [0] x) => x
+(ANDconst [-1] x) => x
+(ORconst [0] x) => x
+(XORconst [0] x) => x
+
+// Branch lowering.
+(If (Equal cc) yes no) => (EQ cc yes no)
+(If (NotEqual cc) yes no) => (NE cc yes no)
+(If (LessThan cc) yes no) => (LT cc yes no)
+(If (LessEqual cc) yes no) => (LE cc yes no)
+(If (GreaterThan cc) yes no) => (GT cc yes no)
+(If (GreaterEqual cc) yes no) => (GE cc yes no)
+(If (LessThanU cc) yes no) => (ULT cc yes no)
+(If (LessEqualU cc) yes no) => (ULE cc yes no)
+(If (GreaterThanU cc) yes no) => (UGT cc yes no)
+(If (GreaterEqualU cc) yes no) => (UGE cc yes no)
+
+(If cond yes no) => (NE (CMPconst [0] cond) yes no)

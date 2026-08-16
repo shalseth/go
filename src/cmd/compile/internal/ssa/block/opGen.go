@@ -149,6 +149,23 @@ const (
 	BlockS390XCLIJ
 	BlockS390XCLGIJ
 
+	BlockSPARC64EQ
+	BlockSPARC64NE
+	BlockSPARC64LT
+	BlockSPARC64LE
+	BlockSPARC64GT
+	BlockSPARC64GE
+	BlockSPARC64ULT
+	BlockSPARC64ULE
+	BlockSPARC64UGT
+	BlockSPARC64UGE
+	BlockSPARC64FEQ
+	BlockSPARC64FNE
+	BlockSPARC64FLT
+	BlockSPARC64FLE
+	BlockSPARC64FGT
+	BlockSPARC64FGE
+
 	BlockPlain
 	BlockIf
 	BlockDefer
@@ -305,6 +322,23 @@ var blockString = [...]string{
 	BlockS390XCGIJ:  "CGIJ",
 	BlockS390XCLIJ:  "CLIJ",
 	BlockS390XCLGIJ: "CLGIJ",
+
+	BlockSPARC64EQ:  "EQ",
+	BlockSPARC64NE:  "NE",
+	BlockSPARC64LT:  "LT",
+	BlockSPARC64LE:  "LE",
+	BlockSPARC64GT:  "GT",
+	BlockSPARC64GE:  "GE",
+	BlockSPARC64ULT: "ULT",
+	BlockSPARC64ULE: "ULE",
+	BlockSPARC64UGT: "UGT",
+	BlockSPARC64UGE: "UGE",
+	BlockSPARC64FEQ: "FEQ",
+	BlockSPARC64FNE: "FNE",
+	BlockSPARC64FLT: "FLT",
+	BlockSPARC64FLE: "FLE",
+	BlockSPARC64FGT: "FGT",
+	BlockSPARC64FGE: "FGE",
 
 	BlockPlain:     "Plain",
 	BlockIf:        "If",
