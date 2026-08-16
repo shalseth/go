@@ -40,5 +40,9 @@ const (
 type EpollEvent struct {
 	Events uint32
 	_pad   uint32
-	Data   [8]byte // unaligned uintptr
+	Data   [8]byte // the kernel reads and writes this as a u64
+	// The kernel accesses Data with 8-byte loads and stores, and
+	// sparc64 faults misaligned accesses with EFAULT, so the struct
+	// must be 8-byte aligned.
+	_ [0]uint64
 }
