@@ -468,6 +468,17 @@ const (
 	AMOVRZ
 	AMOVVC
 	AMOVVS
+
+	// Move Integer Register on Floating-point Condition (FMOVcc). These
+	// are separate opcodes rather than the integer MOVcc with cc2
+	// cleared, because the cond field is a different encoding: integer
+	// cond 0001 is E, but float cond 0001 is NE.
+	AMOVFE
+	AMOVFNE
+	AMOVFL
+	AMOVFLE
+	AMOVFG
+	AMOVFGE
 	AMULD
 	AOR
 	AORCC
@@ -477,6 +488,7 @@ const (
 	ARESTORE // not used under normal circumstances
 	ASAVE    // not used under normal circumstances
 	ASDIVD
+	AUMULXHI // VIS3: high 64 bits of an unsigned 64x64 multiply
 	ASETHI
 	AUDIVD
 	ASLLW

@@ -7893,7 +7893,7 @@ func (s *State) Call(v *ssa.Value) *obj.Prog {
 	} else {
 		// TODO(mdempsky): Can these differences be eliminated?
 		switch Arch.LinkArch.Family {
-		case sys.AMD64, sys.I386, sys.PPC64, sys.RISCV64, sys.S390X, sys.Wasm:
+		case sys.AMD64, sys.I386, sys.PPC64, sys.RISCV64, sys.S390X, sys.SPARC64, sys.Wasm:
 			p.To.Type = obj.TYPE_REG
 		case sys.ARM, sys.ARM64, sys.Loong64, sys.MIPS, sys.MIPS64:
 			p.To.Type = obj.TYPE_MEM

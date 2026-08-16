@@ -13,6 +13,7 @@ func Init(arch *ssagen.ArchInfo) {
 	arch.LinkArch = &sparc64.Linksparc64
 	arch.REGSP = sparc64.REGSP
 	arch.MAXWIDTH = 1 << 50
+	arch.PadFrame = padframe
 
 	arch.ZeroRange = zerorange
 	arch.Ginsnop = ginsnop
@@ -20,4 +21,13 @@ func Init(arch *ssagen.ArchInfo) {
 	arch.SSAMarkMoves = ssaMarkMoves
 	arch.SSAGenValue = ssaGenValue
 	arch.SSAGenBlock = ssaGenBlock
+}
+
+// padframe rounds the frame size up to the 16-byte stack alignment
+// SPARC V9 requires of %sp.
+func padframe(frame int64) int64 {
+	if frame%sparc64.StackAlign != 0 {
+		frame += sparc64.StackAlign - frame%sparc64.StackAlign
+	}
+	return frame
 }

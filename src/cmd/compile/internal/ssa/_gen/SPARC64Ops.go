@@ -68,7 +68,7 @@ var regNamesSPARC64 = []string{
 	"R24",
 	"R25",
 
-	// %i5, the closure context pointer. Named but not allocatable.
+	// %i5, the closure context pointer.
 	"R29",
 
 	"SP", // R14, %o6
@@ -120,13 +120,14 @@ func init() {
 
 	// Common individual register masks.
 	var (
-		gp   = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19 R20 R21 R24 R25")
+		gp   = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19 R20 R21 R24 R25 R29")
 		gpg      = gp.union(buildReg("g"))
 		gpsp     = gp.union(buildReg("SP"))
 		gpspg    = gpg.union(buildReg("SP"))
 		gpspsbg  = gpspg.union(buildReg("SB"))
 		fp       = buildReg("Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15")
 		rz       = buildReg("ZR")
+		first16  = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19")
 		callerSave = gp.union(fp).union(buildReg("g")) // runtime.setg may clobber g
 	)
 	// Common regInfo.
@@ -135,6 +136,7 @@ func init() {
 		gp11     = regInfo{inputs: []regMask{gpg}, outputs: []regMask{gp}}
 		gp11sp   = regInfo{inputs: []regMask{gpspg}, outputs: []regMask{gp}}
 		gp21     = regInfo{inputs: []regMask{gpg, gpg.union(rz)}, outputs: []regMask{gp}}
+		gp22     = regInfo{inputs: []regMask{gpg, gpg}, outputs: []regMask{gp, gp}}
 		gp2flags = regInfo{inputs: []regMask{gpg, gpg.union(rz)}}
 		gp1flags = regInfo{inputs: []regMask{gpg}}
 		gpload   = regInfo{inputs: []regMask{gpspsbg}, outputs: []regMask{gp}}
@@ -162,6 +164,12 @@ func init() {
 		{name: "SUBconst", argLength: 1, reg: gp11, asm: "SUB", aux: "Int64"},    // arg0 - auxInt
 		{name: "MULD", argLength: 2, reg: gp21, asm: "MULD", commutative: true},  // arg0 * arg1
 		{name: "SDIVD", argLength: 2, reg: gp21, asm: "SDIVD"},                   // arg0 / arg1, signed
+		// VIS3. The T4 implements it; older SPARC V9 parts do not.
+		{name: "UMULXHI", argLength: 2, reg: gp21, asm: "UMULXHI", commutative: true}, // high 64 bits of arg0*arg1, unsigned
+		// Full 64x64->128 unsigned multiply, as a pair. SPARC has no
+		// single instruction for it, so this emits UMULXHI followed by
+		// MULD; results are (high, low).
+		{name: "MULDU", argLength: 2, reg: gp22, commutative: true, typ: "(UInt64,UInt64)"},
 		{name: "UDIVD", argLength: 2, reg: gp21, asm: "UDIVD"},                   // arg0 / arg1, unsigned
 
 		{name: "AND", argLength: 2, reg: gp21, asm: "AND", commutative: true},   // arg0 & arg1
@@ -272,7 +280,51 @@ func init() {
 		{name: "LoweredGetClosurePtr", reg: regInfo{outputs: []regMask{buildReg("R29")}}},
 		{name: "LoweredGetCallerSP", argLength: 1, reg: gp01, rematerializeable: true},
 		{name: "LoweredGetCallerPC", reg: gp01, rematerializeable: true},
-		// TODO(sparc64): LoweredPanicBounds* need the bounds-call ABI.
+		// Large or unaligned zeroing.
+		// arg0 = address of memory to zero (in R1, changed as a side effect)
+		// arg1 = address of the last element to zero
+		// arg2 = mem
+		// auxint = alignment
+		//	SUB	$sz, R1
+		//	MOVD	ZR, sz(R1)
+		//	ADD	$sz, R1
+		//	BNED	Rarg1, R1, -2(PC)
+		{
+			name:      "LoweredZero",
+			aux:       "Int64",
+			argLength: 3,
+			reg: regInfo{
+				inputs:   []regMask{buildReg("R1"), gp},
+				clobbers: buildReg("R1"),
+			},
+			clobberFlags:   true,
+			faultOnNilArg0: true,
+		},
+
+		// Large or unaligned move.
+		// arg0 = address of dst (in R2, changed as a side effect)
+		// arg1 = address of src (in R1, changed as a side effect)
+		// arg2 = address of the last element of src
+		// arg3 = mem
+		// auxint = alignment
+		{
+			name:      "LoweredMove",
+			aux:       "Int64",
+			argLength: 4,
+			reg: regInfo{
+				inputs:   []regMask{buildReg("R2"), buildReg("R1"), gp},
+				clobbers: buildReg("R1 R2"),
+			},
+			clobberFlags:   true,
+			faultOnNilArg0: true,
+			faultOnNilArg1: true,
+		},
+
+		{name: "LoweredPanicBoundsRR", argLength: 3, aux: "Int64", reg: regInfo{inputs: []regMask{first16, first16}}, typ: "Mem", call: true},
+		{name: "LoweredPanicBoundsRC", argLength: 2, aux: "PanicBoundsC", reg: regInfo{inputs: []regMask{first16}}, typ: "Mem", call: true},
+		{name: "LoweredPanicBoundsCR", argLength: 2, aux: "PanicBoundsC", reg: regInfo{inputs: []regMask{first16}}, typ: "Mem", call: true},
+		{name: "LoweredPanicBoundsCC", argLength: 1, aux: "PanicBoundsCC", reg: regInfo{}, typ: "Mem", call: true},
+
 		{name: "LoweredWB", argLength: 1, reg: regInfo{clobbers: callerSave.minus(gpg), outputs: []regMask{buildReg("R25")}}, clobberFlags: true, aux: "Int64"},
 
 
@@ -290,6 +342,16 @@ func init() {
 		{name: "LessEqualU", argLength: 1, reg: readflags},
 		{name: "GreaterThanU", argLength: 1, reg: readflags},
 		{name: "GreaterEqualU", argLength: 1, reg: readflags},
+
+		// The same, reading a floating-point condition register. These
+		// are distinct ops because the MOVcc cond field uses a
+		// different encoding for float conditions.
+		{name: "FEqual", argLength: 1, reg: readflags},
+		{name: "FNotEqual", argLength: 1, reg: readflags},
+		{name: "FLessThan", argLength: 1, reg: readflags},
+		{name: "FLessEqual", argLength: 1, reg: readflags},
+		{name: "FGreaterThan", argLength: 1, reg: readflags},
+		{name: "FGreaterEqual", argLength: 1, reg: readflags},
 
 		// Memory barrier.
 		{name: "LoweredPubBarrier", argLength: 1, asm: "MEMBAR", hasSideEffects: true},

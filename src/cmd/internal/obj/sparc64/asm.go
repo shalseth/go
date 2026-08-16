@@ -208,6 +208,12 @@ var optab = map[Optab]Opval{
 	Optab{AMOVRZ, ClassReg, ClassReg, ClassNone, ClassReg}:     {49, 4, 0},
 
 	Optab{AMOVD, ClassTLSAddr, ClassNone, ClassNone, ClassReg}: {50, 12, 0},
+
+	Optab{AUMULXHI, ClassReg, ClassReg, ClassNone, ClassReg}: {51, 4, 0},
+
+	Optab{AMOVFE, ClassFCond, ClassNone, ClassConst11, ClassReg}: {52, 4, 0},
+	Optab{AMOVFE, ClassFCond, ClassReg, ClassNone, ClassReg}:     {53, 4, 0},
+	Optab{AMOVA, ClassFCond, ClassReg, ClassNone, ClassReg}:     {53, 4, 0},
 }
 
 // Compatible classes, if something accepts a $hugeconst, it
@@ -322,6 +328,7 @@ var ci = map[obj.As][]obj.As{
 	ALDD:   {ALDSB, ALDSH, ALDSW, ALDUB, ALDUH, ALDUW, AMOVB, AMOVH, AMOVW, AMOVUB, AMOVUH, AMOVUW, AMOVD},
 	ALDDF:  {ALDSF, AFMOVD, AFMOVS},
 	AMOVA:  {AMOVN, AMOVNE, AMOVE, AMOVG, AMOVLE, AMOVGE, AMOVL, AMOVGU, AMOVLEU, AMOVCC, AMOVCS, AMOVPOS, AMOVNEG, AMOVVC, AMOVVS},
+	AMOVFE: {AMOVFNE, AMOVFL, AMOVFLE, AMOVFG, AMOVFGE},
 	AMOVRZ: {AMOVRLEZ, AMOVRLZ, AMOVRNZ, AMOVRGZ, AMOVRGEZ},
 	AMULD:  {ASDIVD, AUDIVD},
 	ARD:    {AMOVD},
@@ -842,6 +849,22 @@ func opcode(a obj.As) uint32 {
 		return op3(2, 0x2C) | 14<<14 | 1<<18
 	case AMOVNEG:
 		return op3(2, 0x2C) | 6<<14 | 1<<18
+
+	// Move Integer Register on Floating-point Condition. cc2 is 0 to
+	// select an FCC register, and the cond field uses the float
+	// encoding: E is 9, NE 1, L 4, LE 13, G 6, GE 11.
+	case AMOVFE:
+		return op3(2, 0x2C) | 9<<14
+	case AMOVFNE:
+		return op3(2, 0x2C) | 1<<14
+	case AMOVFL:
+		return op3(2, 0x2C) | 4<<14
+	case AMOVFLE:
+		return op3(2, 0x2C) | 13<<14
+	case AMOVFG:
+		return op3(2, 0x2C) | 6<<14
+	case AMOVFGE:
+		return op3(2, 0x2C) | 11<<14
 	case AMOVVC:
 		return op3(2, 0x2C) | 15<<14 | 1<<18
 	case AMOVVS:
@@ -1522,6 +1545,23 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	// MOVRZ	R, Rs, Rd
 	case 49:
 		*o1 = opcode(p.As) | rrr(p.From.Reg, 0, p.Reg, p.To.Reg)
+
+	// UMULXHI Rs1, Rs2, Rd
+	case 51:
+		// VIS3 three-register form: op3 is 0x36 and the opf field
+		// selects the operation within it. UMULXHI is opf 0x016.
+		*o1 = op3(2, 0x36) | rrr(p.Reg, 0x16, p.From.Reg, p.To.Reg)
+
+	// MOVE	FCCn, $simm11, Rd
+	case 52:
+		// As case 46, but selecting a floating-point condition
+		// register. The AMOVF* opcodes already carry cc2 == 0 and the
+		// float cond encoding; cc1:cc0 hold the FCC number.
+		*o1 = opcode(p.As) | rsr(0, p.GetFrom3().Offset, p.To.Reg) | 1<<13 | uint32(p.From.Reg&3<<11)
+
+	// MOVE	FCCn, Rs, Rd
+	case 53:
+		*o1 = opcode(p.As) | rrr(0, 0, p.Reg, p.To.Reg) | uint32(p.From.Reg&3<<11)
 
 	// MOVD $tlssym, R
 	case 50:
