@@ -438,6 +438,22 @@ const (
 	R_DWTXTADDR_U3
 	R_DWTXTADDR_U4
 
+	// R_CALLSPARC64 resolves the 30-bit word-scaled displacement of a
+	// SPARC V9 CALL instruction.
+	R_CALLSPARC64
+
+	// R_ADDRSPARC64HI resolves the high 22 bits of a 32-bit address
+	// into the imm22 field of a SETHI.
+	R_ADDRSPARC64HI
+
+	// R_ADDRSPARC64LO resolves the low 10 bits of a 32-bit address into
+	// the simm13 field of the instruction following a SETHI.
+	R_ADDRSPARC64LO
+
+	// R_SPARC64_TLS_LE resolves a local-exec thread-local offset,
+	// relative to the thread pointer held in %g7.
+	R_SPARC64_TLS_LE
+
 	// R_WEAK marks the relocation as a weak reference.
 	// A weak relocation does not make the symbol it refers to reachable,
 	// and is only honored by the linker if the symbol is in some other way
