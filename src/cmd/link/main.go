@@ -16,6 +16,7 @@ import (
 	"cmd/link/internal/ppc64"
 	"cmd/link/internal/riscv64"
 	"cmd/link/internal/s390x"
+	"cmd/link/internal/sparc64"
 	"cmd/link/internal/wasm"
 	"cmd/link/internal/x86"
 	"fmt"
@@ -66,6 +67,8 @@ func main() {
 		arch, theArch = riscv64.Init()
 	case "s390x":
 		arch, theArch = s390x.Init()
+	case "sparc64":
+		arch, theArch = sparc64.Init()
 	case "wasm":
 		arch, theArch = wasm.Init()
 	}
