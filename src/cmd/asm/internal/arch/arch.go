@@ -14,6 +14,7 @@ import (
 	"cmd/internal/obj/ppc64"
 	"cmd/internal/obj/riscv"
 	"cmd/internal/obj/s390x"
+	"cmd/internal/obj/sparc64"
 	"cmd/internal/obj/wasm"
 	"cmd/internal/obj/x86"
 	"fmt"
@@ -79,6 +80,8 @@ func Set(GOARCH string, shared bool) *Arch {
 		return archRISCV64(shared)
 	case "s390x":
 		return archS390x()
+	case "sparc64":
+		return archSPARC64()
 	case "wasm":
 		return archWasm()
 	}
@@ -787,5 +790,87 @@ func archWasm() *Arch {
 		RegisterPrefix: nil,
 		RegisterNumber: nilRegisterNumber,
 		IsJump:         jumpWasm,
+	}
+}
+
+func archSPARC64() *Arch {
+	register := make(map[string]int16)
+	// Register the numeric spellings directly rather than via obj.Rconv:
+	// Rconv deliberately prints the role name for registers that have one
+	// (R0 is ZR, F0 is FTMP, and so on), so using it here would leave the
+	// plain Rn/Fn names unbound.
+	for i := 0; i <= 31; i++ {
+		register[fmt.Sprintf("R%d", i)] = int16(sparc64.REG_R0 + i)
+		register[fmt.Sprintf("F%d", i)] = int16(sparc64.REG_F0 + i)
+	}
+	for i := 0; i <= 15; i++ {
+		register[fmt.Sprintf("Y%d", i)] = int16(sparc64.REG_Y0 + i)
+	}
+	for i := 0; i <= 3; i++ {
+		register[fmt.Sprintf("FCC%d", i)] = int16(sparc64.REG_FCC0 + i)
+	}
+	// Double-precision registers are numbered D0..D62 but are not a
+	// contiguous range in the register space; name them explicitly.
+	for i := 0; i <= 62; i += 2 {
+		var r int
+		if i < 32 {
+			r = sparc64.REG_D0 + i
+		} else {
+			r = sparc64.REG_D32 + (i - 32)
+		}
+		register[fmt.Sprintf("D%d", i)] = int16(r)
+	}
+	register["ICC"] = sparc64.REG_ICC
+	register["XCC"] = sparc64.REG_XCC
+	register["CCR"] = sparc64.REG_CCR
+	register["TICK"] = sparc64.REG_TICK
+	register["RPC"] = sparc64.REG_RPC
+	register["BSP"] = sparc64.REG_BSP
+	register["BFP"] = sparc64.REG_BFP
+	register["ZR"] = sparc64.REG_ZR
+	register["TLS"] = sparc64.REG_TLS
+	register["RSP"] = sparc64.REG_RSP
+	register["LR"] = sparc64.REG_LR
+	register["RFP"] = sparc64.REG_RFP
+	register["OLR"] = sparc64.REG_OLR
+	register["TMP"] = sparc64.REG_TMP
+	register["TMP2"] = sparc64.REG_TMP2
+	register["RT1"] = sparc64.REG_RT1
+	register["RT2"] = sparc64.REG_RT2
+	register["CTXT"] = sparc64.REG_CTXT
+	// Pseudo-registers.
+	register["SB"] = RSB
+	register["FP"] = RFP
+	register["PC"] = RPC
+	register["FTMP"] = sparc64.REG_FTMP
+	register["DTMP"] = sparc64.REG_DTMP
+	// Avoid unintentionally clobbering g using R22.
+	delete(register, "R22")
+	register["g"] = sparc64.REG_G
+
+	registerPrefix := map[string]bool{
+		"D": true,
+		"F": true,
+		"R": true,
+		"Y": true,
+	}
+
+	instructions := make(map[string]obj.As)
+	for i, s := range obj.Anames {
+		instructions[s] = obj.As(i)
+	}
+	for i, s := range sparc64.Anames {
+		if obj.As(i) >= obj.A_ARCHSPECIFIC {
+			instructions[s] = obj.As(i) + obj.ABaseSPARC64
+		}
+	}
+
+	return &Arch{
+		LinkArch:       &sparc64.Linksparc64,
+		Instructions:   instructions,
+		Register:       register,
+		RegisterPrefix: registerPrefix,
+		RegisterNumber: sparc64RegisterNumber,
+		IsJump:         jumpSPARC64,
 	}
 }

@@ -829,7 +829,9 @@ func (p *Parser) asmInstruction(op obj.As, cond string, a []obj.Addr) {
 			prog.From = a[0]
 			prog.Reg = p.getRegister(prog, op, &a[1])
 			prog.To = a[2]
-		case sys.S390X:
+		case sys.S390X, sys.SPARC64:
+			// SPARC V9 three-operand form is "op rs1, rs2, rd", with
+			// rs2 optionally an immediate.
 			prog.From = a[0]
 			if a[1].Type == obj.TYPE_REG {
 				prog.Reg = p.getRegister(prog, op, &a[1])

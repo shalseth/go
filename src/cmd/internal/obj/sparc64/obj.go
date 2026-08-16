@@ -356,8 +356,11 @@ func progedit(ctxt *obj.Link, p *obj.Prog, newprog obj.ProgAlloc) {
 	biasfix(p)
 }
 
+// isNOFRAME reports whether the TEXT prog p is marked NOFRAME. In 2016
+// the textflags lived in a third operand; they are now attributes on the
+// TEXT symbol itself.
 func isNOFRAME(p *obj.Prog) bool {
-	return p.GetFrom3().Offset&obj.NOFRAME != 0
+	return p.From.Sym != nil && p.From.Sym.NoFrame()
 }
 
 // TODO(aram):
