@@ -277,7 +277,9 @@ func init() {
 
 		// Pseudo-ops the compiler requires of every backend.
 		{name: "LoweredNilCheck", argLength: 2, reg: regInfo{inputs: []regMask{gpg}}, nilCheck: true, faultOnNilArg0: true},
-		{name: "LoweredGetClosurePtr", reg: regInfo{outputs: []regMask{buildReg("R29")}}},
+		// The scheduler keeps this in the entry block and sorts it to the
+		// front, so nothing else claims R29 (the closure pointer) first.
+		{name: "LoweredGetClosurePtr", reg: regInfo{outputs: []regMask{buildReg("R29")}}, zeroWidth: true},
 		{name: "LoweredGetCallerSP", argLength: 1, reg: gp01, rematerializeable: true},
 		{name: "LoweredGetCallerPC", reg: gp01, rematerializeable: true},
 		// Large or unaligned zeroing.

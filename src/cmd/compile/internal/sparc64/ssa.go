@@ -24,9 +24,42 @@ import (
 // codes, so nothing needs marking.
 func ssaMarkMoves(s *ssagen.State, b *ssa.Block) {}
 
+// isFPReg reports whether r is one of the virtual float registers the
+// backend allocates. The assembler's yfix pass later rewrites these to
+// the F or D register the chosen instruction needs.
+func isFPReg(r int16) bool {
+	return sparc64.REG_Y0 <= r && r <= sparc64.REG_Y15
+}
+
+// regMoveOp returns the instruction that moves size bytes between two
+// registers. A move that crosses between the integer and float files
+// cannot be a plain MOVD on SPARC; it needs the VIS3 file-crossing
+// moves, which is why this port requires a T3 or later.
+func regMoveOp(src, dst int16, size int64) obj.As {
+	srcFP, dstFP := isFPReg(src), isFPReg(dst)
+	switch {
+	case srcFP && dstFP:
+		if size == 4 {
+			return sparc64.AFMOVS
+		}
+		return sparc64.AFMOVD
+	case srcFP && !dstFP:
+		if size == 4 {
+			return sparc64.AMOVSTOUW
+		}
+		return sparc64.AMOVDTOX
+	case !srcFP && dstFP:
+		if size == 4 {
+			return sparc64.AMOVWTOS
+		}
+		return sparc64.AMOVXTOD
+	}
+	return sparc64.AMOVD
+}
+
 // loadByType returns the load instruction for the given type.
-func loadByType(t *types.Type) obj.As {
-	if t.IsFloat() {
+func loadByType(t *types.Type, r int16) obj.As {
+	if t.IsFloat() || isFPReg(r) {
 		if t.Size() == 4 {
 			return sparc64.AFMOVS
 		}
@@ -55,8 +88,8 @@ func loadByType(t *types.Type) obj.As {
 }
 
 // storeByType returns the store instruction for the given type.
-func storeByType(t *types.Type) obj.As {
-	if t.IsFloat() {
+func storeByType(t *types.Type, r int16) obj.As {
+	if t.IsFloat() || isFPReg(r) {
 		if t.Size() == 4 {
 			return sparc64.AFMOVS
 		}
@@ -249,14 +282,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		if x == y {
 			return
 		}
-		as := sparc64.AMOVD
-		if v.Type.IsFloat() {
-			as = sparc64.AFMOVD
-			if v.Type.Size() == 4 {
-				as = sparc64.AFMOVS
-			}
-		}
-		p := s.Prog(as)
+		p := s.Prog(regMoveOp(x, y, v.Type.Size()))
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = x
 		p.To.Type = obj.TYPE_REG
@@ -267,7 +293,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 			v.Fatalf("load flags not implemented: %v", v.LongString())
 			return
 		}
-		p := s.Prog(loadByType(v.Type))
+		p := s.Prog(loadByType(v.Type, v.Reg()))
 		ssagen.AddrAuto(&p.From, v.Args[0])
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
@@ -277,7 +303,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 			v.Fatalf("store flags not implemented: %v", v.LongString())
 			return
 		}
-		p := s.Prog(storeByType(v.Type))
+		p := s.Prog(storeByType(v.Type, v.Args[0].Reg()))
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = v.Args[0].Reg()
 		ssagen.AddrAuto(&p.To, v)

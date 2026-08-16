@@ -489,6 +489,14 @@ const (
 	ASAVE    // not used under normal circumstances
 	ASDIVD
 	AUMULXHI // VIS3: high 64 bits of an unsigned 64x64 multiply
+
+	// VIS3 register moves between the float and integer files. SPARC V9
+	// without VIS3 has to round-trip through memory for these, so the
+	// port requires a T3 or later.
+	AMOVDTOX  // float64 bits -> integer register
+	AMOVSTOUW // float32 bits -> integer register, zero extended
+	AMOVXTOD  // integer bits -> float64 register
+	AMOVWTOS  // integer bits -> float32 register
 	ASETHI
 	AUDIVD
 	ASLLW

@@ -103014,8 +103014,9 @@ var opcodeTable = [...]opInfo{
 		},
 	},
 	{
-		name:   "LoweredGetClosurePtr",
-		argLen: 0,
+		name:      "LoweredGetClosurePtr",
+		argLen:    0,
+		zeroWidth: true,
 		reg: regInfo{
 			outputs: []outputInfo{
 				{0, regMask{v1: 2097152, v2: 0}}, // R29

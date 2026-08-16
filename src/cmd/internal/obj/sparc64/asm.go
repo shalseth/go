@@ -211,6 +211,11 @@ var optab = map[Optab]Opval{
 
 	Optab{AUMULXHI, ClassReg, ClassReg, ClassNone, ClassReg}: {51, 4, 0},
 
+	Optab{AMOVDTOX, ClassDReg, ClassNone, ClassNone, ClassReg}:  {54, 4, 0},
+	Optab{AMOVSTOUW, ClassFReg, ClassNone, ClassNone, ClassReg}: {54, 4, 0},
+	Optab{AMOVXTOD, ClassReg, ClassNone, ClassNone, ClassDReg}:  {54, 4, 0},
+	Optab{AMOVWTOS, ClassReg, ClassNone, ClassNone, ClassFReg}:  {54, 4, 0},
+
 	Optab{AMOVFE, ClassFCond, ClassNone, ClassConst11, ClassReg}: {52, 4, 0},
 	Optab{AMOVFE, ClassFCond, ClassReg, ClassNone, ClassReg}:     {53, 4, 0},
 	Optab{AMOVA, ClassFCond, ClassReg, ClassNone, ClassReg}:     {53, 4, 0},
@@ -276,6 +281,7 @@ var isInstFloat = map[obj.As]bool{
 }
 
 var isSrcDouble = map[obj.As]bool{
+	AMOVDTOX: true,
 	AFXTOD: true,
 	AFXTOS: true,
 	AFDTOX: true,
@@ -284,6 +290,7 @@ var isSrcDouble = map[obj.As]bool{
 }
 
 var isSrcFloat = map[obj.As]bool{
+	AMOVSTOUW: true,
 	AFITOD: true,
 	AFITOS: true,
 	AFSTOX: true,
@@ -292,6 +299,7 @@ var isSrcFloat = map[obj.As]bool{
 }
 
 var isDstDouble = map[obj.As]bool{
+	AMOVXTOD: true,
 	AFXTOD: true,
 	AFITOD: true,
 	AFSTOX: true,
@@ -300,6 +308,7 @@ var isDstDouble = map[obj.As]bool{
 }
 
 var isDstFloat = map[obj.As]bool{
+	AMOVWTOS: true,
 	AFXTOS: true,
 	AFITOS: true,
 	AFDTOI: true,
@@ -328,6 +337,7 @@ var ci = map[obj.As][]obj.As{
 	ALDD:   {ALDSB, ALDSH, ALDSW, ALDUB, ALDUH, ALDUW, AMOVB, AMOVH, AMOVW, AMOVUB, AMOVUH, AMOVUW, AMOVD},
 	ALDDF:  {ALDSF, AFMOVD, AFMOVS},
 	AMOVA:  {AMOVN, AMOVNE, AMOVE, AMOVG, AMOVLE, AMOVGE, AMOVL, AMOVGU, AMOVLEU, AMOVCC, AMOVCS, AMOVPOS, AMOVNEG, AMOVVC, AMOVVS},
+	AMOVDTOX: {AMOVSTOUW, AMOVXTOD, AMOVWTOS},
 	AMOVFE: {AMOVFNE, AMOVFL, AMOVFLE, AMOVFG, AMOVFGE},
 	AMOVRZ: {AMOVRLEZ, AMOVRLZ, AMOVRNZ, AMOVRGZ, AMOVRGEZ},
 	AMULD:  {ASDIVD, AUDIVD},
@@ -819,6 +829,18 @@ func opcode(a obj.As) uint32 {
 	// Jump and link.
 	case AJMPL:
 		return op3(2, 0x38)
+
+	// VIS3 float/integer register moves. These share op3 0x36 with
+	// UMULXHI and are selected by a 9-bit opf, which is too wide for
+	// rrr's 8-bit asi field, so case 54 places it directly.
+	case AMOVDTOX:
+		return op3(2, 0x36) | 0x110<<5
+	case AMOVSTOUW:
+		return op3(2, 0x36) | 0x111<<5
+	case AMOVXTOD:
+		return op3(2, 0x36) | 0x118<<5
+	case AMOVWTOS:
+		return op3(2, 0x36) | 0x119<<5
 
 	// Move Integer Register on Condition (MOVcc).
 	case AMOVA:
@@ -1545,6 +1567,10 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	// MOVRZ	R, Rs, Rd
 	case 49:
 		*o1 = opcode(p.As) | rrr(p.From.Reg, 0, p.Reg, p.To.Reg)
+
+	// MOVDTOX Fs, Rd  (and the other VIS3 file-crossing moves)
+	case 54:
+		*o1 = opcode(p.As) | uint32(p.To.Reg&31)<<25 | uint32(p.From.Reg&31)
 
 	// UMULXHI Rs1, Rs2, Rd
 	case 51:

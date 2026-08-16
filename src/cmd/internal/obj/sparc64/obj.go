@@ -409,6 +409,18 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 
 	for p := cursym.Func().Text; p != nil; p = p.Link {
 		switch p.As {
+		case obj.AGETCALLERPC:
+			// The prologue moves the incoming return address from LR
+			// (%o7, where CALL leaves it) into OLR (%i7), so a leaf
+			// still has it in LR while everyone else reads OLR.
+			p.As = AMOVD
+			p.From.Type = obj.TYPE_REG
+			if cursym.Leaf() {
+				p.From.Reg = REG_LR
+			} else {
+				p.From.Reg = REG_OLR
+			}
+
 		case obj.ATEXT:
 			if cursym.Func().Text.Mark&LEAF != 0 {
 				cursym.Set(obj.AttrLeaf, true)
