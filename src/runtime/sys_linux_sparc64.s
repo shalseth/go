@@ -189,6 +189,20 @@ TEXT runtime·raiseproc(SB),NOSPLIT|NOFRAME,$0
 	SYS(SYS_kill)
 	RET
 
+// func getpid() int
+TEXT runtime·getpid(SB),NOSPLIT|NOFRAME,$0-8
+	SYS(SYS_getpid)
+	MOVD	R8, ret+0(FP)
+	RET
+
+// func tgkill(tgid, tid, sig int)
+TEXT runtime·tgkill(SB),NOSPLIT|NOFRAME,$0-24
+	MOVD	tgid+0(FP), R8
+	MOVD	tid+8(FP), R9
+	MOVD	sig+16(FP), R10
+	SYS(SYS_tgkill)
+	RET
+
 // func setitimer(mode int32, new, old *itimerval)
 TEXT runtime·setitimer(SB),NOSPLIT|NOFRAME,$0-24
 	MOVW	mode+0(FP), R8
@@ -286,15 +300,30 @@ TEXT runtime·rtsigprocmask(SB),NOSPLIT|NOFRAME,$0-28
 	BCSW	badsig
 	RET
 badsig:
-	MOVD	$1000, R8
-	JMP	runtime·badsignal2(SB)
+	// A failed sigprocmask leaves signal handling in an unknown state;
+	// crash immediately with a store to address zero.
+	MOVD	R8, (ZR)
+	RET
+
+// Signal return trampoline. The sparc64 kernel takes the restorer as
+// the fourth argument to rt_sigaction (the sa_restorer struct field is
+// ignored) and sets it as the return address of the signal handler.
+// A SPARC return jumps to the return address plus 8 (skipping the call
+// and its delay slot), so the handler comes back at stub+8: the first
+// two instructions are never executed and exist only as padding.
+// glibc instead passes the address of its stub minus 8.
+TEXT runtime·sigreturn_stub(SB),NOSPLIT|NOFRAME,$0
+	RNOP
+	RNOP
+	SYS(SYS_rt_sigreturn)
 
 // func rt_sigaction(sig uintptr, new, old *sigactiont, size uintptr) int32
 TEXT runtime·rt_sigaction(SB),NOSPLIT|NOFRAME,$0-36
 	MOVD	sig+0(FP), R8
 	MOVD	new+8(FP), R9
 	MOVD	old+16(FP), R10
-	MOVD	size+24(FP), R11
+	MOVD	$runtime·sigreturn_stub(SB), R11
+	MOVD	size+24(FP), R12
 	SYS(SYS_rt_sigaction)
 	BCSW	rterr
 	MOVW	R8, ret+32(FP)
@@ -319,19 +348,37 @@ TEXT runtime·sigfwd(SB),NOSPLIT,$0-32
 // pointer in %o1 and, on this architecture, the address of the struct
 // sigcontext embedded in the signal frame in %o2. See
 // signal_linux_sparc64.go for that layout.
-TEXT runtime·sigtramp(SB),NOSPLIT|TOPFRAME,$176
-	MOVW	R8, (176+0)(BSP)
-	MOVD	R9, (176+8)(BSP)
-	MOVD	R10, (176+16)(BSP)
+TEXT runtime·sigtramp(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
+	// Go code never executes SAVE, so the interrupted function's %l and
+	// %i registers (including g in %l6) are live in the current window,
+	// and rt_sigreturn restores only the globals, outs, and PC/nPC.
+	// Shift to a fresh window for the handler: the interrupted window
+	// was flushed to its own stack by the kernel at delivery, and the
+	// RESTORE on the way out refills it untouched.
+	//
+	// g must move across the window shift by hand: copy it through a
+	// global register.
+	MOVD	g, R5
+	SAVE	$-208, RSP, RSP		// 176 mandatory + args for sigtrampgo
+	MOVD	R5, g
+
+	// The arguments arrived in %o0-%o2 and are now %i0-%i2 (R24-R26).
+	MOVW	R24, (176+0)(BSP)
+	MOVD	R25, (176+8)(BSP)
+	MOVD	R26, (176+16)(BSP)
 	MOVD	$runtime·sigtrampgo(SB), R11
 	CALL	(R11)
-	RET
 
-TEXT runtime·cgoSigtramp(SB),NOSPLIT,$0
+	// ret; restore: return to the kernel's restorer stub (in %i7, +8
+	// as usual) while switching back to the interrupted window.
+	JMPL	$8(OLR), ZR
+	RESTORE	ZR, ZR, ZR
+
+TEXT runtime·cgoSigtramp(SB),NOSPLIT|NOFRAME,$0
 	JMP	runtime·sigtramp(SB)
 
-// func sysMmap(addr unsafe.Pointer, n uintptr, prot, flags, fd int32, off uint32) (p unsafe.Pointer, err int)
-TEXT runtime·sysMmap(SB),NOSPLIT|NOFRAME,$0
+// func mmap(addr unsafe.Pointer, n uintptr, prot, flags, fd int32, off uint32) (p unsafe.Pointer, err int)
+TEXT runtime·mmap(SB),NOSPLIT|NOFRAME,$0
 	MOVD	addr+0(FP), R8
 	MOVD	n+8(FP), R9
 	MOVW	prot+16(FP), R10
@@ -348,7 +395,7 @@ mmaperr:
 	MOVD	R8, err+40(FP)
 	RET
 
-// func sysMunmap(addr unsafe.Pointer, n uintptr)
+// Unused alias kept for symmetry with cgo-capable ports.
 TEXT runtime·sysMunmap(SB),NOSPLIT|NOFRAME,$0
 	MOVD	addr+0(FP), R8
 	MOVD	n+8(FP), R9
@@ -356,7 +403,19 @@ TEXT runtime·sysMunmap(SB),NOSPLIT|NOFRAME,$0
 	BCSW	munmapfail
 	RET
 munmapfail:
-	JMP	runtime·fatalthrow(SB)
+	MOVD	R8, (ZR)	// crash
+	RET
+
+// func munmap(addr unsafe.Pointer, n uintptr)
+TEXT runtime·munmap(SB),NOSPLIT|NOFRAME,$0
+	MOVD	addr+0(FP), R8
+	MOVD	n+8(FP), R9
+	SYS(SYS_munmap)
+	BCSW	munmapfault
+	RET
+munmapfault:
+	MOVD	R8, (ZR)	// crash
+	RET
 
 // func madvise(addr unsafe.Pointer, n uintptr, flags int32) int32
 TEXT runtime·madvise(SB),NOSPLIT|NOFRAME,$0
@@ -394,44 +453,66 @@ TEXT runtime·clone(SB),NOSPLIT|NOFRAME,$0
 	MOVW	flags+0(FP), R8
 	MOVD	stk+8(FP), R9
 
-	// Stash mp, gp and fn on the new stack, below the biased frame the
-	// child will run with. The child has no usable stack until it
-	// picks these up.
+	// Stash mp, gp and fn at the top of the child's stack, then hand
+	// the kernel a stack pointer with the SPARC V9 bias applied and a
+	// full 192-byte frame reserved below the stash — the same shape
+	// glibc's clone uses. The child recovers the stash relative to its
+	// own %sp.
 	MOVD	mp+16(FP), R16
 	MOVD	gp+24(FP), R17
 	MOVD	fn+32(FP), R18
-	SUB	$32, R9, R9
-	MOVD	R16, 8(R9)
-	MOVD	R17, 16(R9)
-	MOVD	R18, 24(R9)
+	SUB	$32, R9			// stash base
+	MOVD	R16, 0(R9)
+	MOVD	R17, 8(R9)
+	MOVD	R18, 16(R9)
+	SUB	$192, R9		// child frame
+	SUB	$2047, R9		// stack bias
 
 	MOVD	$0, R10			// parent tid
-	MOVD	$0, R11			// tls
-	MOVD	$0, R12			// child tid
+	MOVD	$0, R11			// child tid
+	MOVD	$0, R12			// tls
 	SYS(SYS_clone)
 	BCSW	cloneerr
 
-	// In the child the kernel sets %o1 to 1; the parent gets 0.
-	MOVD	$0, R2
-	SUBCC	R2, R9, ZR
-	BNED	parent
-	JMP	child
-parent:
+	// SPARC keeps the SunOS convention: both parent and child return
+	// here, with %o1 zero in the parent and nonzero in the child.
+	CMP	ZR, R9
+	BNED	child
 	MOVW	R8, ret+40(FP)
 	RET
 cloneerr:
 	NEG	R8, R8
 	MOVW	R8, ret+40(FP)
 	RET
+
 child:
-	// TODO(sparc64): set up g and call the thread entry point. This
-	// needs the TLS sequence and mstart, and is deliberately left
-	// incomplete rather than guessed at.
+	// On the child stack now; the stash sits 192 bytes above our
+	// (unbiased) stack pointer.
+	MOVD	(192+0)(BSP), R16	// mp
+	MOVD	(192+8)(BSP), R17	// gp
+	MOVD	(192+16)(BSP), R18	// fn
+
+	CMP	ZR, R16
+	BED	nog
+	CMP	ZR, R17
+	BED	nog
+
+	// Store the new thread's id in m.procid.
+	SYS(SYS_gettid)
+	MOVD	R8, m_procid(R16)
+
+	// Set up g and its m.
+	MOVD	R16, g_m(R17)
+	MOVD	R17, g
+	CALL	runtime·save_g(SB)
+
+nog:
+	// Call fn. It must not return.
+	CALL	(R18)
+childexit:
 	MOVD	$0, R8
 	SYS(SYS_exit)
-childhang:
-	MOVD	$0, R8
-	JMP	childhang
+	JMP	childexit
 
 // func sigaltstack(new, old *stackt)
 TEXT runtime·sigaltstack(SB),NOSPLIT|NOFRAME,$0
@@ -441,7 +522,8 @@ TEXT runtime·sigaltstack(SB),NOSPLIT|NOFRAME,$0
 	BCSW	altstackfail
 	RET
 altstackfail:
-	JMP	runtime·fatalthrow(SB)
+	MOVD	R8, (ZR)	// crash
+	RET
 
 // func osyield()
 TEXT runtime·osyield(SB),NOSPLIT|NOFRAME,$0

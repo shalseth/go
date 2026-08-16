@@ -5,18 +5,31 @@
 #include "go_asm.h"
 #include "textflag.h"
 
-// asyncPreempt saves the caller's register state and calls
+// asyncPreempt saves the interrupted register state and calls
 // asyncPreempt2, which parks the goroutine. It is entered by having the
-// signal handler rewrite the PC, so every live register must be
-// preserved: the interrupted code has no idea this ran.
+// signal handler rewrite the PC (pushCall), so every register the
+// compiler can allocate must be preserved: the interrupted code has no
+// idea this ran.
 //
-// The frame is the 176-byte SPARC minimum plus room for %g1..%g5,
-// %o0..%o5 and %l0..%l7, which are the registers the compiler
-// allocates. %g0 is hardwired zero, %o6 and %i6 are the stack and frame
-// pointers, %o7 is saved by the prologue, and %g7 is the thread
-// pointer, so none of those need saving here.
+// pushCall pushed a MinFrameSize area (with the interrupted %o7 at its
+// base) and set LR = resumePC-8, so this behaves exactly like a framed
+// function: the hand-written prologue below mirrors the compiled one,
+// asyncPreempt2's prologue publishes our return address for the
+// unwinder, and the final jump through OLR+8 resumes the interrupted
+// code exactly. TMP is clobbered on exit — instructions keeping the
+// assembler temporary live are marked non-preemptible.
+//
+// Frame: the 176-byte SPARC minimum, the 20 allocatable integer
+// registers (R1-R5, R8-R13, R16-R21, R24, R25, R29) and the 15
+// allocatable float registers (Y1-Y15 = D2..D30).
 TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
-	SUB	$304, BSP
+	// Framed prologue by hand.
+	MOVD	RFP, (112)(BSP)
+	MOVD	OLR, (120)(BSP)
+	MOVD	LR, OLR
+	SUB	$464, BSP
+	ADD	$464, RSP, RFP
+
 	MOVD	R1, (176+0)(BSP)
 	MOVD	R2, (176+8)(BSP)
 	MOVD	R3, (176+16)(BSP)
@@ -34,7 +47,43 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	R19, (176+112)(BSP)
 	MOVD	R20, (176+120)(BSP)
 	MOVD	R21, (176+128)(BSP)
+	MOVD	R24, (176+136)(BSP)
+	MOVD	R25, (176+144)(BSP)
+	MOVD	R29, (176+152)(BSP)
+	FMOVD	D2, (176+160)(BSP)
+	FMOVD	D4, (176+168)(BSP)
+	FMOVD	D6, (176+176)(BSP)
+	FMOVD	D8, (176+184)(BSP)
+	FMOVD	D10, (176+192)(BSP)
+	FMOVD	D12, (176+200)(BSP)
+	FMOVD	D14, (176+208)(BSP)
+	FMOVD	D16, (176+216)(BSP)
+	FMOVD	D18, (176+224)(BSP)
+	FMOVD	D20, (176+232)(BSP)
+	FMOVD	D22, (176+240)(BSP)
+	FMOVD	D24, (176+248)(BSP)
+	FMOVD	D26, (176+256)(BSP)
+	FMOVD	D28, (176+264)(BSP)
+	FMOVD	D30, (176+272)(BSP)
 	CALL	·asyncPreempt2(SB)
+	FMOVD	(176+272)(BSP), D30
+	FMOVD	(176+264)(BSP), D28
+	FMOVD	(176+256)(BSP), D26
+	FMOVD	(176+248)(BSP), D24
+	FMOVD	(176+240)(BSP), D22
+	FMOVD	(176+232)(BSP), D20
+	FMOVD	(176+224)(BSP), D18
+	FMOVD	(176+216)(BSP), D16
+	FMOVD	(176+208)(BSP), D14
+	FMOVD	(176+200)(BSP), D12
+	FMOVD	(176+192)(BSP), D10
+	FMOVD	(176+184)(BSP), D8
+	FMOVD	(176+176)(BSP), D6
+	FMOVD	(176+168)(BSP), D4
+	FMOVD	(176+160)(BSP), D2
+	MOVD	(176+152)(BSP), R29
+	MOVD	(176+144)(BSP), R25
+	MOVD	(176+136)(BSP), R24
 	MOVD	(176+128)(BSP), R21
 	MOVD	(176+120)(BSP), R20
 	MOVD	(176+112)(BSP), R19
@@ -52,7 +101,14 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	(176+16)(BSP), R3
 	MOVD	(176+8)(BSP), R2
 	MOVD	(176+0)(BSP), R1
-	ADD	$304, BSP
-	// The signal handler pushed the interrupted PC as our return
-	// address, so returning resumes the preempted code.
-	RET
+
+	// Framed epilogue by hand, plus popping the pushCall area and
+	// restoring the interrupted %o7 from its base. The jump goes
+	// through TMP because LR must carry the interrupted value.
+	ADD	$8, OLR, TMP		// resumePC
+	MOVD	RFP, RSP		// pop our frame; RSP = pushCall base
+	MOVD	(112)(BSP), RFP		// interrupted RFP
+	MOVD	(120)(BSP), OLR		// interrupted OLR
+	MOVD	(0)(BSP), LR		// interrupted LR (spilled by pushCall)
+	ADD	$176, BSP		// pop the pushCall area
+	JMPL	TMP, ZR

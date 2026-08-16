@@ -33,7 +33,7 @@
 #define MEMBAR_SL	MEMBAR	$2	// #StoreLoad
 
 // func Cas(ptr *uint32, old, new uint32) bool
-TEXT ·Cas(SB), NOSPLIT, $0-17
+TEXT ·Cas(SB), NOSPLIT|NOFRAME, $0-17
 	MOVD	ptr+0(FP), R8
 	MOVUW	old+8(FP), R9
 	MOVUW	new+12(FP), R10
@@ -46,7 +46,7 @@ TEXT ·Cas(SB), NOSPLIT, $0-17
 	RET
 
 // func Cas64(ptr *uint64, old, new uint64) bool
-TEXT ·Cas64(SB), NOSPLIT, $0-25
+TEXT ·Cas64(SB), NOSPLIT|NOFRAME, $0-25
 	MOVD	ptr+0(FP), R8
 	MOVD	old+8(FP), R9
 	MOVD	new+16(FP), R10
@@ -59,35 +59,35 @@ TEXT ·Cas64(SB), NOSPLIT, $0-25
 	RET
 
 // func Load(ptr *uint32) uint32
-TEXT ·Load(SB), NOSPLIT, $0-12
+TEXT ·Load(SB), NOSPLIT|NOFRAME, $0-12
 	MOVD	ptr+0(FP), R8
 	MOVUW	(R8), R9
 	MOVW	R9, ret+8(FP)
 	RET
 
 // func Load8(ptr *uint8) uint8
-TEXT ·Load8(SB), NOSPLIT, $0-9
+TEXT ·Load8(SB), NOSPLIT|NOFRAME, $0-9
 	MOVD	ptr+0(FP), R8
 	MOVUB	(R8), R9
 	MOVB	R9, ret+8(FP)
 	RET
 
 // func Load64(ptr *uint64) uint64
-TEXT ·Load64(SB), NOSPLIT, $0-16
+TEXT ·Load64(SB), NOSPLIT|NOFRAME, $0-16
 	MOVD	ptr+0(FP), R8
 	MOVD	(R8), R9
 	MOVD	R9, ret+8(FP)
 	RET
 
 // func Loadp(ptr unsafe.Pointer) unsafe.Pointer
-TEXT ·Loadp(SB), NOSPLIT, $0-16
+TEXT ·Loadp(SB), NOSPLIT|NOFRAME, $0-16
 	MOVD	ptr+0(FP), R8
 	MOVD	(R8), R9
 	MOVD	R9, ret+8(FP)
 	RET
 
 // func Store(ptr *uint32, val uint32)
-TEXT ·Store(SB), NOSPLIT, $0-12
+TEXT ·Store(SB), NOSPLIT|NOFRAME, $0-12
 	MOVD	ptr+0(FP), R8
 	MOVUW	val+8(FP), R9
 	MOVW	R9, (R8)
@@ -95,7 +95,7 @@ TEXT ·Store(SB), NOSPLIT, $0-12
 	RET
 
 // func Store8(ptr *uint8, val uint8)
-TEXT ·Store8(SB), NOSPLIT, $0-9
+TEXT ·Store8(SB), NOSPLIT|NOFRAME, $0-9
 	MOVD	ptr+0(FP), R8
 	MOVUB	val+8(FP), R9
 	MOVB	R9, (R8)
@@ -103,7 +103,7 @@ TEXT ·Store8(SB), NOSPLIT, $0-9
 	RET
 
 // func Store64(ptr *uint64, val uint64)
-TEXT ·Store64(SB), NOSPLIT, $0-16
+TEXT ·Store64(SB), NOSPLIT|NOFRAME, $0-16
 	MOVD	ptr+0(FP), R8
 	MOVD	val+8(FP), R9
 	MOVD	R9, (R8)
@@ -111,28 +111,28 @@ TEXT ·Store64(SB), NOSPLIT, $0-16
 	RET
 
 // func StoreRel(ptr *uint32, val uint32)
-TEXT ·StoreRel(SB), NOSPLIT, $0-12
+TEXT ·StoreRel(SB), NOSPLIT|NOFRAME, $0-12
 	MOVD	ptr+0(FP), R8
 	MOVUW	val+8(FP), R9
 	MOVW	R9, (R8)
 	RET
 
 // func StoreRel64(ptr *uint64, val uint64)
-TEXT ·StoreRel64(SB), NOSPLIT, $0-16
+TEXT ·StoreRel64(SB), NOSPLIT|NOFRAME, $0-16
 	MOVD	ptr+0(FP), R8
 	MOVD	val+8(FP), R9
 	MOVD	R9, (R8)
 	RET
 
 // func StorepNoWB(ptr unsafe.Pointer, val unsafe.Pointer)
-TEXT ·StorepNoWB(SB), NOSPLIT, $0-16
+TEXT ·StorepNoWB(SB), NOSPLIT|NOFRAME, $0-16
 	MOVD	ptr+0(FP), R8
 	MOVD	val+8(FP), R9
 	MOVD	R9, (R8)
 	RET
 
 // func Xchg(ptr *uint32, new uint32) uint32
-TEXT ·Xchg(SB), NOSPLIT, $0-20
+TEXT ·Xchg(SB), NOSPLIT|NOFRAME, $0-20
 	MOVD	ptr+0(FP), R8
 	MOVUW	new+8(FP), R9
 xchg_again:
@@ -146,7 +146,7 @@ xchg_again:
 	RET
 
 // func Xchg64(ptr *uint64, new uint64) uint64
-TEXT ·Xchg64(SB), NOSPLIT, $0-24
+TEXT ·Xchg64(SB), NOSPLIT|NOFRAME, $0-24
 	MOVD	ptr+0(FP), R8
 	MOVD	new+8(FP), R9
 xchg64_again:
@@ -160,7 +160,7 @@ xchg64_again:
 	RET
 
 // func Xadd(ptr *uint32, delta int32) uint32
-TEXT ·Xadd(SB), NOSPLIT, $0-20
+TEXT ·Xadd(SB), NOSPLIT|NOFRAME, $0-20
 	MOVD	ptr+0(FP), R8
 	MOVW	delta+8(FP), R9
 xadd_again:
@@ -175,7 +175,7 @@ xadd_again:
 	RET
 
 // func Xadd64(ptr *uint64, delta int64) uint64
-TEXT ·Xadd64(SB), NOSPLIT, $0-24
+TEXT ·Xadd64(SB), NOSPLIT|NOFRAME, $0-24
 	MOVD	ptr+0(FP), R8
 	MOVD	delta+8(FP), R9
 xadd64_again:
@@ -190,7 +190,7 @@ xadd64_again:
 	RET
 
 // func And32(ptr *uint32, val uint32) uint32
-TEXT ·And32(SB), NOSPLIT, $0-20
+TEXT ·And32(SB), NOSPLIT|NOFRAME, $0-20
 	MOVD	ptr+0(FP), R8
 	MOVUW	val+8(FP), R9
 and32_again:
@@ -205,7 +205,7 @@ and32_again:
 	RET
 
 // func Or32(ptr *uint32, val uint32) uint32
-TEXT ·Or32(SB), NOSPLIT, $0-20
+TEXT ·Or32(SB), NOSPLIT|NOFRAME, $0-20
 	MOVD	ptr+0(FP), R8
 	MOVUW	val+8(FP), R9
 or32_again:
@@ -220,7 +220,7 @@ or32_again:
 	RET
 
 // func And64(ptr *uint64, val uint64) uint64
-TEXT ·And64(SB), NOSPLIT, $0-24
+TEXT ·And64(SB), NOSPLIT|NOFRAME, $0-24
 	MOVD	ptr+0(FP), R8
 	MOVD	val+8(FP), R9
 and64_again:
@@ -235,7 +235,7 @@ and64_again:
 	RET
 
 // func Or64(ptr *uint64, val uint64) uint64
-TEXT ·Or64(SB), NOSPLIT, $0-24
+TEXT ·Or64(SB), NOSPLIT|NOFRAME, $0-24
 	MOVD	ptr+0(FP), R8
 	MOVD	val+8(FP), R9
 or64_again:
@@ -264,7 +264,7 @@ or64_again:
 	SLLD	R1, R2, R2
 
 // func And8(ptr *uint8, val uint8)
-TEXT ·And8(SB), NOSPLIT, $0-9
+TEXT ·And8(SB), NOSPLIT|NOFRAME, $0-9
 	MOVD	ptr+0(FP), R8
 	MOVUB	val+8(FP), R9
 	byteSetup
@@ -282,7 +282,7 @@ and8_again:
 	RET
 
 // func Or8(ptr *uint8, val uint8)
-TEXT ·Or8(SB), NOSPLIT, $0-9
+TEXT ·Or8(SB), NOSPLIT|NOFRAME, $0-9
 	MOVD	ptr+0(FP), R8
 	MOVUB	val+8(FP), R9
 	byteSetup
@@ -298,14 +298,14 @@ or8_again:
 	RET
 
 // func Xchg8(ptr *uint8, new uint8) uint8
-TEXT ·Xchg8(SB), NOSPLIT, $0-17
+TEXT ·Xchg8(SB), NOSPLIT|NOFRAME, $0-17
 	MOVD	ptr+0(FP), R8
 	MOVUB	new+8(FP), R9
 	byteSetup
 	SLLD	R1, R9, R9		// new byte in position
 xchg8_again:
 	MOVUW	(R8), R10
-	ANDN	R10, R2, R11		// clear the target byte
+	ANDN	R2, R10, R11		// R11 = R10 &^ R2: clear the target byte
 	OR	R9, R11, R11		// insert the new byte
 	MOVD	R11, R12
 	CASW	(R8), R10, R12
@@ -318,80 +318,80 @@ xchg8_again:
 	RET
 
 // Aliases. These differ only in the Go signature.
-TEXT ·Casint32(SB), NOSPLIT, $0-17
+TEXT ·Casint32(SB), NOSPLIT|NOFRAME, $0-17
 	JMP	·Cas(SB)
 
-TEXT ·Casint64(SB), NOSPLIT, $0-25
+TEXT ·Casint64(SB), NOSPLIT|NOFRAME, $0-25
 	JMP	·Cas64(SB)
 
-TEXT ·Casuintptr(SB), NOSPLIT, $0-25
+TEXT ·Casuintptr(SB), NOSPLIT|NOFRAME, $0-25
 	JMP	·Cas64(SB)
 
-TEXT ·Casp1(SB), NOSPLIT, $0-25
+TEXT ·Casp1(SB), NOSPLIT|NOFRAME, $0-25
 	JMP	·Cas64(SB)
 
-TEXT ·CasRel(SB), NOSPLIT, $0-17
+TEXT ·CasRel(SB), NOSPLIT|NOFRAME, $0-17
 	JMP	·Cas(SB)
 
-TEXT ·Loaduintptr(SB), NOSPLIT, $0-16
+TEXT ·Loaduintptr(SB), NOSPLIT|NOFRAME, $0-16
 	JMP	·Load64(SB)
 
-TEXT ·Loaduint(SB), NOSPLIT, $0-16
+TEXT ·Loaduint(SB), NOSPLIT|NOFRAME, $0-16
 	JMP	·Load64(SB)
 
-TEXT ·Loadint32(SB), NOSPLIT, $0-12
+TEXT ·Loadint32(SB), NOSPLIT|NOFRAME, $0-12
 	JMP	·Load(SB)
 
-TEXT ·Loadint64(SB), NOSPLIT, $0-16
+TEXT ·Loadint64(SB), NOSPLIT|NOFRAME, $0-16
 	JMP	·Load64(SB)
 
-TEXT ·LoadAcq(SB), NOSPLIT, $0-12
+TEXT ·LoadAcq(SB), NOSPLIT|NOFRAME, $0-12
 	JMP	·Load(SB)
 
-TEXT ·LoadAcq64(SB), NOSPLIT, $0-16
+TEXT ·LoadAcq64(SB), NOSPLIT|NOFRAME, $0-16
 	JMP	·Load64(SB)
 
-TEXT ·LoadAcquintptr(SB), NOSPLIT, $0-16
+TEXT ·LoadAcquintptr(SB), NOSPLIT|NOFRAME, $0-16
 	JMP	·Load64(SB)
 
-TEXT ·Storeint32(SB), NOSPLIT, $0-12
+TEXT ·Storeint32(SB), NOSPLIT|NOFRAME, $0-12
 	JMP	·Store(SB)
 
-TEXT ·Storeint64(SB), NOSPLIT, $0-16
+TEXT ·Storeint64(SB), NOSPLIT|NOFRAME, $0-16
 	JMP	·Store64(SB)
 
-TEXT ·Storeuintptr(SB), NOSPLIT, $0-16
+TEXT ·Storeuintptr(SB), NOSPLIT|NOFRAME, $0-16
 	JMP	·Store64(SB)
 
-TEXT ·StoreReluintptr(SB), NOSPLIT, $0-16
+TEXT ·StoreReluintptr(SB), NOSPLIT|NOFRAME, $0-16
 	JMP	·StoreRel64(SB)
 
-TEXT ·Xaddint32(SB), NOSPLIT, $0-20
+TEXT ·Xaddint32(SB), NOSPLIT|NOFRAME, $0-20
 	JMP	·Xadd(SB)
 
-TEXT ·Xaddint64(SB), NOSPLIT, $0-24
+TEXT ·Xaddint64(SB), NOSPLIT|NOFRAME, $0-24
 	JMP	·Xadd64(SB)
 
-TEXT ·Xadduintptr(SB), NOSPLIT, $0-24
+TEXT ·Xadduintptr(SB), NOSPLIT|NOFRAME, $0-24
 	JMP	·Xadd64(SB)
 
-TEXT ·Xchgint32(SB), NOSPLIT, $0-20
+TEXT ·Xchgint32(SB), NOSPLIT|NOFRAME, $0-20
 	JMP	·Xchg(SB)
 
-TEXT ·Xchgint64(SB), NOSPLIT, $0-24
+TEXT ·Xchgint64(SB), NOSPLIT|NOFRAME, $0-24
 	JMP	·Xchg64(SB)
 
-TEXT ·Xchguintptr(SB), NOSPLIT, $0-24
+TEXT ·Xchguintptr(SB), NOSPLIT|NOFRAME, $0-24
 	JMP	·Xchg64(SB)
 
-TEXT ·And(SB), NOSPLIT, $0-12
+TEXT ·And(SB), NOSPLIT|NOFRAME, $0-12
 	JMP	·And32(SB)
 
-TEXT ·Or(SB), NOSPLIT, $0-12
+TEXT ·Or(SB), NOSPLIT|NOFRAME, $0-12
 	JMP	·Or32(SB)
 
-TEXT ·Anduintptr(SB), NOSPLIT, $0-24
+TEXT ·Anduintptr(SB), NOSPLIT|NOFRAME, $0-24
 	JMP	·And64(SB)
 
-TEXT ·Oruintptr(SB), NOSPLIT, $0-24
+TEXT ·Oruintptr(SB), NOSPLIT|NOFRAME, $0-24
 	JMP	·Or64(SB)

@@ -127,7 +127,10 @@ func init() {
 		gpspsbg  = gpspg.union(buildReg("SB"))
 		fp       = buildReg("Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15")
 		rz       = buildReg("ZR")
-		first16  = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19")
+		// The 16 registers a PanicBounds operand may occupy. R15 is
+		// excluded: it is the link register, and the CALL into the
+		// panic shim would destroy an index held there.
+		first16 = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20")
 		callerSave = gp.union(fp).union(buildReg("g")) // runtime.setg may clobber g
 	)
 	// Common regInfo.
@@ -332,7 +335,13 @@ func init() {
 		{name: "LoweredPanicBoundsCR", argLength: 2, aux: "PanicBoundsC", reg: regInfo{inputs: []regMask{first16}}, typ: "Mem", call: true},
 		{name: "LoweredPanicBoundsCC", argLength: 1, aux: "PanicBoundsCC", reg: regInfo{}, typ: "Mem", call: true},
 
-		{name: "LoweredWB", argLength: 1, reg: regInfo{clobbers: callerSave.minus(gpg), outputs: []regMask{buildReg("R25")}}, clobberFlags: true, aux: "Int64"},
+		// LoweredWB invokes runtime.gcWriteBarrier{N}, which returns a
+		// pointer to the write barrier buffer in R25. The barrier
+		// preserves every allocatable integer register except R25, but
+		// the CALL itself clobbers R15, the link register, so it must
+		// be in the clobber set — regalloc would otherwise keep a live
+		// value there across the call.
+		{name: "LoweredWB", argLength: 1, reg: regInfo{clobbers: callerSave.minus(gpg).union(buildReg("R15")), outputs: []regMask{buildReg("R25")}}, clobberFlags: true, aux: "Int64"},
 
 
 		// Materialise a boolean from the condition codes. SPARC has no

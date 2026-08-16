@@ -10,11 +10,8 @@
 DATA dbgbuf(SB)/8, $"\n\n"
 GLOBL dbgbuf(SB), $8
 
-TEXT runtime·rt0_go(SB),NOSPLIT,$0
+TEXT runtime·rt0_go(SB),NOSPLIT|TOPFRAME,$0
 	// BSP = stack; R9 = argc; R8 = argv
-
-	// initialize essential registers
-	CALL	runtime·reginit(SB)
 
 	SUB	$(FIXED_FRAME+16), BSP
 	MOVD	$(FIXED_FRAME+0)(BSP), RT1
@@ -67,11 +64,8 @@ nocgo:
 
 	CALL	runtime·check(SB)
 
-	MOVD	BSP, RT1
-	MOVW	8(RT1), R3	// copy argc
-	MOVW	R3, -8(RT1)
-	MOVD	16(RT1), R3		// copy argv
-	MOVD	R3, 0(RT1)
+	// argc and argv were stored at FIXED_FRAME+0 and +8 above, which
+	// is exactly where runtime.args expects its arguments.
 	CALL	runtime·args(SB)
 	CALL	runtime·osinit(SB)
 	CALL	runtime·schedinit(SB)
@@ -92,7 +86,7 @@ nocgo:
 	MOVD	ZR, (ZR)	// boom
 	UNDEF
 
-DATA	runtime·mainPC+0(SB)/8,$runtime·main(SB)
+DATA	runtime·mainPC+0(SB)/8,$runtime·main<ABIInternal>(SB)
 GLOBL	runtime·mainPC(SB),RODATA,$8
 
 // mstart is the ABI0 entry point for a new m; the work is in mstart0.
@@ -115,10 +109,21 @@ TEXT runtime·gogo(SB), NOSPLIT|NOFRAME, $0-8
 	MOVD	0(g), R4	// make sure g is not nil
 	MOVD	gobuf_sp(R5), R1
 	MOVD	R1, BSP
+	// The frame anchor registers RFP (%i6) and OLR (%i7) are part of a
+	// goroutine's context in the flat-frame ABI: a framed function's
+	// epilogue unwinds through them, and the kernel's register-window
+	// spill keeps [sp+bias+112/120] mirroring them. gobuf.bp holds the
+	// parked frame's RFP; gobuf.lr holds its OLR (the frame's own
+	// return address). LR gets the same value: for a fresh goroutine
+	// (gostartcall) the entry prologue captures its return address
+	// from LR, while for a parked frame LR is dead anyway.
 	MOVD	gobuf_lr(R5), LR
+	MOVD	LR, OLR
+	MOVD	gobuf_bp(R5), RFP
 	MOVD	gobuf_ctxt(R5), CTXT
 	MOVD	ZR, gobuf_sp(R5)
 	MOVD	ZR, gobuf_lr(R5)
+	MOVD	ZR, gobuf_bp(R5)
 	MOVD	ZR, gobuf_ctxt(R5)
 	CMP	ZR, ZR // set condition codes for == test, needed by stack split
 	MOVD	gobuf_pc(R5), R8
@@ -129,11 +134,18 @@ TEXT runtime·gogo(SB), NOSPLIT|NOFRAME, $0-8
 // Fn must never return. It should gogo(&g->sched)
 // to keep running g.
 TEXT runtime·mcall(SB), NOSPLIT|NOFRAME, $0-8
-	// Save caller state in g->sched
+	// Save caller state in g->sched.
+	// gobuf_pc must be an exact resume address for gogo. LR holds the
+	// address of the CALL instruction itself (SPARC %o7), so the
+	// instruction to resume at is LR+8 (skipping the delay slot).
 	MOVD	BSP, TMP
 	MOVD	TMP, (g_sched+gobuf_sp)(g)
-	MOVD	LR, (g_sched+gobuf_pc)(g)
-	MOVD	$0, (g_sched+gobuf_lr)(g)
+	ADD	$8, LR, TMP
+	MOVD	TMP, (g_sched+gobuf_pc)(g)
+	// Save the caller's frame anchors so gogo can rebuild them:
+	// mcall is NOFRAME, so RFP/OLR still belong to the calling frame.
+	MOVD	OLR, (g_sched+gobuf_lr)(g)
+	MOVD	RFP, (g_sched+gobuf_bp)(g)
 	MOVD	g, (g_sched+gobuf_g)(g)
 
 	// Switch to m->g0 & its stack, call fn.
@@ -191,12 +203,15 @@ TEXT runtime·systemstack(SB), NOSPLIT, $0-8
 switch:
 	// save our state in g->sched. Pretend to
 	// be systemstack_switch if the G stack is scanned.
+	// The saved sp is our ENTRY sp (the caller's current sp) and the
+	// saved lr our return address, so unwinding the fake
+	// systemstack_switch frame lands exactly on the caller's frame.
 	MOVD	$runtime·systemstack_switch(SB), R8
 	ADD	$8, R8	// get past prologue
 	MOVD	R8, (g_sched+gobuf_pc)(g)
-	MOVD	BSP, TMP
+	ADD	$2047, RFP, TMP
 	MOVD	TMP, (g_sched+gobuf_sp)(g)
-	MOVD	$0, (g_sched+gobuf_lr)(g)
+	MOVD	OLR, (g_sched+gobuf_lr)(g)
 	MOVD	g, (g_sched+gobuf_g)(g)
 
 	// switch to g0
@@ -256,12 +271,21 @@ TEXT runtime·morestack(SB),NOSPLIT|NOFRAME,$0-0
 	JMP	runtime·abort(SB)
 
 	// Called from f.
-	// Set g->sched to context in f
+	// Set g->sched to context in f.
+	// gogo resumes at gobuf_pc exactly; LR is the address of the CALL
+	// morestack in f's split block, so resume at LR+8 (the jump back
+	// to the start of f). gobuf_lr stays the raw %o7 value of f's
+	// caller: it is restored into LR, and f returns through it with
+	// the usual +8.
 	MOVD	CTXT, (g_sched+gobuf_ctxt)(g)
 	MOVD	BSP, TMP
 	MOVD	TMP, (g_sched+gobuf_sp)(g)
-	MOVD	LR, (g_sched+gobuf_pc)(g)
+	ADD	$8, LR, TMP
+	MOVD	TMP, (g_sched+gobuf_pc)(g)
 	MOVD	R3, (g_sched+gobuf_lr)(g)
+	// f's prologue has not run, so RFP still belongs to f's caller;
+	// the resumed prologue will save it again.
+	MOVD	RFP, (g_sched+gobuf_bp)(g)
 
 	// Called from f.
 	// Set m->morebuf to f's callers.
@@ -295,13 +319,9 @@ TEXT runtime·morestack_noctxt(SB),NOSPLIT|NOFRAME,$0-0
 	JMPL	RT1, ZR
 // Note: can't just "JMP NAME(SB)" - bad inlining results.
 
-TEXT reflect·call(SB), NOSPLIT|NOFRAME, $0-0
-	JMP	·reflectcall(SB)
-
-TEXT ·reflectcall(SB), NOSPLIT|NOFRAME, $0-32
-	MOVUW argsize+24(FP), RT1
-	// NOTE(rsc): No call16, because CALLFN needs four words
-	// of argument space to invoke callwritebarrier.
+TEXT ·reflectcall(SB), NOSPLIT|NOFRAME, $0-48
+	MOVUW	frameSize+32(FP), RT1
+	DISPATCH(runtime·call16, 16)
 	DISPATCH(runtime·call32, 32)
 	DISPATCH(runtime·call64, 64)
 	DISPATCH(runtime·call128, 128)
@@ -331,60 +351,56 @@ TEXT ·reflectcall(SB), NOSPLIT|NOFRAME, $0-32
 	MOVD	$runtime·badreflectcall(SB), R1
 	JMPL	R1, ZR
 
+// There is no register ABI on sparc64, so regArgs is ignored and the
+// spill/unspill helpers of other ports are not needed.
 #define CALLFN(NAME,MAXSIZE)			\
-TEXT NAME(SB), WRAPPER, $MAXSIZE-24;		\
+TEXT NAME(SB), WRAPPER, $MAXSIZE-48;		\
 	NO_LOCAL_POINTERS;			\
-	/* copy arguments to stack */		\
-	MOVD	arg+16(FP), R3;			\
-	MOVUW	argsize+24(FP), R4;			\
-	MOVD	BSP, R5;				\
-	ADD	$(FIXED_FRAME-1), R5;			\
-	SUB	$1, R3;				\
-	ADD	R5, R4;				\
-	CMP	R5, R4;				\
+	/* copy arguments to the callee's stack space */ \
+	MOVD	stackArgs+16(FP), R3;		\
+	MOVUW	stackArgsSize+24(FP), R4;	\
+	MOVD	BSP, R5;			\
+	ADD	$FIXED_FRAME, R5;		\
+	ADD	R5, R4, R4;			\
+	CMP	R4, R5;				\
 	BED	6(PC);				\
 	MOVUB	(R3), R9;			\
 	ADD	$1, R3;				\
-	MOVUB	R9, (R5);			\
+	MOVB	R9, (R5);			\
 	ADD	$1, R5;				\
 	JMP	-6(PC);				\
 	/* call function */			\
 	MOVD	f+8(FP), CTXT;			\
 	MOVD	(CTXT), R1;			\
-	PCDATA  $PCDATA_StackMapIndex, $0;	\
+	PCDATA	$PCDATA_StackMapIndex, $0;	\
 	CALL	(R1);				\
 	/* copy return values back */		\
-	MOVD	arg+16(FP), R3;			\
-	MOVUW	n+24(FP), R4;			\
-	MOVUW	retoffset+28(FP), R9;		\
-	MOVD	BSP, R5;				\
-	ADD	R9, R5; 			\
-	ADD	R9, R3;				\
-	SUB	R9, R4;				\
-	ADD	$(FIXED_FRAME-1), R5;			\
-	SUB	$1, R3;				\
-	ADD	R5, R4;				\
-loop:						\
-	CMP	R5, R4;				\
-	BED	end;				\
-	MOVUB	(R5), R9;			\
-	ADD	$1, R5;				\
-	MOVUB	R9, (R3);			\
-	ADD	$1, R3;			\
-	JMP	loop;				\
-end:						\
-	/* execute write barrier updates */	\
-	MOVD	argtype+0(FP), R8;		\
-	MOVD	arg+16(FP), R3;			\
-	MOVUW	n+24(FP), R4;			\
-	MOVUW	retoffset+28(FP), R9;		\
-	MOVD	R8, (FIXED_FRAME+0)(BSP);			\
-	MOVD	R3, (FIXED_FRAME+8)(BSP);			\
-	MOVD	R4, (FIXED_FRAME+16)(BSP);			\
-	MOVD	R9, (FIXED_FRAME+24)(BSP);			\
-	CALL	runtime·callwritebarrier(SB);	\
+	MOVD	stackArgsType+0(FP), R8;	\
+	MOVD	stackArgs+16(FP), R3;		\
+	MOVUW	stackArgsSize+24(FP), R4;	\
+	MOVUW	stackRetOffset+28(FP), R9;	\
+	MOVD	BSP, R5;			\
+	ADD	$FIXED_FRAME, R5;		\
+	ADD	R9, R5, R5;			\
+	ADD	R9, R3, R3;			\
+	SUB	R9, R4, R4;			\
+	CALL	callRet<>(SB);			\
 	RET
 
+// callRet copies return values back at the end of call*. This is a
+// separate function so it can allocate stack space for the arguments
+// to reflectcallmove. It does not follow the Go ABI; it expects its
+// arguments in registers: R8 = argtype, R3 = dst, R5 = src, R4 = size.
+TEXT callRet<>(SB), NOSPLIT, $48-0
+	MOVD	R8, (FIXED_FRAME+0)(BSP)
+	MOVD	R3, (FIXED_FRAME+8)(BSP)
+	MOVD	R5, (FIXED_FRAME+16)(BSP)
+	MOVD	R4, (FIXED_FRAME+24)(BSP)
+	MOVD	ZR, (FIXED_FRAME+32)(BSP)
+	CALL	runtime·reflectcallmove(SB)
+	RET
+
+CALLFN(·call16, 16)
 CALLFN(·call32, 32)
 CALLFN(·call64, 64)
 CALLFN(·call128, 128)
@@ -641,11 +657,16 @@ TEXT runtime·return0(SB), NOSPLIT, $0
 	MOVW	ZR, R8
 	RET
 
-// The top-most function running on a goroutine
-// returns to goexit+PCQuantum.
-TEXT runtime·goexit(SB),NOSPLIT|NOFRAME,$0-0
-	MOVD	R1, R1	// NOP
-	CALL	runtime·goexit1(SB)	// does not return
+// The top-most function running on a goroutine returns with its LR set
+// to goexit+PCQuantum (see gostartcall), and a SPARC return jumps to
+// LR+8, so control arrives at goexit+12. The three RNOPs put the CALL
+// exactly there; the first also keeps the +PCQuantum address inside
+// this function for traceback.
+TEXT runtime·goexit(SB),NOSPLIT|NOFRAME|TOPFRAME,$0-0
+	RNOP	// +0
+	RNOP	// +4: goexit+PCQuantum, the value planted in LR
+	RNOP	// +8
+	CALL	runtime·goexit1(SB)	// +12: where the RET lands; does not return
 
 // TODO(aram):
 TEXT runtime·addmoduledata(SB),NOSPLIT,$0-0
@@ -657,4 +678,149 @@ TEXT runtime·addmoduledata(SB),NOSPLIT,$0-0
 TEXT ·checkASM(SB),NOSPLIT,$0-1
 	OR	$1, ZR, R3
 	MOVB	R3, ret+0(FP)
+	RET
+
+// gcWriteBarrier informs the GC about heap pointer writes.
+//
+// gcWriteBarrier does not follow the Go ABI. It accepts the number of
+// bytes of buffer needed in R25, and returns a pointer to the buffer
+// space in R25. It preserves every other allocatable integer register:
+// it is called from compiled code at pointer writes, where anything may
+// be live. The flush path spills them all around runtime·wbBufFlush.
+// R15, the link register, is clobbered by the CALL itself and is
+// declared clobbered by LoweredWB.
+TEXT gcWriteBarrier<>(SB),NOSPLIT,$176
+	// Save the registers clobbered by the fast path.
+	MOVD	R1, (176+0)(BSP)
+	MOVD	R2, (176+8)(BSP)
+	MOVD	R3, (176+16)(BSP)
+retry:
+	MOVD	g_m(g), R1
+	MOVD	m_p(R1), R1
+	MOVD	(p_wbBuf+wbBuf_next)(R1), R2
+	MOVD	(p_wbBuf+wbBuf_end)(R1), R3
+	// Increment wbBuf.next position.
+	ADD	R25, R2, R2
+	// Is the buffer full? Flush if next > end.
+	CMP	R3, R2
+	BGUD	flush
+	// Commit to the larger buffer.
+	MOVD	R2, (p_wbBuf+wbBuf_next)(R1)
+	// Make the return value: the original next position.
+	SUB	R25, R2, R25
+	// Restore registers.
+	MOVD	(176+0)(BSP), R1
+	MOVD	(176+8)(BSP), R2
+	MOVD	(176+16)(BSP), R3
+	RET
+
+flush:
+	// Save all allocatable integer registers: these could be
+	// clobbered by wbBufFlush and were not saved by the caller.
+	// R1, R2, R3 are already saved.
+	MOVD	R4, (176+24)(BSP)
+	MOVD	R5, (176+32)(BSP)
+	MOVD	R8, (176+40)(BSP)
+	MOVD	R9, (176+48)(BSP)
+	MOVD	R10, (176+56)(BSP)
+	MOVD	R11, (176+64)(BSP)
+	MOVD	R12, (176+72)(BSP)
+	MOVD	R13, (176+80)(BSP)
+	MOVD	R16, (176+88)(BSP)
+	MOVD	R17, (176+96)(BSP)
+	MOVD	R18, (176+104)(BSP)
+	MOVD	R19, (176+112)(BSP)
+	MOVD	R20, (176+120)(BSP)
+	MOVD	R21, (176+128)(BSP)
+	MOVD	R24, (176+136)(BSP)
+	MOVD	R25, (176+144)(BSP)
+	MOVD	CTXT, (176+152)(BSP)
+	// R15 is the link register, saved by the prologue and declared
+	// clobbered by LoweredWB. TMP and TMP2 are assembler temporaries.
+	// g is not clobbered by wbBufFlush.
+
+	CALL	runtime·wbBufFlush(SB)
+
+	MOVD	(176+24)(BSP), R4
+	MOVD	(176+32)(BSP), R5
+	MOVD	(176+40)(BSP), R8
+	MOVD	(176+48)(BSP), R9
+	MOVD	(176+56)(BSP), R10
+	MOVD	(176+64)(BSP), R11
+	MOVD	(176+72)(BSP), R12
+	MOVD	(176+80)(BSP), R13
+	MOVD	(176+88)(BSP), R16
+	MOVD	(176+96)(BSP), R17
+	MOVD	(176+104)(BSP), R18
+	MOVD	(176+112)(BSP), R19
+	MOVD	(176+120)(BSP), R20
+	MOVD	(176+128)(BSP), R21
+	MOVD	(176+136)(BSP), R24
+	MOVD	(176+144)(BSP), R25
+	MOVD	(176+152)(BSP), CTXT
+	JMP	retry
+
+TEXT runtime·gcWriteBarrier1(SB),NOSPLIT|NOFRAME,$0
+	MOVD	$8, R25
+	JMP	gcWriteBarrier<>(SB)
+TEXT runtime·gcWriteBarrier2(SB),NOSPLIT|NOFRAME,$0
+	MOVD	$16, R25
+	JMP	gcWriteBarrier<>(SB)
+TEXT runtime·gcWriteBarrier3(SB),NOSPLIT|NOFRAME,$0
+	MOVD	$24, R25
+	JMP	gcWriteBarrier<>(SB)
+TEXT runtime·gcWriteBarrier4(SB),NOSPLIT|NOFRAME,$0
+	MOVD	$32, R25
+	JMP	gcWriteBarrier<>(SB)
+TEXT runtime·gcWriteBarrier5(SB),NOSPLIT|NOFRAME,$0
+	MOVD	$40, R25
+	JMP	gcWriteBarrier<>(SB)
+TEXT runtime·gcWriteBarrier6(SB),NOSPLIT|NOFRAME,$0
+	MOVD	$48, R25
+	JMP	gcWriteBarrier<>(SB)
+TEXT runtime·gcWriteBarrier7(SB),NOSPLIT|NOFRAME,$0
+	MOVD	$56, R25
+	JMP	gcWriteBarrier<>(SB)
+TEXT runtime·gcWriteBarrier8(SB),NOSPLIT|NOFRAME,$0
+	MOVD	$64, R25
+	JMP	gcWriteBarrier<>(SB)
+
+// panicBounds is called by compiled code at a failed bounds check, with
+// the PCData entry describing which registers or constants hold the
+// operands. It saves the 16 candidate registers — in exactly the order
+// of the compiler's boundsRegs table (R1-R5, R8-R13, R16-R20; R15 is
+// the link register and excluded) — and hands runtime.panicBounds64 the
+// call PC and a pointer to the save area. The registers may hold dead
+// pointers; panicBounds64 only reads the ones the PCData names.
+TEXT runtime·panicBounds(SB),NOSPLIT,$144-0
+	NO_LOCAL_POINTERS
+	MOVD	R1, (176+16)(BSP)
+	MOVD	R2, (176+24)(BSP)
+	MOVD	R3, (176+32)(BSP)
+	MOVD	R4, (176+40)(BSP)
+	MOVD	R5, (176+48)(BSP)
+	MOVD	R8, (176+56)(BSP)
+	MOVD	R9, (176+64)(BSP)
+	MOVD	R10, (176+72)(BSP)
+	MOVD	R11, (176+80)(BSP)
+	MOVD	R12, (176+88)(BSP)
+	MOVD	R13, (176+96)(BSP)
+	MOVD	R16, (176+104)(BSP)
+	MOVD	R17, (176+112)(BSP)
+	MOVD	R18, (176+120)(BSP)
+	MOVD	R19, (176+128)(BSP)
+	MOVD	R20, (176+136)(BSP)
+
+	// The prologue moved the incoming return address into OLR, so it
+	// is the PC immediately after the call to panicBounds.
+	MOVD	OLR, (176+0)(BSP)
+	MOVD	$(176+16)(BSP), R1	// pointer to the save area
+	MOVD	R1, (176+8)(BSP)
+	CALL	runtime·panicBounds64(SB)
+	RET	// not reached
+
+// publicationBarrier must order prior stores before later stores.
+// Linux/sparc64 runs in TSO, where stores are already ordered, so like
+// amd64 this is a plain return.
+TEXT runtime·publicationBarrier(SB),NOSPLIT|NOFRAME,$0-0
 	RET

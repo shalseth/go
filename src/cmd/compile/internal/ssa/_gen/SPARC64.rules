@@ -241,26 +241,43 @@
 // A constant shift count needs no range check: fold it directly, or to
 // zero when it is out of range. These must precede the masked forms
 // below, which would otherwise emit the guard sequence for a constant.
+//
+// Values narrower than 64 bits may carry junk in their high bits (a
+// 32-bit add can carry into bit 32, a left shift pushes bits past the
+// type width), so a right shift must first extend the operand to its
+// canonical 64-bit form: zero-extended for logical shifts,
+// sign-extended for arithmetic ones. Left shifts need no extension —
+// any junk moves further up, away from the bits the type owns.
 (Lsh(8|16|32|64)x64 <t> x (Const64 [c])) && uint64(c) < 64 => (SLLDconst <t> [c] x)
-(Rsh(8|16|32|64)Ux64 <t> x (Const64 [c])) && uint64(c) < 64 => (SRLDconst <t> [c] x)
-(Rsh(8|16|32|64)x64 <t> x (Const64 [c])) && uint64(c) < 64 => (SRADconst <t> [c] x)
+(Rsh8Ux64  <t> x (Const64 [c])) && uint64(c) < 64 => (SRLDconst <t> [c] (ZeroExt8to64  x))
+(Rsh16Ux64 <t> x (Const64 [c])) && uint64(c) < 64 => (SRLDconst <t> [c] (ZeroExt16to64 x))
+(Rsh32Ux64 <t> x (Const64 [c])) && uint64(c) < 64 => (SRLDconst <t> [c] (ZeroExt32to64 x))
+(Rsh64Ux64 <t> x (Const64 [c])) && uint64(c) < 64 => (SRLDconst <t> [c] x)
+(Rsh8x64  <t> x (Const64 [c])) && uint64(c) < 64 => (SRADconst <t> [c] (SignExt8to64  x))
+(Rsh16x64 <t> x (Const64 [c])) && uint64(c) < 64 => (SRADconst <t> [c] (SignExt16to64 x))
+(Rsh32x64 <t> x (Const64 [c])) && uint64(c) < 64 => (SRADconst <t> [c] (SignExt32to64 x))
+(Rsh64x64 <t> x (Const64 [c])) && uint64(c) < 64 => (SRADconst <t> [c] x)
 (Lsh(8|16|32|64)x64 _ (Const64 [c])) && uint64(c) >= 64 => (MOVDconst [0])
 (Rsh(8|16|32|64)Ux64 _ (Const64 [c])) && uint64(c) >= 64 => (MOVDconst [0])
-(Rsh(8|16|32|64)x64 <t> x (Const64 [c])) && uint64(c) >= 64 => (SRADconst <t> [63] x)
+(Rsh8x64  <t> x (Const64 [c])) && uint64(c) >= 64 => (SRADconst <t> [63] (SignExt8to64  x))
+(Rsh16x64 <t> x (Const64 [c])) && uint64(c) >= 64 => (SRADconst <t> [63] (SignExt16to64 x))
+(Rsh32x64 <t> x (Const64 [c])) && uint64(c) >= 64 => (SRADconst <t> [63] (SignExt32to64 x))
+(Rsh64x64 <t> x (Const64 [c])) && uint64(c) >= 64 => (SRADconst <t> [63] x)
 
 // Shifts. SPARC masks the shift count to the register width, but Go
 // defines a count at or beyond the width as producing zero (or the
 // sign, for arithmetic right shifts). The mask below is all-ones when
-// the count is in range and zero otherwise.
+// the count is in range and zero otherwise. Right-shift operands are
+// extended for the same reason as in the constant rules above.
 (Lsh8x64 <t> x y) => (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SLLD <t> x y))
-(Rsh8x64 <t> x y) => (SRAD <t> x (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
-(Rsh8Ux64 <t> x y) => (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> x y))
+(Rsh8x64 <t> x y) => (SRAD <t> (SignExt8to64 x) (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
+(Rsh8Ux64 <t> x y) => (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> (ZeroExt8to64 x) y))
 (Lsh16x64 <t> x y) => (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SLLD <t> x y))
-(Rsh16x64 <t> x y) => (SRAD <t> x (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
-(Rsh16Ux64 <t> x y) => (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> x y))
+(Rsh16x64 <t> x y) => (SRAD <t> (SignExt16to64 x) (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
+(Rsh16Ux64 <t> x y) => (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> (ZeroExt16to64 x) y))
 (Lsh32x64 <t> x y) => (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SLLD <t> x y))
-(Rsh32x64 <t> x y) => (SRAD <t> x (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
-(Rsh32Ux64 <t> x y) => (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> x y))
+(Rsh32x64 <t> x y) => (SRAD <t> (SignExt32to64 x) (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
+(Rsh32Ux64 <t> x y) => (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> (ZeroExt32to64 x) y))
 (Lsh64x64 <t> x y) => (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SLLD <t> x y))
 (Rsh64x64 <t> x y) => (SRAD <t> x (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
 (Rsh64Ux64 <t> x y) => (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> x y))

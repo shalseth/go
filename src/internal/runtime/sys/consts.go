@@ -11,8 +11,10 @@ import (
 
 // AIX and OpenBSD require a larger stack for syscalls.
 // The race build also needs more stack. See issue 54291.
+// sparc64's mandatory 176-byte minimum frame makes every frame in a
+// nosplit chain large, so the chains need a bigger budget.
 // This arithmetic must match that in cmd/internal/objabi/stack.go:stackGuardMultiplier.
-const StackGuardMultiplier = 1 + goos.IsAix + goos.IsOpenbsd + isRace
+const StackGuardMultiplier = 1 + goos.IsAix + goos.IsOpenbsd + 2*goarch.IsSparc64 + isRace
 
 // DefaultPhysPageSize is the default physical page size.
 const DefaultPhysPageSize = goarch.DefaultPhysPageSize

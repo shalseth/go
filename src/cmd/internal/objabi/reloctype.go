@@ -472,7 +472,7 @@ const (
 func (r RelocType) IsDirectCall() bool {
 	switch r {
 	case R_CALL, R_CALLARM, R_CALLARM64, R_CALLLOONG64, R_CALLMIPS, R_CALLPOWER,
-		R_RISCV_CALL, R_RISCV_JAL, R_RISCV_JAL_TRAMP:
+		R_CALLSPARC64, R_RISCV_CALL, R_RISCV_JAL, R_RISCV_JAL_TRAMP:
 		return true
 	}
 	return false

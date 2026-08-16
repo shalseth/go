@@ -12,6 +12,9 @@ import (
 	"unsafe"
 )
 
+// _MinFrameSizeWords is goarch.MinFrameSize in pointer-size words.
+const _MinFrameSizeWords = 176 / goarch.PtrSize
+
 func dumpregs(c *sigctxt) {
 	r := c.regs()
 	for i := 0; i < 8; i++ {
@@ -34,10 +37,10 @@ func (c *sigctxt) fault() uintptr { return uintptr(c.sigaddr()) }
 // preparePanic sets up the stack to look like a call to sigpanic.
 func (c *sigctxt) preparePanic(sig uint32, gp *g) {
 	// Arrange the link register and PC so the panicking function looks
-	// like it called sigpanic directly. The link register is always
-	// spilled so a panic in a leaf function is handled too; this
-	// smashes the frame, but execution is not returning there.
-	sp := c.sp() - goarch.PtrSize
+	// like it called sigpanic directly. Push a MinFrameSize area with
+	// the old link register spilled at its base: the generic traceback
+	// and stack scanner expect exactly this shape for injected calls.
+	sp := c.sp() - goarch.PtrSize*(_MinFrameSizeWords)
 	c.set_sp(sp)
 	*(*uint64)(unsafe.Pointer(uintptr(sp))) = c.lr()
 
@@ -54,14 +57,16 @@ func (c *sigctxt) preparePanic(sig uint32, gp *g) {
 }
 
 func (c *sigctxt) pushCall(targetPC, resumePC uintptr) {
-	// Spill the link register, which is about to be clobbered to push
-	// the call. The function being pushed restores it and resets the
-	// stack pointer. gentraceback knows about this extra slot.
-	sp := c.sp() - goarch.PtrSize
+	// Push a MinFrameSize area with the clobbered link register
+	// spilled at its base; asyncPreempt pops both on the way out, and
+	// the traceback machinery knows this shape for injected calls.
+	sp := c.sp() - goarch.PtrSize*(_MinFrameSizeWords)
 	c.set_sp(sp)
 	*(*uint64)(unsafe.Pointer(uintptr(sp))) = c.lr()
 	// Make the signalled function look like it calls targetPC at
-	// resumePC. set_pc moves tnpc along with tpc, which SPARC needs.
-	c.set_lr(uint64(resumePC))
+	// resumePC. LR gets resumePC-8: asyncPreempt behaves like a normal
+	// framed function, and a SPARC return jumps to the return address
+	// plus 8. set_pc moves tnpc along with tpc, which SPARC needs.
+	c.set_lr(uint64(resumePC) - 8)
 	c.set_pc(uint64(targetPC))
 }

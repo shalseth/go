@@ -50,7 +50,12 @@ const (
 	// and there may be other issues (see #54104).
 	riscv64AddrBits = 56
 
-	addrBits = goos.IsAix*aixAddrBits + goarch.IsRiscv64*riscv64AddrBits + goos.IsFreebsd*goarch.IsAmd64*freebsdAmd64AddrBits + (1-goos.IsAix)*(1-goarch.IsRiscv64)*(1-goos.IsFreebsd*goarch.IsAmd64)*defaultAddrBits
+	// sparc64 (sun4v) has a 52-bit sign-extended VA space: userspace
+	// addresses live in [0, 2^51) and [2^64-2^51, 2^64), and the
+	// kernel serves unhinted mmaps from the high half.
+	sparc64AddrBits = 52
+
+	addrBits = goos.IsAix*aixAddrBits + goarch.IsRiscv64*riscv64AddrBits + goarch.IsSparc64*sparc64AddrBits + goos.IsFreebsd*goarch.IsAmd64*freebsdAmd64AddrBits + (1-goos.IsAix)*(1-goarch.IsRiscv64)*(1-goarch.IsSparc64)*(1-goos.IsFreebsd*goarch.IsAmd64)*defaultAddrBits
 
 	// In addition to the 16 bits (or other, depending on arch/os) taken from the top,
 	// we can take 9 from the bottom, because we require pointers to be well-aligned
@@ -71,9 +76,10 @@ func taggedPointerPack(ptr unsafe.Pointer, tag uintptr) taggedPointer {
 
 // Pointer returns the pointer from a taggedPointer.
 func (tp taggedPointer) pointer() unsafe.Pointer {
-	if GOARCH == "amd64" {
-		// amd64 systems can place the stack above the VA hole, so we need to sign extend
-		// val before unpacking.
+	if GOARCH == "amd64" || GOARCH == "sparc64" {
+		// amd64 and sparc64 addresses are sign-extended: the upper half
+		// of the VA space sits at the top of the address range, so sign
+		// extend when unpacking.
 		return unsafe.Pointer(uintptr(int64(tp) >> tagBits << tagAlignBits))
 	}
 	if GOOS == "aix" {

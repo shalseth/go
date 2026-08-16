@@ -103078,8 +103078,8 @@ var opcodeTable = [...]opInfo{
 		call:    true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 131070, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19
-				{1, regMask{v1: 131070, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19
+				{0, regMask{v1: 258046, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20
+				{1, regMask{v1: 258046, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20
 			},
 		},
 	},
@@ -103090,7 +103090,7 @@ var opcodeTable = [...]opInfo{
 		call:    true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 131070, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19
+				{0, regMask{v1: 258046, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20
 			},
 		},
 	},
@@ -103101,7 +103101,7 @@ var opcodeTable = [...]opInfo{
 		call:    true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 131070, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19
+				{0, regMask{v1: 258046, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20
 			},
 		},
 	},
@@ -103118,7 +103118,7 @@ var opcodeTable = [...]opInfo{
 		argLen:       1,
 		clobberFlags: true,
 		reg: regInfo{
-			clobbers: regMask{v1: 549739036672, v2: 0}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+			clobbers: regMask{v1: 549739040768, v2: 0}, // R15 Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			outputs: []outputInfo{
 				{0, regMask{v1: 1048576, v2: 0}}, // R25
 			},

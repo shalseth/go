@@ -1,90 +1,81 @@
-// Copyright 2016 The Go Authors. All rights reserved.
+// Copyright 2026 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 #include "textflag.h"
 
-// void runtime·memmove(void*, void*, uintptr)
-TEXT runtime·memmove(SB), NOSPLIT|NOFRAME, $0-24
-	MOVD	to+0(FP), R3
-	MOVD	from+8(FP), R4
-	MOVD	n+16(FP), R5
-	CMP	ZR, R5
-	BNED	check
+// func memmove(to, from unsafe.Pointer, n uintptr)
+//
+// Copies forward when to < from and backward otherwise, so overlapping
+// regions are handled. 8-byte accesses only when both pointers and the
+// length are 8-aligned, since SPARC traps on unaligned access. The 2016
+// tree's memmove read registers it never initialized and was not
+// salvageable.
+TEXT runtime·memmove(SB),NOSPLIT|NOFRAME,$0-24
+	MOVD	to+0(FP), R8
+	MOVD	from+8(FP), R9
+	MOVD	n+16(FP), R10
+	CMP	ZR, R10
+	BED	done
+	// Same pointer: nothing to do.
+	CMP	R9, R8
+	BED	done
+	BCSD	forward		// to < from: copy up
+
+	// Backward copy, from the last byte down.
+	OR	R8, R9, R11
+	OR	R11, R10, R11
+	AND	$7, R11, R11
+	CMP	ZR, R11
+	BNED	back1
+	ADD	R8, R10, R8	// to end
+	ADD	R9, R10, R9	// from end
+back8loop:
+	SUB	$8, R9
+	SUB	$8, R8
+	MOVD	(R9), R11
+	MOVD	R11, (R8)
+	CMP	ZR, R10
+	SUB	$8, R10
+	CMP	ZR, R10
+	BNED	back8loop
+	RET
+back1:
+	ADD	R8, R10, R8
+	ADD	R9, R10, R9
+back1loop:
+	SUB	$1, R9
+	SUB	$1, R8
+	MOVUB	(R9), R11
+	MOVB	R11, (R8)
+	SUB	$1, R10
+	CMP	ZR, R10
+	BNED	back1loop
 	RET
 
-check:
-	AND $7, R5, R11
-
-	CMP	R3, R4
-	BLD	backward
-
-	// Copying forward proceeds by copying R10/8 words then copying R6 bytes.
-	// R3 and R4 are advanced as we copy.
-
-	CMP	ZR, R10		// Do we need to do any word-by-word copying?
-	BED	noforwardlarge
-
-	ADD	R3, R10, R9	// R9 points just past where we copy by word
-
-forwardlargeloop:
-	MOVD	(R4), R8	// R8 is just a scratch register
-	ADD	$8, R4
-	MOVD	R8, (R3)
-	ADD	$8, R3
-	CMP	R3, R9
-	BNED	forwardlargeloop
-
-noforwardlarge:
-	CMP	ZR, R11		// Do we need to do any byte-by-byte copying?
-	BNED	forwardtail
+forward:
+	OR	R8, R9, R11
+	OR	R11, R10, R11
+	AND	$7, R11, R11
+	CMP	ZR, R11
+	BNED	fwd1
+	ADD	R9, R10, R10	// R10 = from end
+fwd8loop:
+	MOVD	(R9), R11
+	MOVD	R11, (R8)
+	ADD	$8, R9
+	ADD	$8, R8
+	CMP	R10, R9
+	BNED	fwd8loop
 	RET
-
-forwardtail:
-	ADD	R3, R11, R9	// R9 points just past the destination memory
-
-forwardtailloop:
-	MOVUB (R4), R8
-	ADD	$1, R4
-	MOVUB	R8, (R3)
-	ADD	$1, R3
-	CMP	R3, R9
-	BNED	forwardtailloop
-	RET
-
-backward:
-	// Copying backwards proceeds by copying R6 bytes then copying R10/8 words.
-	// R3 and R4 are advanced to the end of the destination/source buffers
-	// respectively and moved back as we copy.
-
-	ADD	R4, R5, R4	// R4 points just past the last source byte
-	ADD	R3, R5, R3	// R3 points just past the last destination byte
-
-	CMP	ZR, R11		// Do we need to do any byte-by-byte copying?
-	BED	nobackwardtail
-
-	SUB	R11, R3, R9	// R9 points at the lowest destination byte that should be copied by byte.
-backwardtailloop:
-	ADD	$-1, R4
-	MOVUB	(R4), R8
-	ADD	$-1, R3
-	MOVUB	R8, -1(R3)
-	CMP	R9, R3
-	BNED	backwardtailloop
-
-nobackwardtail:
-	CMP     ZR, R10		// Do we need to do any word-by-word copying?
-	BNED	backwardlarge
-	RET
-
-backwardlarge:
-        SUB	R10, R3, R9      // R9 points at the lowest destination byte
-
-backwardlargeloop:
-	ADD	$-8, R4
-	MOVD	(R4), R8
-	ADD	$-8, R3
-	MOVD	R8, (R3)
-	CMP	R9, R3
-	BNED	backwardlargeloop
+fwd1:
+	ADD	R9, R10, R10
+fwd1loop:
+	MOVUB	(R9), R11
+	MOVB	R11, (R8)
+	ADD	$1, R9
+	ADD	$1, R8
+	CMP	R10, R9
+	BNED	fwd1loop
+done:
 	RET

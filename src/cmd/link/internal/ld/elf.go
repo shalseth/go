@@ -173,7 +173,7 @@ var buildinfo []byte
 func Elfinit(ctxt *Link) {
 	ctxt.IsELF = true
 
-	if ctxt.Arch.InFamily(sys.AMD64, sys.ARM64, sys.Loong64, sys.MIPS64, sys.PPC64, sys.RISCV64, sys.S390X) {
+	if ctxt.Arch.InFamily(sys.AMD64, sys.ARM64, sys.Loong64, sys.MIPS64, sys.PPC64, sys.RISCV64, sys.S390X, sys.SPARC64) {
 		elfRelType = ".rela"
 	} else {
 		elfRelType = ".rel"
@@ -181,7 +181,7 @@ func Elfinit(ctxt *Link) {
 
 	switch ctxt.Arch.Family {
 	// 64-bit architectures
-	case sys.AMD64, sys.ARM64, sys.Loong64, sys.MIPS64, sys.PPC64, sys.RISCV64, sys.S390X:
+	case sys.AMD64, sys.ARM64, sys.Loong64, sys.MIPS64, sys.PPC64, sys.RISCV64, sys.S390X, sys.SPARC64:
 		if ctxt.Arch.Family == sys.MIPS64 {
 			ehdr.Flags = 0x20000004 // MIPS 3 CPIC
 		}
@@ -1729,6 +1729,8 @@ func asmbElf(ctxt *Link) {
 		eh.Machine = uint16(elf.EM_RISCV)
 	case sys.S390X:
 		eh.Machine = uint16(elf.EM_S390)
+	case sys.SPARC64:
+		eh.Machine = uint16(elf.EM_SPARCV9)
 	}
 
 	elfreserve := int64(ELFRESERVE)

@@ -304,6 +304,7 @@ func NewConfig(arch string, types Types, ctxt *obj.Link, optimize, softfloat boo
 		c.FPReg = framepointerRegSPARC64
 		c.LinkReg = linkRegSPARC64
 		c.hasGReg = true
+		c.BigEndian = true
 		// SPARC V9 traps on unaligned access.
 		c.unalignedOK = false
 	case "loong64":

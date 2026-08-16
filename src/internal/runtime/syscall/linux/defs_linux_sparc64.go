@@ -22,9 +22,12 @@ const (
 	SYS_READ          = 3
 	SYS_UNAME         = 189
 
-	// SPARC numbers the eventfd flags differently from the
-	// asm-generic value of 0x800.
-	EFD_NONBLOCK = 0x4000
+	// SPARC numbers the O_* style flags differently from the
+	// asm-generic values (0x800 for nonblock, 0x80000 for cloexec).
+	EFD_NONBLOCK  = 0x4000
+	EPOLL_CLOEXEC = 0x400000
+	EFD_CLOEXEC   = 0x400000
+	O_CLOEXEC     = 0x400000
 
 	// Zero on 64-bit targets, as everywhere else: large-file offsets
 	// are already the default.

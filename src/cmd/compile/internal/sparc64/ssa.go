@@ -148,8 +148,8 @@ func condMove(op ssa.Op) obj.As {
 var boundsRegs = [16]int16{
 	sparc64.REG_R1, sparc64.REG_R2, sparc64.REG_R3, sparc64.REG_R4,
 	sparc64.REG_R5, sparc64.REG_R8, sparc64.REG_R9, sparc64.REG_R10,
-	sparc64.REG_R11, sparc64.REG_R12, sparc64.REG_R13, sparc64.REG_R15,
-	sparc64.REG_R16, sparc64.REG_R17, sparc64.REG_R18, sparc64.REG_R19,
+	sparc64.REG_R11, sparc64.REG_R12, sparc64.REG_R13, sparc64.REG_R16,
+	sparc64.REG_R17, sparc64.REG_R18, sparc64.REG_R19, sparc64.REG_R20,
 }
 
 // boundsRegIndex returns the PCData index for register r.
@@ -417,6 +417,15 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.From.Type = obj.TYPE_ADDR
 		p.From.Reg = v.Args[0].Reg()
 		ssagen.AddAux(&p.From, v)
+		if p.From.Reg == sparc64.REG_RSP && p.From.Sym == nil {
+			// Raw stack-pointer arithmetic, as produced by the
+			// OffPtr(SP) lowering for outgoing call arguments. %sp
+			// carries the SPARC V9 bias, so the real address is
+			// %sp + StackBias + offset. Named slots do not take this
+			// path: the assembler's autoedit pass adds the bias when
+			// it resolves NAME_AUTO and NAME_PARAM.
+			p.From.Offset += sparc64.StackBias
+		}
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 

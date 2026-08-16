@@ -2877,7 +2877,7 @@ func rewriteValueSPARC64_OpRsh16Ux64(v *Value) bool {
 	typ := &b.Func.Config.Types
 	// match: (Rsh16Ux64 <t> x (Const64 [c]))
 	// cond: uint64(c) < 64
-	// result: (SRLDconst <t> [c] x)
+	// result: (SRLDconst <t> [c] (ZeroExt16to64 x))
 	for {
 		t := v.Type
 		x := v_0
@@ -2891,7 +2891,9 @@ func rewriteValueSPARC64_OpRsh16Ux64(v *Value) bool {
 		v.reset(OpSPARC64SRLDconst)
 		v.Type = t
 		v.AuxInt = int64ToAuxInt(c)
-		v.AddArg(x)
+		v0 := b.NewValue0(v.Pos, OpZeroExt16to64, typ.UInt64)
+		v0.AddArg(x)
+		v.AddArg(v0)
 		return true
 	}
 	// match: (Rsh16Ux64 _ (Const64 [c]))
@@ -2910,7 +2912,7 @@ func rewriteValueSPARC64_OpRsh16Ux64(v *Value) bool {
 		return true
 	}
 	// match: (Rsh16Ux64 <t> x y)
-	// result: (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> x y))
+	// result: (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> (ZeroExt16to64 x) y))
 	for {
 		t := v.Type
 		x := v_0
@@ -2924,7 +2926,9 @@ func rewriteValueSPARC64_OpRsh16Ux64(v *Value) bool {
 		v1.AddArg(v2)
 		v0.AddArg(v1)
 		v3 := b.NewValue0(v.Pos, OpSPARC64SRLD, t)
-		v3.AddArg2(x, y)
+		v4 := b.NewValue0(v.Pos, OpZeroExt16to64, typ.UInt64)
+		v4.AddArg(x)
+		v3.AddArg2(v4, y)
 		v.AddArg2(v0, v3)
 		return true
 	}
@@ -2987,7 +2991,7 @@ func rewriteValueSPARC64_OpRsh16x64(v *Value) bool {
 	typ := &b.Func.Config.Types
 	// match: (Rsh16x64 <t> x (Const64 [c]))
 	// cond: uint64(c) < 64
-	// result: (SRADconst <t> [c] x)
+	// result: (SRADconst <t> [c] (SignExt16to64 x))
 	for {
 		t := v.Type
 		x := v_0
@@ -3001,12 +3005,14 @@ func rewriteValueSPARC64_OpRsh16x64(v *Value) bool {
 		v.reset(OpSPARC64SRADconst)
 		v.Type = t
 		v.AuxInt = int64ToAuxInt(c)
-		v.AddArg(x)
+		v0 := b.NewValue0(v.Pos, OpSignExt16to64, typ.Int64)
+		v0.AddArg(x)
+		v.AddArg(v0)
 		return true
 	}
 	// match: (Rsh16x64 <t> x (Const64 [c]))
 	// cond: uint64(c) >= 64
-	// result: (SRADconst <t> [63] x)
+	// result: (SRADconst <t> [63] (SignExt16to64 x))
 	for {
 		t := v.Type
 		x := v_0
@@ -3020,27 +3026,31 @@ func rewriteValueSPARC64_OpRsh16x64(v *Value) bool {
 		v.reset(OpSPARC64SRADconst)
 		v.Type = t
 		v.AuxInt = int64ToAuxInt(63)
-		v.AddArg(x)
+		v0 := b.NewValue0(v.Pos, OpSignExt16to64, typ.Int64)
+		v0.AddArg(x)
+		v.AddArg(v0)
 		return true
 	}
 	// match: (Rsh16x64 <t> x y)
-	// result: (SRAD <t> x (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
+	// result: (SRAD <t> (SignExt16to64 x) (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
 	for {
 		t := v.Type
 		x := v_0
 		y := v_1
 		v.reset(OpSPARC64SRAD)
 		v.Type = t
-		v0 := b.NewValue0(v.Pos, OpSPARC64OR, typ.UInt64)
-		v1 := b.NewValue0(v.Pos, OpSPARC64NEG, typ.UInt64)
-		v2 := b.NewValue0(v.Pos, OpSPARC64GreaterThanU, typ.UInt64)
-		v3 := b.NewValue0(v.Pos, OpSPARC64CMPconst, types.TypeFlags)
-		v3.AuxInt = int64ToAuxInt(63)
-		v3.AddArg(y)
+		v0 := b.NewValue0(v.Pos, OpSignExt16to64, typ.Int64)
+		v0.AddArg(x)
+		v1 := b.NewValue0(v.Pos, OpSPARC64OR, typ.UInt64)
+		v2 := b.NewValue0(v.Pos, OpSPARC64NEG, typ.UInt64)
+		v3 := b.NewValue0(v.Pos, OpSPARC64GreaterThanU, typ.UInt64)
+		v4 := b.NewValue0(v.Pos, OpSPARC64CMPconst, types.TypeFlags)
+		v4.AuxInt = int64ToAuxInt(63)
+		v4.AddArg(y)
+		v3.AddArg(v4)
 		v2.AddArg(v3)
-		v1.AddArg(v2)
-		v0.AddArg2(v1, y)
-		v.AddArg2(x, v0)
+		v1.AddArg2(v2, y)
+		v.AddArg2(v0, v1)
 		return true
 	}
 }
@@ -3102,7 +3112,7 @@ func rewriteValueSPARC64_OpRsh32Ux64(v *Value) bool {
 	typ := &b.Func.Config.Types
 	// match: (Rsh32Ux64 <t> x (Const64 [c]))
 	// cond: uint64(c) < 64
-	// result: (SRLDconst <t> [c] x)
+	// result: (SRLDconst <t> [c] (ZeroExt32to64 x))
 	for {
 		t := v.Type
 		x := v_0
@@ -3116,7 +3126,9 @@ func rewriteValueSPARC64_OpRsh32Ux64(v *Value) bool {
 		v.reset(OpSPARC64SRLDconst)
 		v.Type = t
 		v.AuxInt = int64ToAuxInt(c)
-		v.AddArg(x)
+		v0 := b.NewValue0(v.Pos, OpZeroExt32to64, typ.UInt64)
+		v0.AddArg(x)
+		v.AddArg(v0)
 		return true
 	}
 	// match: (Rsh32Ux64 _ (Const64 [c]))
@@ -3135,7 +3147,7 @@ func rewriteValueSPARC64_OpRsh32Ux64(v *Value) bool {
 		return true
 	}
 	// match: (Rsh32Ux64 <t> x y)
-	// result: (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> x y))
+	// result: (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> (ZeroExt32to64 x) y))
 	for {
 		t := v.Type
 		x := v_0
@@ -3149,7 +3161,9 @@ func rewriteValueSPARC64_OpRsh32Ux64(v *Value) bool {
 		v1.AddArg(v2)
 		v0.AddArg(v1)
 		v3 := b.NewValue0(v.Pos, OpSPARC64SRLD, t)
-		v3.AddArg2(x, y)
+		v4 := b.NewValue0(v.Pos, OpZeroExt32to64, typ.UInt64)
+		v4.AddArg(x)
+		v3.AddArg2(v4, y)
 		v.AddArg2(v0, v3)
 		return true
 	}
@@ -3212,7 +3226,7 @@ func rewriteValueSPARC64_OpRsh32x64(v *Value) bool {
 	typ := &b.Func.Config.Types
 	// match: (Rsh32x64 <t> x (Const64 [c]))
 	// cond: uint64(c) < 64
-	// result: (SRADconst <t> [c] x)
+	// result: (SRADconst <t> [c] (SignExt32to64 x))
 	for {
 		t := v.Type
 		x := v_0
@@ -3226,12 +3240,14 @@ func rewriteValueSPARC64_OpRsh32x64(v *Value) bool {
 		v.reset(OpSPARC64SRADconst)
 		v.Type = t
 		v.AuxInt = int64ToAuxInt(c)
-		v.AddArg(x)
+		v0 := b.NewValue0(v.Pos, OpSignExt32to64, typ.Int64)
+		v0.AddArg(x)
+		v.AddArg(v0)
 		return true
 	}
 	// match: (Rsh32x64 <t> x (Const64 [c]))
 	// cond: uint64(c) >= 64
-	// result: (SRADconst <t> [63] x)
+	// result: (SRADconst <t> [63] (SignExt32to64 x))
 	for {
 		t := v.Type
 		x := v_0
@@ -3245,27 +3261,31 @@ func rewriteValueSPARC64_OpRsh32x64(v *Value) bool {
 		v.reset(OpSPARC64SRADconst)
 		v.Type = t
 		v.AuxInt = int64ToAuxInt(63)
-		v.AddArg(x)
+		v0 := b.NewValue0(v.Pos, OpSignExt32to64, typ.Int64)
+		v0.AddArg(x)
+		v.AddArg(v0)
 		return true
 	}
 	// match: (Rsh32x64 <t> x y)
-	// result: (SRAD <t> x (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
+	// result: (SRAD <t> (SignExt32to64 x) (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
 	for {
 		t := v.Type
 		x := v_0
 		y := v_1
 		v.reset(OpSPARC64SRAD)
 		v.Type = t
-		v0 := b.NewValue0(v.Pos, OpSPARC64OR, typ.UInt64)
-		v1 := b.NewValue0(v.Pos, OpSPARC64NEG, typ.UInt64)
-		v2 := b.NewValue0(v.Pos, OpSPARC64GreaterThanU, typ.UInt64)
-		v3 := b.NewValue0(v.Pos, OpSPARC64CMPconst, types.TypeFlags)
-		v3.AuxInt = int64ToAuxInt(63)
-		v3.AddArg(y)
+		v0 := b.NewValue0(v.Pos, OpSignExt32to64, typ.Int64)
+		v0.AddArg(x)
+		v1 := b.NewValue0(v.Pos, OpSPARC64OR, typ.UInt64)
+		v2 := b.NewValue0(v.Pos, OpSPARC64NEG, typ.UInt64)
+		v3 := b.NewValue0(v.Pos, OpSPARC64GreaterThanU, typ.UInt64)
+		v4 := b.NewValue0(v.Pos, OpSPARC64CMPconst, types.TypeFlags)
+		v4.AuxInt = int64ToAuxInt(63)
+		v4.AddArg(y)
+		v3.AddArg(v4)
 		v2.AddArg(v3)
-		v1.AddArg(v2)
-		v0.AddArg2(v1, y)
-		v.AddArg2(x, v0)
+		v1.AddArg2(v2, y)
+		v.AddArg2(v0, v1)
 		return true
 	}
 }
@@ -3552,7 +3572,7 @@ func rewriteValueSPARC64_OpRsh8Ux64(v *Value) bool {
 	typ := &b.Func.Config.Types
 	// match: (Rsh8Ux64 <t> x (Const64 [c]))
 	// cond: uint64(c) < 64
-	// result: (SRLDconst <t> [c] x)
+	// result: (SRLDconst <t> [c] (ZeroExt8to64 x))
 	for {
 		t := v.Type
 		x := v_0
@@ -3566,7 +3586,9 @@ func rewriteValueSPARC64_OpRsh8Ux64(v *Value) bool {
 		v.reset(OpSPARC64SRLDconst)
 		v.Type = t
 		v.AuxInt = int64ToAuxInt(c)
-		v.AddArg(x)
+		v0 := b.NewValue0(v.Pos, OpZeroExt8to64, typ.UInt64)
+		v0.AddArg(x)
+		v.AddArg(v0)
 		return true
 	}
 	// match: (Rsh8Ux64 _ (Const64 [c]))
@@ -3585,7 +3607,7 @@ func rewriteValueSPARC64_OpRsh8Ux64(v *Value) bool {
 		return true
 	}
 	// match: (Rsh8Ux64 <t> x y)
-	// result: (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> x y))
+	// result: (AND (NEG <t> (LessThanU <typ.UInt64> (CMPconst <types.TypeFlags> [64] y))) (SRLD <t> (ZeroExt8to64 x) y))
 	for {
 		t := v.Type
 		x := v_0
@@ -3599,7 +3621,9 @@ func rewriteValueSPARC64_OpRsh8Ux64(v *Value) bool {
 		v1.AddArg(v2)
 		v0.AddArg(v1)
 		v3 := b.NewValue0(v.Pos, OpSPARC64SRLD, t)
-		v3.AddArg2(x, y)
+		v4 := b.NewValue0(v.Pos, OpZeroExt8to64, typ.UInt64)
+		v4.AddArg(x)
+		v3.AddArg2(v4, y)
 		v.AddArg2(v0, v3)
 		return true
 	}
@@ -3662,7 +3686,7 @@ func rewriteValueSPARC64_OpRsh8x64(v *Value) bool {
 	typ := &b.Func.Config.Types
 	// match: (Rsh8x64 <t> x (Const64 [c]))
 	// cond: uint64(c) < 64
-	// result: (SRADconst <t> [c] x)
+	// result: (SRADconst <t> [c] (SignExt8to64 x))
 	for {
 		t := v.Type
 		x := v_0
@@ -3676,12 +3700,14 @@ func rewriteValueSPARC64_OpRsh8x64(v *Value) bool {
 		v.reset(OpSPARC64SRADconst)
 		v.Type = t
 		v.AuxInt = int64ToAuxInt(c)
-		v.AddArg(x)
+		v0 := b.NewValue0(v.Pos, OpSignExt8to64, typ.Int64)
+		v0.AddArg(x)
+		v.AddArg(v0)
 		return true
 	}
 	// match: (Rsh8x64 <t> x (Const64 [c]))
 	// cond: uint64(c) >= 64
-	// result: (SRADconst <t> [63] x)
+	// result: (SRADconst <t> [63] (SignExt8to64 x))
 	for {
 		t := v.Type
 		x := v_0
@@ -3695,27 +3721,31 @@ func rewriteValueSPARC64_OpRsh8x64(v *Value) bool {
 		v.reset(OpSPARC64SRADconst)
 		v.Type = t
 		v.AuxInt = int64ToAuxInt(63)
-		v.AddArg(x)
+		v0 := b.NewValue0(v.Pos, OpSignExt8to64, typ.Int64)
+		v0.AddArg(x)
+		v.AddArg(v0)
 		return true
 	}
 	// match: (Rsh8x64 <t> x y)
-	// result: (SRAD <t> x (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
+	// result: (SRAD <t> (SignExt8to64 x) (OR <typ.UInt64> (NEG <typ.UInt64> (GreaterThanU <typ.UInt64> (CMPconst <types.TypeFlags> [63] y))) y))
 	for {
 		t := v.Type
 		x := v_0
 		y := v_1
 		v.reset(OpSPARC64SRAD)
 		v.Type = t
-		v0 := b.NewValue0(v.Pos, OpSPARC64OR, typ.UInt64)
-		v1 := b.NewValue0(v.Pos, OpSPARC64NEG, typ.UInt64)
-		v2 := b.NewValue0(v.Pos, OpSPARC64GreaterThanU, typ.UInt64)
-		v3 := b.NewValue0(v.Pos, OpSPARC64CMPconst, types.TypeFlags)
-		v3.AuxInt = int64ToAuxInt(63)
-		v3.AddArg(y)
+		v0 := b.NewValue0(v.Pos, OpSignExt8to64, typ.Int64)
+		v0.AddArg(x)
+		v1 := b.NewValue0(v.Pos, OpSPARC64OR, typ.UInt64)
+		v2 := b.NewValue0(v.Pos, OpSPARC64NEG, typ.UInt64)
+		v3 := b.NewValue0(v.Pos, OpSPARC64GreaterThanU, typ.UInt64)
+		v4 := b.NewValue0(v.Pos, OpSPARC64CMPconst, types.TypeFlags)
+		v4.AuxInt = int64ToAuxInt(63)
+		v4.AddArg(y)
+		v3.AddArg(v4)
 		v2.AddArg(v3)
-		v1.AddArg(v2)
-		v0.AddArg2(v1, y)
-		v.AddArg2(x, v0)
+		v1.AddArg2(v2, y)
+		v.AddArg2(v0, v1)
 		return true
 	}
 }

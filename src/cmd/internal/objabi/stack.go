@@ -24,6 +24,12 @@ func stackGuardMultiplier(race bool) int {
 	if buildcfg.GOOS == "aix" || buildcfg.GOOS == "openbsd" {
 		n += 1
 	}
+	// sparc64's mandatory 176-byte minimum frame (128-byte register
+	// window save area plus argument slots) makes every frame in a
+	// nosplit chain large, so the chains need a bigger budget.
+	if buildcfg.GOARCH == "sparc64" {
+		n += 2
+	}
 	// The race build also needs more stack.
 	if race {
 		n += 1

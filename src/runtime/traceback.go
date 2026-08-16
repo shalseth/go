@@ -161,6 +161,11 @@ func (u *unwinder) initAt(pc0, sp0, lr0 uintptr, gp *g, flags unwindFlags) {
 			sp0 = gp.sched.sp
 			if usesLR {
 				lr0 = gp.sched.lr
+				if goarch.ArchFamily == goarch.SPARC64 && lr0 != 0 {
+					// gobuf.lr is a raw %o7-style value (the address
+					// of the CALL); unwinding wants return-style.
+					lr0 += 8
+				}
 			}
 		}
 	}
@@ -368,7 +373,30 @@ func (u *unwinder) resolveInternal(innermost, isSyscall bool) {
 		frame.lr = 0
 	} else {
 		var lrPtr uintptr
-		if usesLR {
+		if goarch.ArchFamily == goarch.SPARC64 {
+			// A frame's return address lives at sp+120, stored there
+			// by the prologue of any framed callee (every callee
+			// stores the same value, since the return address of a
+			// frame never changes). The innermost frame's return
+			// address comes from the context (OLR, via gobuf.lr) and
+			// must not be overwritten: its own slot has not been
+			// written unless it called something.
+			// Even a zero-size frame (like the systemstack_switch
+			// marker) sits directly on its caller's region, where
+			// the slot is valid.
+			if frame.lr == 0 {
+				lrPtr = frame.sp + 120
+				frame.lr = *(*uintptr)(unsafe.Pointer(lrPtr))
+				if frame.lr != 0 {
+					// The slot holds a raw %o7: the address of the
+					// CALL instruction itself. Convert to the
+					// return-style address (past the call and its
+					// delay slot) that the pc-1 conventions of the
+					// pcdata lookups expect.
+					frame.lr += 8
+				}
+			}
+		} else if usesLR {
 			if innermost && frame.sp < frame.fp || frame.lr == 0 {
 				lrPtr = frame.sp
 				frame.lr = *(*uintptr)(unsafe.Pointer(lrPtr))

@@ -697,8 +697,33 @@ func adjustpointers(scanp unsafe.Pointer, bv *bitvector, adjinfo *adjustinfo, f 
 	}
 }
 
+// adjustSparcAnchor relocates a saved frame-anchor slot (a biased
+// stack pointer) if it points into the old stack.
+func adjustSparcAnchor(slot uintptr, adjinfo *adjustinfo) {
+	p := (*uintptr)(unsafe.Pointer(slot))
+	v := *p + 2047 // remove the stack bias for the range check
+	if adjinfo.old.lo <= v && v < adjinfo.old.hi {
+		*p += adjinfo.delta
+	}
+}
+
 // Note: the argument/return area is adjusted by the callee.
 func adjustframe(frame *stkframe, adjinfo *adjustinfo) {
+	if goarch.ArchFamily == goarch.SPARC64 {
+		// A framed callee of this frame saved this frame's anchor — a
+		// stack pointer that still carries the SPARC stack bias — at
+		// sp+112 (the %i6 slot position). The %i7 slot next to it
+		// holds a code address and needs no adjustment. The value is
+		// range-checked, so a frame whose slot was never written is
+		// left alone.
+		adjustSparcAnchor(frame.sp+112, adjinfo)
+		if isInjectedCall(frame.fn.funcID) {
+			// An injected call (sigpanic, asyncPreempt) stored the
+			// interrupted frame anchors at the base of the pushed
+			// MinFrameSize area, which no ordinary frame covers.
+			adjustSparcAnchor(frame.fp+112, adjinfo)
+		}
+	}
 	// Adjust saved frame pointer if there is one.
 	if (goarch.ArchFamily == goarch.AMD64 || goarch.ArchFamily == goarch.ARM64) && frame.argp-frame.varp == 2*goarch.PtrSize {
 		if stackDebug >= 3 {
@@ -804,6 +829,13 @@ func adjustframe(frame *stkframe, adjinfo *adjustinfo) {
 
 func adjustctxt(gp *g, adjinfo *adjustinfo) {
 	adjustpointer(adjinfo, unsafe.Pointer(&gp.sched.ctxt))
+	if goarch.ArchFamily == goarch.SPARC64 {
+		// gobuf.bp holds the parked frame's RFP, a biased stack pointer.
+		v := gp.sched.bp + 2047
+		if adjinfo.old.lo <= v && v < adjinfo.old.hi {
+			gp.sched.bp += adjinfo.delta
+		}
+	}
 	if !framepointer_enabled {
 		return
 	}

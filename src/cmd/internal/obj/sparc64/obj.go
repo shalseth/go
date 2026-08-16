@@ -7,9 +7,8 @@ package sparc64
 import (
 	"cmd/internal/obj"
 	"cmd/internal/sys"
-	"fmt"
+	"internal/abi"
 	"log"
-	"math"
 )
 
 var isUncondJump = map[obj.As]bool{
@@ -309,14 +308,14 @@ func progedit(ctxt *obj.Link, p *obj.Prog, newprog obj.ProgAlloc) {
 		}
 	}
 
-	// Rewrite 64-bit integer constants and float constants
-	// to values stored in memory.
+	// Rewrite 64-bit integer constants and float constants to loads
+	// from values stored in memory. The ctxt helpers both intern the
+	// symbol and give it its data; a bare Lookup leaves an undefined
+	// symbol behind for the linker to trip over.
 	switch p.As {
 	case AMOVD:
 		if aclass(p.Ctxt, &p.From) == ClassConst {
-			literal := fmt.Sprintf("$i64.%016x", p.From.Offset)
-			s := ctxt.Lookup(literal)
-			s.Size = 8
+			s := ctxt.Int64Sym(p.From.Offset)
 			p.From.Type = obj.TYPE_MEM
 			p.From.Sym = s
 			p.From.Name = obj.NAME_EXTERN
@@ -325,11 +324,7 @@ func progedit(ctxt *obj.Link, p *obj.Prog, newprog obj.ProgAlloc) {
 
 	case AFMOVS:
 		if p.From.Type == obj.TYPE_FCONST {
-			f32 := float32(p.From.Val.(float64))
-			i32 := math.Float32bits(f32)
-			literal := fmt.Sprintf("$f32.%08x", uint32(i32))
-			s := ctxt.Lookup(literal)
-			s.Size = 4
+			s := ctxt.Float32Sym(float32(p.From.Val.(float64)))
 			p.From.Type = obj.TYPE_MEM
 			p.From.Sym = s
 			p.From.Name = obj.NAME_EXTERN
@@ -338,10 +333,7 @@ func progedit(ctxt *obj.Link, p *obj.Prog, newprog obj.ProgAlloc) {
 
 	case AFMOVD:
 		if p.From.Type == obj.TYPE_FCONST {
-			i64 := math.Float64bits(p.From.Val.(float64))
-			literal := fmt.Sprintf("$f64.%016x", uint64(i64))
-			s := ctxt.Lookup(literal)
-			s.Size = 8
+			s := ctxt.Float64Sym(p.From.Val.(float64))
 			p.From.Type = obj.TYPE_MEM
 			p.From.Sym = s
 			p.From.Name = obj.NAME_EXTERN
@@ -387,11 +379,14 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			q1.Mark |= p.Mark
 			continue
 
-		case isUncondJump[p.As]:
+		case p.As == obj.ACALL || p.As == obj.ADUFFZERO || p.As == obj.ADUFFCOPY || p.As == AJMPL:
+			// Only instructions that write the link register make a
+			// function a non-leaf. Plain jumps — including the tail
+			// call a compiled "RET target(SB)" becomes — do not.
 			cursym.Func().Text.Mark &^= LEAF
 			fallthrough
 
-		case isCondJump[p.As]:
+		case isUncondJump[p.As] || isCondJump[p.As]:
 			q1 = p.To.Target()
 
 			if q1 != nil {
@@ -405,6 +400,15 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 		}
 
 		q = p
+	}
+
+	// A leaf with no locals needs no frame at all. Treat it as NOFRAME:
+	// FP-relative arguments then resolve against RSP, and SP stays
+	// unchanged — which the tail-call wrappers the compiler generates
+	// (a bare "RET target(SB)") depend on. Pushing a frame there would
+	// displace every argument the wrapper forwards.
+	if cursym.Func().Locals == 0 && cursym.Func().Text.Mark&LEAF != 0 {
+		cursym.Func().Text.From.Sym.Set(obj.AttrNoFrame, true)
 	}
 
 	for p := cursym.Func().Text; p != nil; p = p.Link {
@@ -466,6 +470,12 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.To.Offset = int64(112 + StackBias)
 
 			// MOVD R31, (120+bias)(RSP)
+			//
+			// The caller's anchors go out before the stack split check
+			// below: this slot doubles as the *caller's* return
+			// address for the stack unwinder ([caller sp + 120]), and
+			// a goroutine parked in the split check must already be
+			// unwindable through its caller.
 			p = obj.Appendp(p, newprog)
 			p.As = AMOVD
 			p.From.Type = obj.TYPE_REG
@@ -474,6 +484,10 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.To.Reg = REG_RSP
 			p.To.Offset = int64(120 + StackBias)
 
+			if !cursym.Func().Text.From.Sym.NoSplit() {
+				p = stacksplit(ctxt, cursym, newprog, p, int64(frameSize)+MinStackFrameSize)
+			}
+
 			// ADD -(frame+128|176), RSP
 			p = obj.Appendp(p, newprog)
 			p.As = AADD
@@ -481,6 +495,7 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.From.Offset = -int64(frameSize + MinStackFrameSize)
 			p.To.Type = obj.TYPE_REG
 			p.To.Reg = REG_RSP
+			p.Spadj = frameSize + int32(MinStackFrameSize)
 
 			// SUB -(frame+128|176), RSP, RFP
 			p = obj.Appendp(p, newprog)
@@ -500,22 +515,38 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.To.Reg = REG_R31
 
 		case obj.ARET:
+			retSym := p.To.Sym
+			retReg := int16(0)
+			if p.To.Type == obj.TYPE_REG && p.To.Sym == nil {
+				// RET (Rn): an indirect tail call, used by
+				// compiler-generated method wrappers.
+				retReg = p.To.Reg
+			}
 			if isNOFRAME(cursym.Func().Text) {
+				if retSym != nil {
+					// RET target(SB): a tail call out of a
+					// frameless function is a plain jump.
+					p.As = obj.AJMP
+				} else if retReg != 0 {
+					p.As = AJMPL
+					p.From.Type = obj.TYPE_REG
+					p.From.Reg = retReg
+					p.To.Type = obj.TYPE_REG
+					p.To.Reg = REG_ZR
+				}
 				break
 			}
 
-			// MOVD RFP, R1
+			// The epilogue must not touch any scratch register:
+			// assembly functions like gcWriteBarrier promise to
+			// preserve every general-purpose register, and this
+			// epilogue runs after their own restores. Everything
+			// derives from RFP and the frame slots.
+
+			// MOVD R31, LR
 			q1 = p
 			p = obj.Appendp(p, newprog)
 			p.As = obj.ARET
-			q1.As = AMOVD
-			q1.From.Type = obj.TYPE_REG
-			q1.From.Reg = REG_RFP
-			q1.To.Type = obj.TYPE_REG
-			q1.To.Reg = REG_R1
-
-			// MOVD R31, LR
-			q1 = obj.Appendp(q1, newprog)
 			q1.As = AMOVD
 			q1.From.Type = obj.TYPE_REG
 			q1.From.Reg = REG_R31
@@ -531,36 +562,102 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			q1.To.Type = obj.TYPE_REG
 			q1.To.Reg = REG_R31
 
-			// MOVD (112+StackBias)(RFP), RFP
+			// MOVD RFP, RSP (pop the frame; RFP is the entry sp)
+			q1 = obj.Appendp(q1, newprog)
+			q1.As = AMOVD
+			q1.From.Type = obj.TYPE_REG
+			q1.From.Reg = REG_RFP
+			q1.To.Type = obj.TYPE_REG
+			q1.To.Reg = REG_RSP
+			q1.Spadj = -(cursym.Func().Locals + int32(MinStackFrameSize))
+
+			// MOVD (112+StackBias)(RSP), RFP (same slot, via the
+			// just-restored SP)
 			q1 = obj.Appendp(q1, newprog)
 			q1.As = AMOVD
 			q1.From.Type = obj.TYPE_MEM
-			q1.From.Reg = REG_RFP
+			q1.From.Reg = REG_RSP
 			q1.From.Offset = 112 + StackBias
 			q1.To.Type = obj.TYPE_REG
 			q1.To.Reg = REG_RFP
 
-			// MOVD R1, RSP
-			q1 = obj.Appendp(q1, newprog)
-			q1.As = AMOVD
-			q1.From.Type = obj.TYPE_REG
-			q1.From.Reg = REG_R1
-			q1.To.Type = obj.TYPE_REG
-			q1.To.Reg = REG_RSP
+			// The epilogue's SP restore carries Spadj=-frame; the
+			// return itself compensates so instructions after it
+			// (other body code with the frame live) keep the right
+			// pcsp value.
+			p.Spadj = cursym.Func().Locals + int32(MinStackFrameSize)
+
+			if retSym != nil {
+				// RET target(SB): after the epilogue, jump to the
+				// target instead of returning. Appendp gave the
+				// final instruction an empty To, so the original
+				// target must be put back explicitly.
+				p.As = obj.AJMP
+				p.To.Type = obj.TYPE_MEM
+				p.To.Name = obj.NAME_EXTERN
+				p.To.Sym = retSym
+			} else if retReg != 0 {
+				// RET (Rn): after the epilogue, jump through the
+				// register. The epilogue only touches R1, RFP,
+				// OLR and RSP, so the target register survives.
+				p.As = AJMPL
+				p.From.Type = obj.TYPE_REG
+				p.From.Reg = retReg
+				p.To.Type = obj.TYPE_REG
+				p.To.Reg = REG_ZR
+			}
 		}
 	}
 
-	// Schedule delay-slots. Only RNOPs for now.
+	// Track stack-pointer adjustments in hand-written assembly so the
+	// pcsp tables cover asm frames too. The compiler-generated
+	// prologue and epilogue set Spadj explicitly above.
+	for p := cursym.Func().Text; p != nil; p = p.Link {
+		if p.Spadj != 0 || p.From.Type != obj.TYPE_CONST || p.To.Type != obj.TYPE_REG || p.To.Reg != REG_RSP {
+			continue
+		}
+		if p.Reg != 0 && p.Reg != REG_RSP {
+			continue
+		}
+		switch p.As {
+		case AADD:
+			p.Spadj = int32(-p.From.Offset)
+		case ASUB:
+			p.Spadj = int32(p.From.Offset)
+		}
+	}
+
+	// Schedule delay-slots. Only RNOPs for now. A RESTORE directly
+	// after a jump is hand-written asm deliberately placing the window
+	// restore in the delay slot (the `ret; restore` idiom) — leave it.
 	for p := cursym.Func().Text; p != nil; p = p.Link {
 		if !isJump[p.As] {
 			continue
 		}
-		if p.Link != nil && p.Link.As == ARNOP {
+		if p.Link != nil && (p.Link.As == ARNOP || p.Link.As == ARESTORE) {
 			continue
 		}
 		p = obj.Appendp(p, newprog)
 		p.As = ARNOP
 	}
+
+	// Mark unsafe points for asynchronous preemption. The asyncPreempt
+	// return path clobbers TMP, so any instruction explicitly keeping
+	// a value there must not be preempted; multi-instruction
+	// expansions that go through TMP internally have no side effects
+	// before their final instruction and can simply restart.
+	isUnsafePoint := func(p *obj.Prog) bool {
+		return p.From.Reg == REG_TMP || p.Reg == REG_TMP || p.To.Reg == REG_TMP ||
+			p.From.Index == REG_TMP || p.To.Index == REG_TMP
+	}
+	isRestartable := func(p *obj.Prog) bool {
+		if isUnsafePoint(p) {
+			return false
+		}
+		o, err := oplook(autoeditprog(ctxt, cursym, p))
+		return err == nil && o.size > 4
+	}
+	obj.MarkUnsafePoints(ctxt, cursym.Func().Text, newprog, isUnsafePoint, isRestartable)
 
 	// For future use by oplook and friends.
 	for p := cursym.Func().Text; p != nil; p = p.Link {
@@ -740,3 +837,139 @@ var Linksparc64 = obj.LinkArch{
 // sort or index here yet; the hook exists because LinkArch requires it
 // and because the SSA backend will need per-Link setup later.
 func buildop(ctxt *obj.Link) {}
+
+// stacksplit inserts the stack-bound check and morestack call at p,
+// which sits between the TEXT prog and the frame-establishing part of
+// the prologue. totalframe is the full frame the prologue is about to
+// push (locals plus the fixed frame), so it is always larger than
+// abi.StackSmall and the small-stack fast path of other ports does not
+// apply. Returns the last prog of the inserted sequence.
+func stacksplit(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc, p *obj.Prog, totalframe int64) *obj.Prog {
+	// MOVD g_stackguard(g), RT1
+	p = obj.Appendp(p, newprog)
+	loadGuard := p
+	p.As = AMOVD
+	p.From.Type = obj.TYPE_MEM
+	p.From.Reg = REG_G
+	p.From.Offset = 2 * int64(ctxt.Arch.PtrSize) // G.stackguard0
+	if cursym.CFunc() {
+		p.From.Offset = 3 * int64(ctxt.Arch.PtrSize) // G.stackguard1
+	}
+	p.To.Type = obj.TYPE_REG
+	p.To.Reg = REG_RT1
+
+	// Mark the stack bound check and morestack call async nonpreemptible.
+	// If we get preempted here, when resumed the preemption request is
+	// cleared, but we'll still call morestack, which will double the stack
+	// unnecessarily. See issue #35470.
+	p = ctxt.StartUnsafePoint(p, newprog)
+
+	// ADD $StackBias, RSP, RT2 (the unbiased stack pointer; the BSP
+	// pseudo-register is only rewritten for parsed assembly, not for
+	// progs appended here)
+	p = obj.Appendp(p, newprog)
+	p.As = AADD
+	p.From.Type = obj.TYPE_CONST
+	p.From.Offset = StackBias
+	p.Reg = REG_RSP
+	p.To.Type = obj.TYPE_REG
+	p.To.Reg = REG_RT2
+
+	// MOVD $(totalframe-StackSmall), R3
+	// The offset may not fit in a 13-bit immediate, so always go
+	// through a register; R3 is dead until the morestack handoff.
+	offset := totalframe - abi.StackSmall
+	p = obj.Appendp(p, newprog)
+	p.As = AMOVD
+	p.From.Type = obj.TYPE_CONST
+	p.From.Offset = offset
+	p.To.Type = obj.TYPE_REG
+	p.To.Reg = REG_R3
+
+	var wrapCheck *obj.Prog
+	if totalframe > abi.StackBig {
+		// The runtime guarantees SP > StackBig on entry, but with a
+		// frame this large SP-offset may still underflow. Grow the
+		// stack when SP < offset rather than comparing garbage.
+		//	CMP R3, RT2
+		//	BCSD morestack
+		p = obj.Appendp(p, newprog)
+		p.As = ACMP
+		p.From.Type = obj.TYPE_REG
+		p.From.Reg = REG_R3
+		p.Reg = REG_RT2
+		p.To.Type = obj.TYPE_NONE
+
+		p = obj.Appendp(p, newprog)
+		wrapCheck = p
+		p.As = ABCSD
+		p.To.Type = obj.TYPE_BRANCH
+	}
+
+	// SUB R3, RT2, RT2 (SP - (totalframe - StackSmall))
+	p = obj.Appendp(p, newprog)
+	p.As = ASUB
+	p.From.Type = obj.TYPE_REG
+	p.From.Reg = REG_R3
+	p.Reg = REG_RT2
+	p.To.Type = obj.TYPE_REG
+	p.To.Reg = REG_RT2
+
+	// CMP RT1, RT2 (flags = adjusted SP - stackguard)
+	p = obj.Appendp(p, newprog)
+	p.As = ACMP
+	p.From.Type = obj.TYPE_REG
+	p.From.Reg = REG_RT1
+	p.Reg = REG_RT2
+	p.To.Type = obj.TYPE_NONE
+
+	// BCCD ok (unsigned >=: enough stack)
+	p = obj.Appendp(p, newprog)
+	enough := p
+	p.As = ABCCD
+	p.To.Type = obj.TYPE_BRANCH
+
+	// MOVD LR, R3: the morestack contract wants the prologue's LR
+	// (this function's raw return address) in R3.
+	p = obj.Appendp(p, newprog)
+	p.As = AMOVD
+	p.From.Type = obj.TYPE_REG
+	p.From.Reg = REG_LR
+	p.To.Type = obj.TYPE_REG
+	p.To.Reg = REG_R3
+	if wrapCheck != nil {
+		wrapCheck.To.SetTarget(p)
+	}
+
+	p = ctxt.EmitEntryStackMap(cursym, p, newprog)
+
+	// CALL runtime.morestack(SB)
+	p = obj.Appendp(p, newprog)
+	p.As = obj.ACALL
+	p.To.Type = obj.TYPE_MEM
+	p.To.Name = obj.NAME_EXTERN
+	if cursym.CFunc() {
+		p.To.Sym = ctxt.Lookup("runtime.morestackc")
+	} else if !cursym.Func().Text.From.Sym.NeedCtxt() {
+		p.To.Sym = ctxt.Lookup("runtime.morestack_noctxt")
+	} else {
+		p.To.Sym = ctxt.Lookup("runtime.morestack")
+	}
+
+	p = ctxt.EndUnsafePoint(p, newprog, -1)
+
+	// JMP back to the guard load: after the stack has grown the check
+	// runs again (and passes).
+	p = obj.Appendp(p, newprog)
+	p.As = obj.AJMP
+	p.To.Type = obj.TYPE_BRANCH
+	p.To.SetTarget(loadGuard)
+
+	// Branch-over target. A real nop: this assembler has no zero-width
+	// placeholder handling.
+	p = obj.Appendp(p, newprog)
+	p.As = ARNOP
+	enough.To.SetTarget(p)
+
+	return p
+}
