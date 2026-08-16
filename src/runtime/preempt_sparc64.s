@@ -20,15 +20,17 @@
 // assembler temporary live are marked non-preemptible.
 //
 // Frame: the 176-byte SPARC minimum, the 20 allocatable integer
-// registers (R1-R5, R8-R13, R16-R21, R24, R25, R29) and the 15
-// allocatable float registers (Y1-Y15 = D2..D30).
+// registers (R1-R5, R8-R13, R16-R21, R24, R25, R29), the reserved
+// temporaries TMP2/RT1/RT2 (live across instruction sequences that are
+// not individually marked unsafe, like the Zero/Move loops), and the
+// 15 allocatable float registers (Y1-Y15 = D2..D30).
 TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	// Framed prologue by hand.
 	MOVD	RFP, (112)(BSP)
 	MOVD	OLR, (120)(BSP)
 	MOVD	LR, OLR
-	SUB	$464, BSP
-	ADD	$464, RSP, RFP
+	SUB	$496, BSP
+	ADD	$496, RSP, RFP
 
 	MOVD	R1, (176+0)(BSP)
 	MOVD	R2, (176+8)(BSP)
@@ -50,6 +52,9 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	R24, (176+136)(BSP)
 	MOVD	R25, (176+144)(BSP)
 	MOVD	R29, (176+152)(BSP)
+	MOVD	TMP2, (176+288)(BSP)
+	MOVD	RT1, (176+296)(BSP)
+	MOVD	RT2, (176+304)(BSP)
 	FMOVD	D2, (176+160)(BSP)
 	FMOVD	D4, (176+168)(BSP)
 	FMOVD	D6, (176+176)(BSP)
@@ -101,6 +106,9 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	(176+16)(BSP), R3
 	MOVD	(176+8)(BSP), R2
 	MOVD	(176+0)(BSP), R1
+	MOVD	(176+288)(BSP), TMP2
+	MOVD	(176+296)(BSP), RT1
+	MOVD	(176+304)(BSP), RT2
 
 	// Framed epilogue by hand, plus popping the pushCall area and
 	// restoring the interrupted %o7 from its base. The jump goes
