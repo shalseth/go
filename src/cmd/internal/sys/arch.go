@@ -270,8 +270,11 @@ var ArchSPARC64 = &Arch{
 	// Big-endian and strict-alignment: load merging is both incorrect
 	// here (the optimization assumes little-endian) and illegal.
 	CanMergeLoads:  false,
-	HasLR:          true, // %o7 holds the return address after CALL
-	FixedFrameSize: 8,    // saved %o7
+	HasLR: true, // %o7 holds the return address after CALL
+	// SPARC V9 reserves 128 bytes at %sp+StackBias for the register
+	// window (spilled by traps and signals whether or not Go executed
+	// SAVE) plus 48 bytes of outgoing-argument area.
+	FixedFrameSize: 176,
 }
 
 var ArchWasm = &Arch{

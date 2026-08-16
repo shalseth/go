@@ -11,11 +11,15 @@ const (
 	_DefaultPhysPageSize = 8192
 	// All SPARC V9 instructions are 4 bytes wide.
 	_PCQuantum = 4
-	// Flat-frame ABI: Go frames do not execute SAVE/RESTORE, so the only
-	// system-reserved word is the saved link register (%o7). See
-	// docs/sparc64-port.md, "Register windows", for why this differs from
-	// the 176-byte SPARC V9 C frame.
-	_MinFrameSize = 8
+	// Go frames do not execute SAVE/RESTORE, but they must still reserve
+	// the SPARC V9 frame: a register-window overflow trap, a signal, or
+	// an explicit FLUSHW spills the *current* window to %sp+StackBias
+	// regardless of who set up the frame. That makes the 128-byte window
+	// save area architecturally mandatory, not a calling convention.
+	// The remaining 48 bytes are the outgoing-argument area, kept so Go
+	// frames stay walkable by C tooling and the cgo boundary needs no
+	// special case. Matches sparc64.MinStackFrameSize.
+	_MinFrameSize = 176
 	// SPARC V9 requires 16-byte stack alignment.
 	_StackAlign = 16
 )
