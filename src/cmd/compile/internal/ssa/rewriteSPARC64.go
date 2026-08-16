@@ -437,18 +437,12 @@ func rewriteValueSPARC64(v *Value) bool {
 		return rewriteValueSPARC64_OpSPARC64LoweredPanicBoundsRR(v)
 	case OpSPARC64MOVB:
 		return rewriteValueSPARC64_OpSPARC64MOVB(v)
-	case OpSPARC64MOVD:
-		return rewriteValueSPARC64_OpSPARC64MOVD(v)
 	case OpSPARC64MOVH:
 		return rewriteValueSPARC64_OpSPARC64MOVH(v)
 	case OpSPARC64MOVUB:
 		return rewriteValueSPARC64_OpSPARC64MOVUB(v)
 	case OpSPARC64MOVUH:
 		return rewriteValueSPARC64_OpSPARC64MOVUH(v)
-	case OpSPARC64MOVUW:
-		return rewriteValueSPARC64_OpSPARC64MOVUW(v)
-	case OpSPARC64MOVW:
-		return rewriteValueSPARC64_OpSPARC64MOVW(v)
 	case OpSPARC64OR:
 		return rewriteValueSPARC64_OpSPARC64OR(v)
 	case OpSPARC64ORconst:
@@ -2698,14 +2692,45 @@ func rewriteValueSPARC64_OpNot(v *Value) bool {
 }
 func rewriteValueSPARC64_OpOffPtr(v *Value) bool {
 	v_0 := v.Args[0]
+	b := v.Block
+	typ := &b.Func.Config.Types
+	// match: (OffPtr [off] ptr:(SP))
+	// cond: is32Bit(off)
+	// result: (MOVDaddr [int32(off)] ptr)
+	for {
+		off := auxIntToInt64(v.AuxInt)
+		ptr := v_0
+		if ptr.Op != OpSP || !(is32Bit(off)) {
+			break
+		}
+		v.reset(OpSPARC64MOVDaddr)
+		v.AuxInt = int32ToAuxInt(int32(off))
+		v.AddArg(ptr)
+		return true
+	}
 	// match: (OffPtr [off] ptr)
+	// cond: is13Bit(off)
 	// result: (ADDconst [off] ptr)
 	for {
 		off := auxIntToInt64(v.AuxInt)
 		ptr := v_0
+		if !(is13Bit(off)) {
+			break
+		}
 		v.reset(OpSPARC64ADDconst)
 		v.AuxInt = int64ToAuxInt(off)
 		v.AddArg(ptr)
+		return true
+	}
+	// match: (OffPtr [off] ptr)
+	// result: (ADD (MOVDconst [off]) ptr)
+	for {
+		off := auxIntToInt64(v.AuxInt)
+		ptr := v_0
+		v.reset(OpSPARC64ADD)
+		v0 := b.NewValue0(v.Pos, OpSPARC64MOVDconst, typ.UInt64)
+		v0.AuxInt = int64ToAuxInt(off)
+		v.AddArg2(v0, ptr)
 		return true
 	}
 }
@@ -3757,6 +3782,27 @@ func rewriteValueSPARC64_OpSPARC64CMP(v *Value) bool {
 		v.AddArg(x)
 		return true
 	}
+	// match: (CMP x (MOVUW (MOVDconst [c])))
+	// cond: is13Bit(int64(uint32(c)))
+	// result: (CMPconst [int64(uint32(c))] x)
+	for {
+		x := v_0
+		if v_1.Op != OpSPARC64MOVUW {
+			break
+		}
+		v_1_0 := v_1.Args[0]
+		if v_1_0.Op != OpSPARC64MOVDconst {
+			break
+		}
+		c := auxIntToInt64(v_1_0.AuxInt)
+		if !(is13Bit(int64(uint32(c)))) {
+			break
+		}
+		v.reset(OpSPARC64CMPconst)
+		v.AuxInt = int64ToAuxInt(int64(uint32(c)))
+		v.AddArg(x)
+		return true
+	}
 	return false
 }
 func rewriteValueSPARC64_OpSPARC64LoweredPanicBoundsCR(v *Value) bool {
@@ -3854,21 +3900,6 @@ func rewriteValueSPARC64_OpSPARC64MOVB(v *Value) bool {
 	}
 	return false
 }
-func rewriteValueSPARC64_OpSPARC64MOVD(v *Value) bool {
-	v_0 := v.Args[0]
-	// match: (MOVD (MOVDconst [c]))
-	// result: (MOVDconst [c])
-	for {
-		if v_0.Op != OpSPARC64MOVDconst {
-			break
-		}
-		c := auxIntToInt64(v_0.AuxInt)
-		v.reset(OpSPARC64MOVDconst)
-		v.AuxInt = int64ToAuxInt(c)
-		return true
-	}
-	return false
-}
 func rewriteValueSPARC64_OpSPARC64MOVH(v *Value) bool {
 	v_0 := v.Args[0]
 	// match: (MOVH (MOVDconst [c]))
@@ -3910,36 +3941,6 @@ func rewriteValueSPARC64_OpSPARC64MOVUH(v *Value) bool {
 		c := auxIntToInt64(v_0.AuxInt)
 		v.reset(OpSPARC64MOVDconst)
 		v.AuxInt = int64ToAuxInt(int64(uint16(c)))
-		return true
-	}
-	return false
-}
-func rewriteValueSPARC64_OpSPARC64MOVUW(v *Value) bool {
-	v_0 := v.Args[0]
-	// match: (MOVUW (MOVDconst [c]))
-	// result: (MOVDconst [int64(uint32(c))])
-	for {
-		if v_0.Op != OpSPARC64MOVDconst {
-			break
-		}
-		c := auxIntToInt64(v_0.AuxInt)
-		v.reset(OpSPARC64MOVDconst)
-		v.AuxInt = int64ToAuxInt(int64(uint32(c)))
-		return true
-	}
-	return false
-}
-func rewriteValueSPARC64_OpSPARC64MOVW(v *Value) bool {
-	v_0 := v.Args[0]
-	// match: (MOVW (MOVDconst [c]))
-	// result: (MOVDconst [int64(int32(c))])
-	for {
-		if v_0.Op != OpSPARC64MOVDconst {
-			break
-		}
-		c := auxIntToInt64(v_0.AuxInt)
-		v.reset(OpSPARC64MOVDconst)
-		v.AuxInt = int64ToAuxInt(int64(int32(c)))
 		return true
 	}
 	return false

@@ -103049,6 +103049,8 @@ var opcodeTable = [...]opInfo{
 		argLen:         3,
 		clobberFlags:   true,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
+		addrSinkArg1:   true,
 		reg: regInfo{
 			inputs: []inputInfo{
 				{0, regMask{v1: 2, v2: 0}},       // R1
@@ -103064,6 +103066,8 @@ var opcodeTable = [...]opInfo{
 		clobberFlags:   true,
 		faultOnNilArg0: true,
 		faultOnNilArg1: true,
+		addrSinkArg0:   true,
+		addrSinkArg1:   true,
 		reg: regInfo{
 			inputs: []inputInfo{
 				{0, regMask{v1: 4, v2: 0}},       // R2

@@ -48,7 +48,12 @@
 (Addr {sym} base) => (MOVDaddr {sym} base)
 (LocalAddr <t> {sym} base mem) && t.Elem().HasPointers() => (MOVDaddr {sym} (SPanchored base mem))
 (LocalAddr <t> {sym} base _) && !t.Elem().HasPointers() => (MOVDaddr {sym} base)
-(OffPtr [off] ptr) => (ADDconst [off] ptr)
+// An address derived from SP stays a MOVDaddr rather than becoming
+// arithmetic on SP, matching what the other backends do: the compiler
+// tracks stack-slot addresses through MOVDaddr.
+(OffPtr [off] ptr:(SP)) && is32Bit(off) => (MOVDaddr [int32(off)] ptr)
+(OffPtr [off] ptr) && is13Bit(off) => (ADDconst [off] ptr)
+(OffPtr [off] ptr) => (ADD (MOVDconst [off]) ptr)
 
 // Loads.
 (Load <t> ptr mem) && t.IsBoolean() => (MOVUBload ptr mem)
@@ -147,9 +152,19 @@
 (MOVUB (MOVDconst [c])) => (MOVDconst [int64(uint8(c))])
 (MOVH  (MOVDconst [c])) => (MOVDconst [int64(int16(c))])
 (MOVUH (MOVDconst [c])) => (MOVDconst [int64(uint16(c))])
-(MOVW  (MOVDconst [c])) => (MOVDconst [int64(int32(c))])
-(MOVUW (MOVDconst [c])) => (MOVDconst [int64(uint32(c))])
-(MOVD  (MOVDconst [c])) => (MOVDconst [c])
+
+// Fold a comparison against a zero-extended 32-bit constant. This is
+// the shape the write-barrier check compiles to, and liveness requires
+// that decision block's control value to have a single argument.
+//
+// TODO(sparc64): eliminating the MOVUW that feeds a CMP — here, or by
+// folding (MOVUW (MOVDconst)) directly — makes four packages fail
+// liveness with a result slot reported live at function entry: net,
+// testing, internal/fuzz and internal/trace/internal/tracev1. Without
+// any such fold, thirty packages fail the write-barrier check instead,
+// so this is the better of the two until the cause is found. It
+// reproduces only with optimization enabled; -N compiles cleanly.
+(CMP x (MOVUW (MOVDconst [c]))) && is13Bit(int64(uint32(c))) => (CMPconst [int64(uint32(c))] x)
 
 (SLLD x (MOVDconst [c])) => (SLLDconst [c&63] x)
 (SRLD x (MOVDconst [c])) => (SRLDconst [c&63] x)

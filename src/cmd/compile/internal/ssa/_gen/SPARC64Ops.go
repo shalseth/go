@@ -301,6 +301,8 @@ func init() {
 			},
 			clobberFlags:   true,
 			faultOnNilArg0: true,
+			addrSinkArg0:   true,
+			addrSinkArg1:   true,
 		},
 
 		// Large or unaligned move.
@@ -320,6 +322,8 @@ func init() {
 			clobberFlags:   true,
 			faultOnNilArg0: true,
 			faultOnNilArg1: true,
+			addrSinkArg0:   true,
+			addrSinkArg1:   true,
 		},
 
 		{name: "LoweredPanicBoundsRR", argLength: 3, aux: "Int64", reg: regInfo{inputs: []regMask{first16, first16}}, typ: "Mem", call: true},
