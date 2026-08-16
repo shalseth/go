@@ -311,6 +311,14 @@
 (Abs ...) => (FABSD ...)
 (CvtBoolToUint8 ...) => (Copy ...)
 
+// Rotates. SPARC V9 has no rotate instruction, so a rotate is a pair
+// of shifts ORed together. The shift count is masked to the register
+// width by the hardware, which happens to give the right answer for a
+// zero rotate: the complementary shift becomes a shift by zero, and
+// x|x is x.
+(RotateLeft64 <t> x y) => (OR <t> (SLLD <t> x y) (SRLD <t> x (SUB <typ.UInt64> (MOVDconst <typ.UInt64> [64]) y)))
+(RotateLeft32 <t> x y) => (OR <t> (SLLW <t> x y) (SRLW <t> x (SUB <typ.UInt64> (MOVDconst <typ.UInt64> [32]) y)))
+
 // Miscellaneous.
 (Not x) => (XORconst <typ.Bool> [1] x)
 (Slicemask <t> x) => (SRADconst <t> [63] (NEG <t> x))

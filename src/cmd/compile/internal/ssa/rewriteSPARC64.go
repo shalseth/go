@@ -345,6 +345,10 @@ func rewriteValueSPARC64(v *Value) bool {
 	case OpPubBarrier:
 		v.Op = OpSPARC64LoweredPubBarrier
 		return true
+	case OpRotateLeft32:
+		return rewriteValueSPARC64_OpRotateLeft32(v)
+	case OpRotateLeft64:
+		return rewriteValueSPARC64_OpRotateLeft64(v)
 	case OpRound32F:
 		v.Op = OpCopy
 		return true
@@ -2702,6 +2706,56 @@ func rewriteValueSPARC64_OpOffPtr(v *Value) bool {
 		v.reset(OpSPARC64ADDconst)
 		v.AuxInt = int64ToAuxInt(off)
 		v.AddArg(ptr)
+		return true
+	}
+}
+func rewriteValueSPARC64_OpRotateLeft32(v *Value) bool {
+	v_1 := v.Args[1]
+	v_0 := v.Args[0]
+	b := v.Block
+	typ := &b.Func.Config.Types
+	// match: (RotateLeft32 <t> x y)
+	// result: (OR <t> (SLLW <t> x y) (SRLW <t> x (SUB <typ.UInt64> (MOVDconst <typ.UInt64> [32]) y)))
+	for {
+		t := v.Type
+		x := v_0
+		y := v_1
+		v.reset(OpSPARC64OR)
+		v.Type = t
+		v0 := b.NewValue0(v.Pos, OpSPARC64SLLW, t)
+		v0.AddArg2(x, y)
+		v1 := b.NewValue0(v.Pos, OpSPARC64SRLW, t)
+		v2 := b.NewValue0(v.Pos, OpSPARC64SUB, typ.UInt64)
+		v3 := b.NewValue0(v.Pos, OpSPARC64MOVDconst, typ.UInt64)
+		v3.AuxInt = int64ToAuxInt(32)
+		v2.AddArg2(v3, y)
+		v1.AddArg2(x, v2)
+		v.AddArg2(v0, v1)
+		return true
+	}
+}
+func rewriteValueSPARC64_OpRotateLeft64(v *Value) bool {
+	v_1 := v.Args[1]
+	v_0 := v.Args[0]
+	b := v.Block
+	typ := &b.Func.Config.Types
+	// match: (RotateLeft64 <t> x y)
+	// result: (OR <t> (SLLD <t> x y) (SRLD <t> x (SUB <typ.UInt64> (MOVDconst <typ.UInt64> [64]) y)))
+	for {
+		t := v.Type
+		x := v_0
+		y := v_1
+		v.reset(OpSPARC64OR)
+		v.Type = t
+		v0 := b.NewValue0(v.Pos, OpSPARC64SLLD, t)
+		v0.AddArg2(x, y)
+		v1 := b.NewValue0(v.Pos, OpSPARC64SRLD, t)
+		v2 := b.NewValue0(v.Pos, OpSPARC64SUB, typ.UInt64)
+		v3 := b.NewValue0(v.Pos, OpSPARC64MOVDconst, typ.UInt64)
+		v3.AuxInt = int64ToAuxInt(64)
+		v2.AddArg2(v3, y)
+		v1.AddArg2(x, v2)
+		v.AddArg2(v0, v1)
 		return true
 	}
 }

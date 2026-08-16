@@ -625,6 +625,13 @@ func (p *Parser) asmInstruction(op obj.As, cond string, a []obj.Addr) {
 			break
 		}
 	case 2:
+		if p.arch.Family == sys.SPARC64 && arch.IsSPARC64CMP(op) {
+			// CMP writes only the condition codes, so the second
+			// operand is a source, not a destination.
+			prog.From = a[0]
+			prog.Reg = p.getRegister(prog, op, &a[1])
+			break
+		}
 		if p.arch.Family == sys.ARM {
 			if arch.IsARMCMP(op) {
 				prog.From = a[0]

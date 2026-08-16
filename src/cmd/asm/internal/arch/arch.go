@@ -842,6 +842,20 @@ func archSPARC64() *Arch {
 	register["SB"] = RSB
 	register["FP"] = RFP
 	register["PC"] = RPC
+	// The conventional SPARC spellings: %g0-%g7 are R0-R7, %o0-%o7
+	// R8-R15, %l0-%l7 R16-R23 and %i0-%i7 R24-R31. Assembly for this
+	// architecture is normally written with these, not the flat
+	// numbering, so bind both.
+	for i := 0; i <= 7; i++ {
+		register[fmt.Sprintf("G%d", i)] = int16(sparc64.REG_R0 + i)
+		register[fmt.Sprintf("O%d", i)] = int16(sparc64.REG_R8 + i)
+		register[fmt.Sprintf("L%d", i)] = int16(sparc64.REG_R16 + i)
+		register[fmt.Sprintf("I%d", i)] = int16(sparc64.REG_R24 + i)
+	}
+	// %l6 holds g; as with R22, do not let assembly name it by
+	// register and clobber it by accident.
+	delete(register, "L6")
+
 	register["FTMP"] = sparc64.REG_FTMP
 	register["DTMP"] = sparc64.REG_DTMP
 	// Avoid unintentionally clobbering g using R22.
@@ -851,6 +865,10 @@ func archSPARC64() *Arch {
 	registerPrefix := map[string]bool{
 		"D": true,
 		"F": true,
+		"G": true,
+		"I": true,
+		"L": true,
+		"O": true,
 		"R": true,
 		"Y": true,
 	}

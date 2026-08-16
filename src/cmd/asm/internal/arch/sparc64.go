@@ -9,6 +9,7 @@
 package arch
 
 import (
+	"cmd/internal/obj"
 	"cmd/internal/obj/sparc64"
 )
 
@@ -49,6 +50,22 @@ func sparc64RegisterNumber(name string, n int16) (int16, bool) {
 		if 0 <= n && n <= 31 {
 			return sparc64.REG_R0 + n, true
 		}
+	case "G":
+		if 0 <= n && n <= 7 {
+			return sparc64.REG_R0 + n, true
+		}
+	case "O":
+		if 0 <= n && n <= 7 {
+			return sparc64.REG_R8 + n, true
+		}
+	case "L":
+		if 0 <= n && n <= 7 {
+			return sparc64.REG_R16 + n, true
+		}
+	case "I":
+		if 0 <= n && n <= 7 {
+			return sparc64.REG_R24 + n, true
+		}
 	case "F":
 		if 0 <= n && n <= 31 {
 			return sparc64.REG_F0 + n, true
@@ -69,4 +86,15 @@ func sparc64RegisterNumber(name string, n int16) (int16, bool) {
 		}
 	}
 	return 0, false
+}
+
+// IsSPARC64CMP reports whether op is a comparison that writes only the
+// condition codes. These take their second operand in Prog.Reg rather
+// than Prog.To, because they have no destination register.
+func IsSPARC64CMP(op obj.As) bool {
+	switch op {
+	case sparc64.ACMP, sparc64.AFCMPS, sparc64.AFCMPD:
+		return true
+	}
+	return false
 }
