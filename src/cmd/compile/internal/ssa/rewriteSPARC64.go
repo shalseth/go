@@ -437,12 +437,18 @@ func rewriteValueSPARC64(v *Value) bool {
 		return rewriteValueSPARC64_OpSPARC64LoweredPanicBoundsRR(v)
 	case OpSPARC64MOVB:
 		return rewriteValueSPARC64_OpSPARC64MOVB(v)
+	case OpSPARC64MOVD:
+		return rewriteValueSPARC64_OpSPARC64MOVD(v)
 	case OpSPARC64MOVH:
 		return rewriteValueSPARC64_OpSPARC64MOVH(v)
 	case OpSPARC64MOVUB:
 		return rewriteValueSPARC64_OpSPARC64MOVUB(v)
 	case OpSPARC64MOVUH:
 		return rewriteValueSPARC64_OpSPARC64MOVUH(v)
+	case OpSPARC64MOVUW:
+		return rewriteValueSPARC64_OpSPARC64MOVUW(v)
+	case OpSPARC64MOVW:
+		return rewriteValueSPARC64_OpSPARC64MOVW(v)
 	case OpSPARC64OR:
 		return rewriteValueSPARC64_OpSPARC64OR(v)
 	case OpSPARC64ORconst:
@@ -2379,7 +2385,6 @@ func rewriteValueSPARC64_OpMove(v *Value) bool {
 	v_1 := v.Args[1]
 	v_0 := v.Args[0]
 	b := v.Block
-	config := b.Func.Config
 	typ := &b.Func.Config.Types
 	// match: (Move [0] _ _ mem)
 	// result: mem
@@ -2467,19 +2472,66 @@ func rewriteValueSPARC64_OpMove(v *Value) bool {
 		return true
 	}
 	// match: (Move [s] {t} dst src mem)
-	// result: (LoweredMove [t.Alignment()] dst src (ADDconst <src.Type> [s-moveSize(t.Alignment(), config)] src) mem)
+	// cond: t.Alignment()%8 == 0
+	// result: (LoweredMove [s<<4|8] dst src mem)
 	for {
 		s := auxIntToInt64(v.AuxInt)
 		t := auxToType(v.Aux)
 		dst := v_0
 		src := v_1
 		mem := v_2
+		if !(t.Alignment()%8 == 0) {
+			break
+		}
 		v.reset(OpSPARC64LoweredMove)
-		v.AuxInt = int64ToAuxInt(t.Alignment())
-		v0 := b.NewValue0(v.Pos, OpSPARC64ADDconst, src.Type)
-		v0.AuxInt = int64ToAuxInt(s - moveSize(t.Alignment(), config))
-		v0.AddArg(src)
-		v.AddArg4(dst, src, v0, mem)
+		v.AuxInt = int64ToAuxInt(s<<4 | 8)
+		v.AddArg3(dst, src, mem)
+		return true
+	}
+	// match: (Move [s] {t} dst src mem)
+	// cond: t.Alignment()%4 == 0
+	// result: (LoweredMove [s<<4|4] dst src mem)
+	for {
+		s := auxIntToInt64(v.AuxInt)
+		t := auxToType(v.Aux)
+		dst := v_0
+		src := v_1
+		mem := v_2
+		if !(t.Alignment()%4 == 0) {
+			break
+		}
+		v.reset(OpSPARC64LoweredMove)
+		v.AuxInt = int64ToAuxInt(s<<4 | 4)
+		v.AddArg3(dst, src, mem)
+		return true
+	}
+	// match: (Move [s] {t} dst src mem)
+	// cond: t.Alignment()%2 == 0
+	// result: (LoweredMove [s<<4|2] dst src mem)
+	for {
+		s := auxIntToInt64(v.AuxInt)
+		t := auxToType(v.Aux)
+		dst := v_0
+		src := v_1
+		mem := v_2
+		if !(t.Alignment()%2 == 0) {
+			break
+		}
+		v.reset(OpSPARC64LoweredMove)
+		v.AuxInt = int64ToAuxInt(s<<4 | 2)
+		v.AddArg3(dst, src, mem)
+		return true
+	}
+	// match: (Move [s] dst src mem)
+	// result: (LoweredMove [s<<4|1] dst src mem)
+	for {
+		s := auxIntToInt64(v.AuxInt)
+		dst := v_0
+		src := v_1
+		mem := v_2
+		v.reset(OpSPARC64LoweredMove)
+		v.AuxInt = int64ToAuxInt(s<<4 | 1)
+		v.AddArg3(dst, src, mem)
 		return true
 	}
 }
@@ -3900,6 +3952,21 @@ func rewriteValueSPARC64_OpSPARC64MOVB(v *Value) bool {
 	}
 	return false
 }
+func rewriteValueSPARC64_OpSPARC64MOVD(v *Value) bool {
+	v_0 := v.Args[0]
+	// match: (MOVD (MOVDconst [c]))
+	// result: (MOVDconst [c])
+	for {
+		if v_0.Op != OpSPARC64MOVDconst {
+			break
+		}
+		c := auxIntToInt64(v_0.AuxInt)
+		v.reset(OpSPARC64MOVDconst)
+		v.AuxInt = int64ToAuxInt(c)
+		return true
+	}
+	return false
+}
 func rewriteValueSPARC64_OpSPARC64MOVH(v *Value) bool {
 	v_0 := v.Args[0]
 	// match: (MOVH (MOVDconst [c]))
@@ -3941,6 +4008,36 @@ func rewriteValueSPARC64_OpSPARC64MOVUH(v *Value) bool {
 		c := auxIntToInt64(v_0.AuxInt)
 		v.reset(OpSPARC64MOVDconst)
 		v.AuxInt = int64ToAuxInt(int64(uint16(c)))
+		return true
+	}
+	return false
+}
+func rewriteValueSPARC64_OpSPARC64MOVUW(v *Value) bool {
+	v_0 := v.Args[0]
+	// match: (MOVUW (MOVDconst [c]))
+	// result: (MOVDconst [int64(uint32(c))])
+	for {
+		if v_0.Op != OpSPARC64MOVDconst {
+			break
+		}
+		c := auxIntToInt64(v_0.AuxInt)
+		v.reset(OpSPARC64MOVDconst)
+		v.AuxInt = int64ToAuxInt(int64(uint32(c)))
+		return true
+	}
+	return false
+}
+func rewriteValueSPARC64_OpSPARC64MOVW(v *Value) bool {
+	v_0 := v.Args[0]
+	// match: (MOVW (MOVDconst [c]))
+	// result: (MOVDconst [int64(int32(c))])
+	for {
+		if v_0.Op != OpSPARC64MOVDconst {
+			break
+		}
+		c := auxIntToInt64(v_0.AuxInt)
+		v.reset(OpSPARC64MOVDconst)
+		v.AuxInt = int64ToAuxInt(int64(int32(c)))
 		return true
 	}
 	return false
@@ -4230,7 +4327,6 @@ func rewriteValueSPARC64_OpZero(v *Value) bool {
 	v_1 := v.Args[1]
 	v_0 := v.Args[0]
 	b := v.Block
-	config := b.Func.Config
 	typ := &b.Func.Config.Types
 	// match: (Zero [0] _ mem)
 	// result: mem
@@ -4314,18 +4410,62 @@ func rewriteValueSPARC64_OpZero(v *Value) bool {
 		return true
 	}
 	// match: (Zero [s] {t} ptr mem)
-	// result: (LoweredZero [t.Alignment()] ptr (ADDconst <ptr.Type> [s-moveSize(t.Alignment(), config)] ptr) mem)
+	// cond: t.Alignment()%8 == 0
+	// result: (LoweredZero [s<<4|8] ptr mem)
 	for {
 		s := auxIntToInt64(v.AuxInt)
 		t := auxToType(v.Aux)
 		ptr := v_0
 		mem := v_1
+		if !(t.Alignment()%8 == 0) {
+			break
+		}
 		v.reset(OpSPARC64LoweredZero)
-		v.AuxInt = int64ToAuxInt(t.Alignment())
-		v0 := b.NewValue0(v.Pos, OpSPARC64ADDconst, ptr.Type)
-		v0.AuxInt = int64ToAuxInt(s - moveSize(t.Alignment(), config))
-		v0.AddArg(ptr)
-		v.AddArg3(ptr, v0, mem)
+		v.AuxInt = int64ToAuxInt(s<<4 | 8)
+		v.AddArg2(ptr, mem)
+		return true
+	}
+	// match: (Zero [s] {t} ptr mem)
+	// cond: t.Alignment()%4 == 0
+	// result: (LoweredZero [s<<4|4] ptr mem)
+	for {
+		s := auxIntToInt64(v.AuxInt)
+		t := auxToType(v.Aux)
+		ptr := v_0
+		mem := v_1
+		if !(t.Alignment()%4 == 0) {
+			break
+		}
+		v.reset(OpSPARC64LoweredZero)
+		v.AuxInt = int64ToAuxInt(s<<4 | 4)
+		v.AddArg2(ptr, mem)
+		return true
+	}
+	// match: (Zero [s] {t} ptr mem)
+	// cond: t.Alignment()%2 == 0
+	// result: (LoweredZero [s<<4|2] ptr mem)
+	for {
+		s := auxIntToInt64(v.AuxInt)
+		t := auxToType(v.Aux)
+		ptr := v_0
+		mem := v_1
+		if !(t.Alignment()%2 == 0) {
+			break
+		}
+		v.reset(OpSPARC64LoweredZero)
+		v.AuxInt = int64ToAuxInt(s<<4 | 2)
+		v.AddArg2(ptr, mem)
+		return true
+	}
+	// match: (Zero [s] ptr mem)
+	// result: (LoweredZero [s<<4|1] ptr mem)
+	for {
+		s := auxIntToInt64(v.AuxInt)
+		ptr := v_0
+		mem := v_1
+		v.reset(OpSPARC64LoweredZero)
+		v.AuxInt = int64ToAuxInt(s<<4 | 1)
+		v.AddArg2(ptr, mem)
 		return true
 	}
 }

@@ -120,7 +120,13 @@
 (Zero [2] {t} ptr mem) && t.Alignment()%2 == 0 => (MOVHstore ptr (MOVDconst [0]) mem)
 (Zero [4] {t} ptr mem) && t.Alignment()%4 == 0 => (MOVWstore ptr (MOVDconst [0]) mem)
 (Zero [8] {t} ptr mem) && t.Alignment()%8 == 0 => (MOVDstore ptr (MOVDconst [0]) mem)
-(Zero [s] {t} ptr mem) => (LoweredZero [t.Alignment()] ptr (ADDconst <ptr.Type> [s-moveSize(t.Alignment(), config)] ptr) mem)
+// AuxInt packs the byte count and the access width: s<<4 | width. The
+// width comes from the alignment; Go type sizes are multiples of their
+// alignment, so the loop terminates exactly.
+(Zero [s] {t} ptr mem) && t.Alignment()%8 == 0 => (LoweredZero [s<<4|8] ptr mem)
+(Zero [s] {t} ptr mem) && t.Alignment()%4 == 0 => (LoweredZero [s<<4|4] ptr mem)
+(Zero [s] {t} ptr mem) && t.Alignment()%2 == 0 => (LoweredZero [s<<4|2] ptr mem)
+(Zero [s] ptr mem) => (LoweredZero [s<<4|1] ptr mem)
 
 // Moves, likewise.
 (Move [0] _ _ mem) => mem
@@ -128,7 +134,10 @@
 (Move [2] {t} dst src mem) && t.Alignment()%2 == 0 => (MOVHstore dst (MOVHload src mem) mem)
 (Move [4] {t} dst src mem) && t.Alignment()%4 == 0 => (MOVWstore dst (MOVWload src mem) mem)
 (Move [8] {t} dst src mem) && t.Alignment()%8 == 0 => (MOVDstore dst (MOVDload src mem) mem)
-(Move [s] {t} dst src mem) => (LoweredMove [t.Alignment()] dst src (ADDconst <src.Type> [s-moveSize(t.Alignment(), config)] src) mem)
+(Move [s] {t} dst src mem) && t.Alignment()%8 == 0 => (LoweredMove [s<<4|8] dst src mem)
+(Move [s] {t} dst src mem) && t.Alignment()%4 == 0 => (LoweredMove [s<<4|4] dst src mem)
+(Move [s] {t} dst src mem) && t.Alignment()%2 == 0 => (LoweredMove [s<<4|2] dst src mem)
+(Move [s] dst src mem) => (LoweredMove [s<<4|1] dst src mem)
 
 // Write barrier.
 (WB ...) => (LoweredWB ...)
@@ -152,18 +161,20 @@
 (MOVUB (MOVDconst [c])) => (MOVDconst [int64(uint8(c))])
 (MOVH  (MOVDconst [c])) => (MOVDconst [int64(int16(c))])
 (MOVUH (MOVDconst [c])) => (MOVDconst [int64(uint16(c))])
+(MOVW  (MOVDconst [c])) => (MOVDconst [int64(int32(c))])
+(MOVUW (MOVDconst [c])) => (MOVDconst [int64(uint32(c))])
+(MOVD  (MOVDconst [c])) => (MOVDconst [c])
 
 // Fold a comparison against a zero-extended 32-bit constant. This is
 // the shape the write-barrier check compiles to, and liveness requires
 // that decision block's control value to have a single argument.
 //
-// TODO(sparc64): eliminating the MOVUW that feeds a CMP — here, or by
-// folding (MOVUW (MOVDconst)) directly — makes four packages fail
-// liveness with a result slot reported live at function entry: net,
-// testing, internal/fuzz and internal/trace/internal/tracev1. Without
-// any such fold, thirty packages fail the write-barrier check instead,
-// so this is the better of the two until the cause is found. It
-// reproduces only with optimization enabled; -N compiles cleanly.
+// This fold once appeared to cause a liveness failure ("bad live
+// variable at entry") in four packages, but was innocent: the real
+// cause was the end-address operand the old LoweredZero/LoweredMove
+// carried, which the scheduler could float above a result's VarDef.
+// Changing which values fold merely shifted register pressure and moved
+// the symptom around. See the LoweredZero comment in SPARC64Ops.go.
 (CMP x (MOVUW (MOVDconst [c]))) && is13Bit(int64(uint32(c))) => (CMPconst [int64(uint32(c))] x)
 
 (SLLD x (MOVDconst [c])) => (SLLDconst [c&63] x)

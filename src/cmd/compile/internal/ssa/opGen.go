@@ -103046,15 +103046,12 @@ var opcodeTable = [...]opInfo{
 	{
 		name:           "LoweredZero",
 		auxType:        auxInt64,
-		argLen:         3,
+		argLen:         2,
 		clobberFlags:   true,
 		faultOnNilArg0: true,
-		addrSinkArg0:   true,
-		addrSinkArg1:   true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 2, v2: 0}},       // R1
-				{1, regMask{v1: 4194302, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2, v2: 0}}, // R1
 			},
 			clobbers: regMask{v1: 2, v2: 0}, // R1
 		},
@@ -103062,17 +103059,14 @@ var opcodeTable = [...]opInfo{
 	{
 		name:           "LoweredMove",
 		auxType:        auxInt64,
-		argLen:         4,
+		argLen:         3,
 		clobberFlags:   true,
 		faultOnNilArg0: true,
 		faultOnNilArg1: true,
-		addrSinkArg0:   true,
-		addrSinkArg1:   true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 4, v2: 0}},       // R2
-				{1, regMask{v1: 2, v2: 0}},       // R1
-				{2, regMask{v1: 4194302, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 4, v2: 0}}, // R2
+				{1, regMask{v1: 2, v2: 0}}, // R1
 			},
 			clobbers: regMask{v1: 6, v2: 0}, // R1 R2
 		},

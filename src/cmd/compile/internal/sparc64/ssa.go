@@ -235,19 +235,33 @@ func panicBounds(s *ssagen.State, v *ssa.Value) {
 	p.To.Sym = ir.Syms.PanicBounds
 }
 
-// moveSizeAndOp picks the widest store that respects the given
-// alignment. SPARC traps on unaligned access, so this must not
-// over-promise.
-func moveSizeAndOp(align int64) (int64, obj.As) {
-	switch {
-	case align%8 == 0:
-		return 8, sparc64.AMOVD
-	case align%4 == 0:
-		return 4, sparc64.AMOVW
-	case align%2 == 0:
-		return 2, sparc64.AMOVH
+// zeroMoveAux unpacks a LoweredZero/LoweredMove AuxInt into the byte
+// count, the access width, and the move instruction for that width.
+// The lowering rules pack these as size<<4 | width, with the width
+// chosen from the type's alignment; SPARC traps on unaligned access,
+// so the width must not over-promise.
+func zeroMoveAux(v *ssa.Value) (sz, chunk int64, mov obj.As) {
+	sz = v.AuxInt >> 4
+	chunk = v.AuxInt & 0xf
+	switch chunk {
+	case 8:
+		mov = sparc64.AMOVD
+	case 4:
+		mov = sparc64.AMOVW
+	case 2:
+		mov = sparc64.AMOVH
+	case 1:
+		mov = sparc64.AMOVB
+	default:
+		v.Fatalf("bad LoweredZero/LoweredMove width %d", chunk)
 	}
-	return 1, sparc64.AMOVB
+	if sz <= 0 || sz%chunk != 0 {
+		// The loop would run past the end. Go type sizes are multiples
+		// of their alignment, so this cannot happen for rule-generated
+		// ops; fail loudly if it somehow does.
+		v.Fatalf("bad LoweredZero/LoweredMove size %d for width %d", sz, chunk)
+	}
+	return sz, chunk, mov
 }
 
 // fcondMove maps a float flag-reading op to the SPARC conditional move
@@ -472,56 +486,72 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Reg = v.Reg()
 
 	case ssa.OpSPARC64LoweredZero:
-		// SUB	$sz, R1
-		// MOVD	ZR, sz(R1)
-		// ADD	$sz, R1
-		// BNED	R1, Rarg1, -2(PC)
-		// arg1 is the address of the last element to zero.
-		sz, mov := moveSizeAndOp(v.AuxInt)
-		p := s.Prog(sparc64.ASUB)
+		// MOVD	$size, TMP2
+		// ADD	R1, TMP2, TMP2	// TMP2 = end pointer
+		// loop:
+		// MOV(w)	ZR, (R1)
+		// ADD	$width, R1
+		// CMP	TMP2, R1
+		// BNED	loop
+		//
+		// The end pointer lives in the reserved TMP2 rather than in an
+		// SSA value; see the op definition for why.
+		sz, chunk, mov := zeroMoveAux(v)
+		p := s.Prog(sparc64.AMOVD)
 		p.From.Type = obj.TYPE_CONST
 		p.From.Offset = sz
-		p.Reg = sparc64.REG_R1
 		p.To.Type = obj.TYPE_REG
-		p.To.Reg = sparc64.REG_R1
+		p.To.Reg = sparc64.REG_TMP2
+		p1 := s.Prog(sparc64.AADD)
+		p1.From.Type = obj.TYPE_REG
+		p1.From.Reg = sparc64.REG_R1
+		p1.Reg = sparc64.REG_TMP2
+		p1.To.Type = obj.TYPE_REG
+		p1.To.Reg = sparc64.REG_TMP2
 		p2 := s.Prog(mov)
 		p2.From.Type = obj.TYPE_REG
 		p2.From.Reg = sparc64.REG_ZR
 		p2.To.Type = obj.TYPE_MEM
 		p2.To.Reg = sparc64.REG_R1
-		p2.To.Offset = sz
 		p3 := s.Prog(sparc64.AADD)
 		p3.From.Type = obj.TYPE_CONST
-		p3.From.Offset = sz
+		p3.From.Offset = chunk
 		p3.Reg = sparc64.REG_R1
 		p3.To.Type = obj.TYPE_REG
 		p3.To.Reg = sparc64.REG_R1
 		p4 := s.Prog(sparc64.ACMP)
 		p4.From.Type = obj.TYPE_REG
-		p4.From.Reg = v.Args[1].Reg()
+		p4.From.Reg = sparc64.REG_TMP2
 		p4.Reg = sparc64.REG_R1
 		p5 := s.Prog(sparc64.ABNED)
 		p5.To.Type = obj.TYPE_BRANCH
 		p5.To.SetTarget(p2)
 
 	case ssa.OpSPARC64LoweredMove:
-		// SUB	$sz, R1
-		// MOVD	sz(R1), TMP
-		// MOVD	TMP, (R2)
-		// ADD	$sz, R1
-		// ADD	$sz, R2
-		// BNED	R1, Rarg2, -4(PC)
-		sz, mov := moveSizeAndOp(v.AuxInt)
-		p := s.Prog(sparc64.ASUB)
+		// MOVD	$size, TMP2
+		// ADD	R1, TMP2, TMP2	// TMP2 = end of src
+		// loop:
+		// MOV(w)	(R1), TMP
+		// MOV(w)	TMP, (R2)
+		// ADD	$width, R1
+		// ADD	$width, R2
+		// CMP	TMP2, R1
+		// BNED	loop
+		sz, chunk, mov := zeroMoveAux(v)
+		p := s.Prog(sparc64.AMOVD)
 		p.From.Type = obj.TYPE_CONST
 		p.From.Offset = sz
-		p.Reg = sparc64.REG_R1
 		p.To.Type = obj.TYPE_REG
-		p.To.Reg = sparc64.REG_R1
+		p.To.Reg = sparc64.REG_TMP2
+		p1 := s.Prog(sparc64.AADD)
+		p1.From.Type = obj.TYPE_REG
+		p1.From.Reg = sparc64.REG_R1
+		p1.Reg = sparc64.REG_TMP2
+		p1.To.Type = obj.TYPE_REG
+		p1.To.Reg = sparc64.REG_TMP2
 		p2 := s.Prog(mov)
 		p2.From.Type = obj.TYPE_MEM
 		p2.From.Reg = sparc64.REG_R1
-		p2.From.Offset = sz
 		p2.To.Type = obj.TYPE_REG
 		p2.To.Reg = sparc64.REGTMP
 		p3 := s.Prog(mov)
@@ -531,19 +561,19 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p3.To.Reg = sparc64.REG_R2
 		p4 := s.Prog(sparc64.AADD)
 		p4.From.Type = obj.TYPE_CONST
-		p4.From.Offset = sz
+		p4.From.Offset = chunk
 		p4.Reg = sparc64.REG_R1
 		p4.To.Type = obj.TYPE_REG
 		p4.To.Reg = sparc64.REG_R1
 		p5 := s.Prog(sparc64.AADD)
 		p5.From.Type = obj.TYPE_CONST
-		p5.From.Offset = sz
+		p5.From.Offset = chunk
 		p5.Reg = sparc64.REG_R2
 		p5.To.Type = obj.TYPE_REG
 		p5.To.Reg = sparc64.REG_R2
 		p6 := s.Prog(sparc64.ACMP)
 		p6.From.Type = obj.TYPE_REG
-		p6.From.Reg = v.Args[2].Reg()
+		p6.From.Reg = sparc64.REG_TMP2
 		p6.Reg = sparc64.REG_R1
 		p7 := s.Prog(sparc64.ABNED)
 		p7.To.Type = obj.TYPE_BRANCH

@@ -282,48 +282,49 @@ func init() {
 		{name: "LoweredGetClosurePtr", reg: regInfo{outputs: []regMask{buildReg("R29")}}, zeroWidth: true},
 		{name: "LoweredGetCallerSP", argLength: 1, reg: gp01, rematerializeable: true},
 		{name: "LoweredGetCallerPC", reg: gp01, rematerializeable: true},
-		// Large or unaligned zeroing.
+		// Zeroing and copying loops. The AuxInt packs the byte count and
+		// the access width: AuxInt>>4 is the size and AuxInt&15 the
+		// width, chosen by the lowering rules from the type's alignment
+		// (SPARC traps on unaligned access).
+		//
+		// These deliberately take no end-address argument, unlike the
+		// mips64-style LoweredZero this replaces. An end address is an
+		// ordinary non-memory value, so the scheduler may float it — and
+		// the address computation feeding it — above the VarDef of the
+		// variable being written. Taking a variable's address counts as
+		// a read for liveness (issue 28445), so that ordering makes the
+		// variable live at function entry and liveness rejects the
+		// function. The end pointer is computed in the code generator
+		// instead, in the reserved TMP2 register.
+		//
 		// arg0 = address of memory to zero (in R1, changed as a side effect)
-		// arg1 = address of the last element to zero
-		// arg2 = mem
-		// auxint = alignment
-		//	SUB	$sz, R1
-		//	MOVD	ZR, sz(R1)
-		//	ADD	$sz, R1
-		//	BNED	Rarg1, R1, -2(PC)
+		// arg1 = mem
 		{
 			name:      "LoweredZero",
 			aux:       "Int64",
-			argLength: 3,
+			argLength: 2,
 			reg: regInfo{
-				inputs:   []regMask{buildReg("R1"), gp},
+				inputs:   []regMask{buildReg("R1")},
 				clobbers: buildReg("R1"),
 			},
 			clobberFlags:   true,
 			faultOnNilArg0: true,
-			addrSinkArg0:   true,
-			addrSinkArg1:   true,
 		},
 
-		// Large or unaligned move.
 		// arg0 = address of dst (in R2, changed as a side effect)
 		// arg1 = address of src (in R1, changed as a side effect)
-		// arg2 = address of the last element of src
-		// arg3 = mem
-		// auxint = alignment
+		// arg2 = mem
 		{
 			name:      "LoweredMove",
 			aux:       "Int64",
-			argLength: 4,
+			argLength: 3,
 			reg: regInfo{
-				inputs:   []regMask{buildReg("R2"), buildReg("R1"), gp},
+				inputs:   []regMask{buildReg("R2"), buildReg("R1")},
 				clobbers: buildReg("R1 R2"),
 			},
 			clobberFlags:   true,
 			faultOnNilArg0: true,
 			faultOnNilArg1: true,
-			addrSinkArg0:   true,
-			addrSinkArg1:   true,
 		},
 
 		{name: "LoweredPanicBoundsRR", argLength: 3, aux: "Int64", reg: regInfo{inputs: []regMask{first16, first16}}, typ: "Mem", call: true},
