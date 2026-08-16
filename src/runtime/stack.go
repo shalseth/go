@@ -716,7 +716,9 @@ func adjustframe(frame *stkframe, adjinfo *adjustinfo) {
 		// holds a code address and needs no adjustment. The value is
 		// range-checked, so a frame whose slot was never written is
 		// left alone.
-		adjustSparcAnchor(frame.sp+112, adjinfo)
+		if frame.fp > frame.sp {
+			adjustSparcAnchor(frame.sp+112, adjinfo)
+		}
 		if isInjectedCall(frame.fn.funcID) {
 			// An injected call (sigpanic, asyncPreempt) stored the
 			// interrupted frame anchors at the base of the pushed

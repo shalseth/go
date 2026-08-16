@@ -101944,9 +101944,10 @@ var opcodeTable = [...]opInfo{
 		},
 	},
 	{
-		name:        "MULDU",
-		argLen:      2,
-		commutative: true,
+		name:            "MULDU",
+		argLen:          2,
+		commutative:     true,
+		resultNotInArgs: true,
 		reg: regInfo{
 			inputs: []inputInfo{
 				{0, regMask{v1: 12582910, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19 R20 R21 R24 R25 R29 g

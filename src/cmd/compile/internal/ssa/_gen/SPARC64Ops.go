@@ -172,7 +172,7 @@ func init() {
 		// Full 64x64->128 unsigned multiply, as a pair. SPARC has no
 		// single instruction for it, so this emits UMULXHI followed by
 		// MULD; results are (high, low).
-		{name: "MULDU", argLength: 2, reg: gp22, commutative: true, typ: "(UInt64,UInt64)"},
+		{name: "MULDU", argLength: 2, reg: gp22, commutative: true, resultNotInArgs: true, typ: "(UInt64,UInt64)"}, // (hi, lo) = arg0 * arg1; the two-instruction expansion must not clobber its inputs
 		{name: "UDIVD", argLength: 2, reg: gp21, asm: "UDIVD"},                   // arg0 / arg1, unsigned
 
 		{name: "AND", argLength: 2, reg: gp21, asm: "AND", commutative: true},   // arg0 & arg1

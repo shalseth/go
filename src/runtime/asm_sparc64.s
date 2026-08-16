@@ -203,13 +203,15 @@ TEXT runtime·systemstack(SB), NOSPLIT, $0-8
 switch:
 	// save our state in g->sched. Pretend to
 	// be systemstack_switch if the G stack is scanned.
-	// The saved sp is our ENTRY sp (the caller's current sp) and the
-	// saved lr our return address, so unwinding the fake
-	// systemstack_switch frame lands exactly on the caller's frame.
+	// The fake pc points past the prologue's frame push (offset 16, the
+	// instruction after the generated ADD that carries the Spadj), so
+	// the unwinder sees a 176-byte frame at the saved sp and lands
+	// exactly on the caller's frame; the saved lr is our return
+	// address into that caller.
 	MOVD	$runtime·systemstack_switch(SB), R8
-	ADD	$8, R8	// get past prologue
+	ADD	$16, R8
 	MOVD	R8, (g_sched+gobuf_pc)(g)
-	ADD	$2047, RFP, TMP
+	MOVD	BSP, TMP
 	MOVD	TMP, (g_sched+gobuf_sp)(g)
 	MOVD	OLR, (g_sched+gobuf_lr)(g)
 	MOVD	g, (g_sched+gobuf_g)(g)
