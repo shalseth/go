@@ -469,6 +469,7 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 
 			// MOVD RFP, (112+bias)(RSP)
 			p = obj.Appendp(p, newprog)
+			storeAnchors := p
 			p.As = AMOVD
 			p.From.Type = obj.TYPE_REG
 			p.From.Reg = REG_RFP
@@ -492,7 +493,7 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.To.Offset = int64(120 + StackBias)
 
 			if !cursym.Func().Text.From.Sym.NoSplit() {
-				p = stacksplit(ctxt, cursym, newprog, p, int64(frameSize)+MinStackFrameSize)
+				p = stacksplit(ctxt, cursym, newprog, p, int64(frameSize)+MinStackFrameSize, storeAnchors)
 			}
 
 			// ADD -(frame+128|176), RSP
@@ -887,10 +888,10 @@ func buildop(ctxt *obj.Link) {}
 // push (locals plus the fixed frame), so it is always larger than
 // abi.StackSmall and the small-stack fast path of other ports does not
 // apply. Returns the last prog of the inserted sequence.
-func stacksplit(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc, p *obj.Prog, totalframe int64) *obj.Prog {
+func stacksplit(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc, p *obj.Prog, totalframe int64, resume *obj.Prog) *obj.Prog {
 	// MOVD g_stackguard(g), RT1
 	p = obj.Appendp(p, newprog)
-	loadGuard := p
+	// (the guard load; the split resumes at the anchor stores instead)
 	p.As = AMOVD
 	p.From.Type = obj.TYPE_MEM
 	p.From.Reg = REG_G
@@ -1006,7 +1007,12 @@ func stacksplit(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc, p *obj.
 	p = obj.Appendp(p, newprog)
 	p.As = obj.AJMP
 	p.To.Type = obj.TYPE_BRANCH
-	p.To.SetTarget(loadGuard)
+	// Resume at the anchor stores, not at the guard load: morestack
+	// resumes here with the frame's RFP/OLR reloaded from the goroutine
+	// context, and the slots this frame wrote before growing hold
+	// pre-copy values that stack copying cannot fix up (the frame has
+	// no size yet, so it owns no anchor slot to adjust).
+	p.To.SetTarget(resume)
 
 	// Branch-over target. A real nop: this assembler has no zero-width
 	// placeholder handling.

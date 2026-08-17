@@ -246,7 +246,12 @@ switch:
 	CALL	runtime·save_g(SB)
 	MOVD	(g_sched+gobuf_sp)(g), TMP
 	MOVD	TMP, BSP
+	// Restore the frame anchor too: the code that ran on the system
+	// stack used RFP for its own frames, and this function's epilogue
+	// reads its saved anchors through RFP.
+	MOVD	(g_sched+gobuf_bp)(g), RFP
 	MOVD	$0, (g_sched+gobuf_sp)(g)
+	MOVD	$0, (g_sched+gobuf_bp)(g)
 	RET
 
 noswitch:
