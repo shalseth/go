@@ -496,6 +496,17 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 				p = stacksplit(ctxt, cursym, newprog, p, int64(frameSize)+MinStackFrameSize, storeAnchors)
 			}
 
+			// The frame push and the anchor handoff below must not be
+			// preempted asynchronously. Between them the live %i7 does
+			// not describe the frame that %sp now names, and the
+			// kernel spills the register window to [%sp+bias+112/120]
+			// on signal delivery - exactly the slots the unwinder
+			// reads as this frame's anchors. A preemption landing in
+			// the middle publishes the wrong return address and the
+			// traceback (and therefore the GC's stack scan) skips a
+			// frame.
+			p = ctxt.StartUnsafePoint(p, newprog)
+
 			// ADD -(frame+128|176), RSP
 			p = obj.Appendp(p, newprog)
 			p.As = AADD
@@ -521,6 +532,8 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.From.Reg = REG_LR
 			p.To.Type = obj.TYPE_REG
 			p.To.Reg = REG_R31
+
+			p = ctxt.EndUnsafePoint(p, newprog, -1)
 
 		case obj.ARET:
 			retSym := p.To.Sym
@@ -551,10 +564,23 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			// epilogue runs after their own restores. Everything
 			// derives from RFP and the frame slots.
 
-			// MOVD R31, LR
+			// Same hazard as the prologue: once the anchors below have
+			// been reloaded from this frame's slots, the live %i6/%i7
+			// belong to the caller while %sp still names this frame,
+			// so a window spill would publish the caller's return
+			// address as this frame's. Keep the whole restore
+			// sequence non-preemptible.
+			// This RET prog becomes the PCDATA that opens the region;
+			// the real return is appended at the end.
 			q1 = p
-			p = obj.Appendp(p, newprog)
-			p.As = obj.ARET
+			q1.As = obj.APCDATA
+			q1.From = obj.Addr{}
+			q1.From.SetConst(abi.PCDATA_UnsafePoint)
+			q1.To = obj.Addr{}
+			q1.To.SetConst(abi.UnsafePointUnsafe)
+
+			// MOVD R31, LR
+			q1 = obj.Appendp(q1, newprog)
 			q1.As = AMOVD
 			q1.From.Type = obj.TYPE_REG
 			q1.From.Reg = REG_R31
@@ -598,6 +624,12 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			q1.To.Type = obj.TYPE_REG
 			q1.To.Reg = REG_RSP
 			q1.Spadj = -(cursym.Func().Locals + int32(MinStackFrameSize))
+
+			q1 = ctxt.EndUnsafePoint(q1, newprog, -1)
+
+			// The return itself.
+			p = obj.Appendp(q1, newprog)
+			p.As = obj.ARET
 
 			// The epilogue's SP restore carries Spadj=-frame; the
 			// return itself compensates so instructions after it
@@ -695,7 +727,18 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 		// preempted mid-sequence either; treating them as unsafe
 		// rather than restartable sidesteps mid-sequence resume
 		// entirely.
-		o, err := oplook(autoeditprog(ctxt, cursym, p))
+		//
+		// oplook keys the table on the operand classes, and this runs
+		// before preprocess caches them on the real progs, so classify
+		// the copy here: without this every lookup fails and nothing
+		// is ever marked unsafe.
+		q := autoeditprog(ctxt, cursym, p)
+		q.From.Class = aclass(ctxt, &q.From)
+		if f3 := q.GetFrom3(); f3 != nil {
+			f3.Class = aclass(ctxt, f3)
+		}
+		q.To.Class = aclass(ctxt, &q.To)
+		o, err := oplook(q)
 		return err == nil && (o.OpInfo&ClobberTMP != 0 || o.size > 4)
 	}
 	isRestartable := func(p *obj.Prog) bool {

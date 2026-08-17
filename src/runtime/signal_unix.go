@@ -364,7 +364,7 @@ func doSigPreempt(gp *g, ctxt *sigctxt) {
 // condition-code save and link-register spill placement are already
 // handled; something subtler remains). Cooperative preemption is
 // unaffected.
-const preemptMSupported = GOARCH != "sparc64" 
+const preemptMSupported = true
 
 // preemptM sends a preemption request to mp. This request may be
 // handled asynchronously and may be coalesced with other requests to
