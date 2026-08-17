@@ -417,12 +417,19 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			// The prologue moves the incoming return address from LR
 			// (%o7, where CALL leaves it) into OLR (%i7), so a leaf
 			// still has it in LR while everyone else reads OLR.
-			p.As = AMOVD
-			p.From.Type = obj.TYPE_REG
+			//
+			// %o7 holds the address of the CALL instruction itself.
+			// Every other architecture's GetCallerPC returns the real
+			// return address, and the runtime treats it as a resumable
+			// PC (recovery jumps to _panic.startPC to resume a pending
+			// Goexit), so add 8 to skip the call and its delay slot.
+			p.As = AADD
+			p.From.Type = obj.TYPE_CONST
+			p.From.Offset = 8
 			if cursym.Leaf() {
-				p.From.Reg = REG_LR
+				p.Reg = REG_LR
 			} else {
-				p.From.Reg = REG_OLR
+				p.Reg = REG_OLR
 			}
 
 		case obj.ATEXT:
