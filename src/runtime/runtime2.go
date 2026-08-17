@@ -317,6 +317,11 @@ type gobuf struct {
 	ctxt unsafe.Pointer
 	lr   uintptr
 	bp   uintptr // for framepointer-enabled architectures
+	olr  uintptr // sparc64: the live %i7 (OLR) at save time; gogo must
+	// restore it exactly. At a mid-prologue morestack it still holds
+	// the CALLER's return address, and the kernel's register-window
+	// spill mirrors it into [sp+bias+120], so restoring anything else
+	// corrupts the frame anchor slot.
 }
 
 // maybeTraceablePtr is a special pointer that is conditionally trackable

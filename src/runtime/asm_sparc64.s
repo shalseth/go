@@ -118,11 +118,12 @@ TEXT runtime·gogo(SB), NOSPLIT|NOFRAME, $0-8
 	// (gostartcall) the entry prologue captures its return address
 	// from LR, while for a parked frame LR is dead anyway.
 	MOVD	gobuf_lr(R5), LR
-	MOVD	LR, OLR
+	MOVD	gobuf_olr(R5), OLR
 	MOVD	gobuf_bp(R5), RFP
 	MOVD	gobuf_ctxt(R5), CTXT
 	MOVD	ZR, gobuf_sp(R5)
 	MOVD	ZR, gobuf_lr(R5)
+	MOVD	ZR, gobuf_olr(R5)
 	MOVD	ZR, gobuf_bp(R5)
 	MOVD	ZR, gobuf_ctxt(R5)
 	CMP	ZR, ZR // set condition codes for == test, needed by stack split
@@ -145,6 +146,7 @@ TEXT runtime·mcall(SB), NOSPLIT|NOFRAME, $0-8
 	// Save the caller's frame anchors so gogo can rebuild them:
 	// mcall is NOFRAME, so RFP/OLR still belong to the calling frame.
 	MOVD	OLR, (g_sched+gobuf_lr)(g)
+	MOVD	OLR, (g_sched+gobuf_olr)(g)
 	MOVD	RFP, (g_sched+gobuf_bp)(g)
 	MOVD	g, (g_sched+gobuf_g)(g)
 
@@ -214,6 +216,7 @@ switch:
 	MOVD	BSP, TMP
 	MOVD	TMP, (g_sched+gobuf_sp)(g)
 	MOVD	OLR, (g_sched+gobuf_lr)(g)
+	MOVD	OLR, (g_sched+gobuf_olr)(g)
 	MOVD	g, (g_sched+gobuf_g)(g)
 
 	// switch to g0
@@ -285,9 +288,13 @@ TEXT runtime·morestack(SB),NOSPLIT|NOFRAME,$0-0
 	ADD	$8, LR, TMP
 	MOVD	TMP, (g_sched+gobuf_pc)(g)
 	MOVD	R3, (g_sched+gobuf_lr)(g)
-	// f's prologue has not run, so RFP still belongs to f's caller;
-	// the resumed prologue will save it again.
+	// f's prologue has not run, so RFP and OLR still belong to f's
+	// caller. OLR must be preserved exactly: while SP is still at f's
+	// entry, the kernel window spill mirrors %i7 into [sp+bias+120],
+	// the very slot holding the caller's return address anchor.
 	MOVD	RFP, (g_sched+gobuf_bp)(g)
+	MOVD	OLR, TMP
+	MOVD	TMP, (g_sched+gobuf_olr)(g)
 
 	// Called from f.
 	// Set m->morebuf to f's callers.

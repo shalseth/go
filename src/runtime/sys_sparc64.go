@@ -18,6 +18,9 @@ func gostartcall(buf *gobuf, fn, ctxt unsafe.Pointer) {
 		throw("invalid use of gostartcall")
 	}
 	buf.lr = abi.FuncPCABI0(goexit) + sys.PCQuantum
+	// The goroutine's first prologue stores OLR at [sp+120] as its
+	// caller's return-address anchor; make that the goexit frame.
+	buf.olr = buf.lr
 	buf.pc = uintptr(fn)
 	buf.ctxt = ctxt
 }

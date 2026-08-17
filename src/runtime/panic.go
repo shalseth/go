@@ -1430,6 +1430,7 @@ func recovery(gp *g) {
 		// bp gets the frame's RFP and lr its own return address.
 		gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 112))
 		gp.sched.lr = *(*uintptr)(unsafe.Pointer(sp + 120))
+		gp.sched.olr = gp.sched.lr
 	}
 	gogo(&gp.sched)
 }
