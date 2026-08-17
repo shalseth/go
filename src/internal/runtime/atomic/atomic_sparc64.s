@@ -201,7 +201,8 @@ and32_again:
 	SUBCC	R12, R10, ZR
 	BNED	and32_again
 	MEMBAR_FULL
-	MOVW	R11, ret+16(FP)
+	// The contract returns the OLD value.
+	MOVW	R10, ret+16(FP)
 	RET
 
 // func Or32(ptr *uint32, val uint32) uint32
@@ -216,7 +217,8 @@ or32_again:
 	SUBCC	R12, R10, ZR
 	BNED	or32_again
 	MEMBAR_FULL
-	MOVW	R11, ret+16(FP)
+	// The contract returns the OLD value.
+	MOVW	R10, ret+16(FP)
 	RET
 
 // func And64(ptr *uint64, val uint64) uint64
@@ -231,7 +233,8 @@ and64_again:
 	SUBCC	R12, R10, ZR
 	BNED	and64_again
 	MEMBAR_FULL
-	MOVD	R11, ret+16(FP)
+	// The contract returns the OLD value.
+	MOVD	R10, ret+16(FP)
 	RET
 
 // func Or64(ptr *uint64, val uint64) uint64
@@ -246,7 +249,8 @@ or64_again:
 	SUBCC	R12, R10, ZR
 	BNED	or64_again
 	MEMBAR_FULL
-	MOVD	R11, ret+16(FP)
+	// The contract returns the OLD value.
+	MOVD	R10, ret+16(FP)
 	RET
 
 // byteSetup computes, for the byte pointer in R8:
