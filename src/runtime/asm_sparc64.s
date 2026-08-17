@@ -217,6 +217,12 @@ switch:
 	MOVD	TMP, (g_sched+gobuf_sp)(g)
 	MOVD	OLR, (g_sched+gobuf_lr)(g)
 	MOVD	OLR, (g_sched+gobuf_olr)(g)
+	// RFP is part of the goroutine's context: if this goroutine is
+	// later resumed through gogo (it can be preempted or parked while
+	// the system stack runs), gogo reloads RFP from gobuf.bp. Leaving
+	// a stale value here hands the resumed code a frame anchor into a
+	// stack that copystack has since moved.
+	MOVD	RFP, (g_sched+gobuf_bp)(g)
 	MOVD	g, (g_sched+gobuf_g)(g)
 
 	// switch to g0
