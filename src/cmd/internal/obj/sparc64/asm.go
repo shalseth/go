@@ -1268,9 +1268,11 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 		}
 		*o1 = opcode(p.As) | uint32(p.From.Offset)
 
-	// FCMPD F, F, FCC
+	// FCMPD Fy, Fx[, FCC]: compare Fx with Fy, so the condition reads
+	// like the int CMP convention (flags describe Reg relative to From:
+	// L means Fx < Fy).
 	case 14:
-		*o1 = opcode(p.As) | rrr(p.From.Reg, 0, p.Reg, p.To.Reg&3)
+		*o1 = opcode(p.As) | rrr(p.Reg, 0, p.From.Reg, p.To.Reg&3)
 
 	// MOVD $imm32, R
 	// MOVD -$imm31, R
