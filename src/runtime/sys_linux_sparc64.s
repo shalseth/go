@@ -154,9 +154,14 @@ TEXT runtime·usleep(SB),NOSPLIT,$32-4
 	MOVD	R11, R12
 	MULD	R10, R12, R12
 	SUB	R12, R9, R9		// remaining nanoseconds
-	MOVD	R11, 8(BSP)
-	MOVD	R9, 16(BSP)
-	MOVD	$8(BSP), R8
+	// The timespec must live above the fixed 176-byte frame area:
+	// on a context switch the kernel refills the current register
+	// window from [sp+bias+0..127], so any data kept there comes back
+	// as l/i register contents - corrupting the CALLER's registers
+	// with tv_sec/tv_nsec.
+	MOVD	R11, (176+8)(BSP)
+	MOVD	R9, (176+16)(BSP)
+	MOVD	$(176+8)(BSP), R8
 	MOVD	$0, R9
 	SYS(SYS_nanosleep)
 	RET
@@ -269,10 +274,11 @@ mcerr:
 // func walltime() (sec int64, nsec int32)
 TEXT runtime·walltime(SB),NOSPLIT,$32-12
 	MOVD	$0, R8			// CLOCK_REALTIME
-	MOVD	$8(BSP), R9
+	// Above the window save area; see usleep.
+	MOVD	$(176+8)(BSP), R9
 	SYS(SYS_clock_gettime)
-	MOVD	8(BSP), R9
-	MOVD	16(BSP), R10
+	MOVD	(176+8)(BSP), R9
+	MOVD	(176+16)(BSP), R10
 	MOVD	R9, sec+0(FP)
 	MOVW	R10, nsec+8(FP)
 	RET
@@ -280,10 +286,11 @@ TEXT runtime·walltime(SB),NOSPLIT,$32-12
 // func nanotime1() int64
 TEXT runtime·nanotime1(SB),NOSPLIT,$32-8
 	MOVD	$1, R8			// CLOCK_MONOTONIC
-	MOVD	$8(BSP), R9
+	// Above the window save area; see usleep.
+	MOVD	$(176+8)(BSP), R9
 	SYS(SYS_clock_gettime)
-	MOVD	8(BSP), R9
-	MOVD	16(BSP), R10
+	MOVD	(176+8)(BSP), R9
+	MOVD	(176+16)(BSP), R10
 	MOVD	$1000000000, R11
 	MULD	R11, R9, R9
 	ADD	R10, R9, R9
