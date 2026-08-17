@@ -108,11 +108,11 @@ type Stat_t struct {
 	_       int32
 	Rdev    uint64
 	Size    int64
+	Blksize int64
+	Blocks  int64
 	Atim    Timespec
 	Mtim    Timespec
 	Ctim    Timespec
-	Blksize int64
-	Blocks  int64
 	_       [3]int64
 }
 
