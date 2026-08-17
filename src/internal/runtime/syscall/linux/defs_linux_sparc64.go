@@ -38,11 +38,16 @@ const (
 // data at offset 8, since SPARC does not use the packed layout x86-64
 // does. Verified with offsetof on the target.
 type EpollEvent struct {
+	// The kernel accesses Data with 8-byte loads and stores, and
+	// sparc64 faults misaligned accesses with EFAULT, so the struct
+	// must be 8-byte aligned. The zero-length alignment field must
+	// come FIRST: Go pads a struct whose LAST field is zero-sized
+	// (so a pointer to that field stays inside the object), which
+	// silently made this struct 24 bytes while the kernel writes
+	// 16-byte records - every events[i] beyond i=0 was then read
+	// from a misaligned view of the kernel's array.
+	_      [0]uint64
 	Events uint32
 	_pad   uint32
 	Data   [8]byte // the kernel reads and writes this as a u64
-	// The kernel accesses Data with 8-byte loads and stores, and
-	// sparc64 faults misaligned accesses with EFAULT, so the struct
-	// must be 8-byte aligned.
-	_ [0]uint64
 }
