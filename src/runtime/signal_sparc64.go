@@ -34,13 +34,31 @@ func (c *sigctxt) sigsp() uintptr { return uintptr(c.sp()) }
 func (c *sigctxt) siglr() uintptr { return uintptr(c.lr()) }
 func (c *sigctxt) fault() uintptr { return uintptr(c.sigaddr()) }
 
+// copyWindow copies the 128-byte register window save area from the
+// old stack pointer to the new one when an injected call moves the
+// stack pointer. The sparc64 kernel refills the current window's
+// %l0-%l7/%i0-%i7 from [%sp+bias] on the way back to userspace, so
+// after sigreturn every local and in register - including g, which
+// lives in %l6 - is loaded from the NEW sp. If the window words are
+// not moved along with sp, the resumed code runs with sixteen garbage
+// registers.
+//
+//go:nosplit
+func copyWindow(newsp, oldsp uint64) {
+	dst := (*[16]uint64)(unsafe.Pointer(uintptr(newsp)))
+	src := (*[16]uint64)(unsafe.Pointer(uintptr(oldsp)))
+	*dst = *src
+}
+
 // preparePanic sets up the stack to look like a call to sigpanic.
 func (c *sigctxt) preparePanic(sig uint32, gp *g) {
 	// Arrange the link register and PC so the panicking function looks
 	// like it called sigpanic directly. Push a MinFrameSize area with
 	// the old link register spilled at its base: the generic traceback
 	// and stack scanner expect exactly this shape for injected calls.
-	sp := c.sp() - goarch.PtrSize*(_MinFrameSizeWords)
+	oldsp := c.sp()
+	sp := oldsp - goarch.PtrSize*(_MinFrameSizeWords)
+	copyWindow(sp, oldsp)
 	c.set_sp(sp)
 	// sp+128: above the register window save area, see pushCall.
 	*(*uint64)(unsafe.Pointer(uintptr(sp) + 128)) = c.lr()
@@ -61,7 +79,9 @@ func (c *sigctxt) pushCall(targetPC, resumePC uintptr) {
 	// Push a MinFrameSize area with the clobbered link register
 	// spilled at its base; asyncPreempt pops both on the way out, and
 	// the traceback machinery knows this shape for injected calls.
-	sp := c.sp() - goarch.PtrSize*(_MinFrameSizeWords)
+	oldsp := c.sp()
+	sp := oldsp - goarch.PtrSize*(_MinFrameSizeWords)
+	copyWindow(sp, oldsp)
 	c.set_sp(sp)
 	// The link register is spilled at sp+128, above the register
 	// window save area: a nested signal spills the interrupted

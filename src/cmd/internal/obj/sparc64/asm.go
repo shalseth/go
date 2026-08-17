@@ -1377,6 +1377,16 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	// 	OR TMP, R, R
 	//	MOV (R), R
 	case 24:
+		// The low half of the address is composed in the destination
+		// register when it is an integer register. A floating point
+		// destination (FMOVD $f64.xxx(SB), Dn from the constant pool)
+		// cannot hold the address, and encoding its number into the
+		// integer SETHI/OR would silently clobber the general register
+		// with the same low five bits, so use TMP2 instead.
+		ar := p.To.Reg
+		if ar >= REG_F0 {
+			ar = REG_TMP2
+		}
 		*o1 = opcode(ASETHI) | ir(0, REG_TMP)
 		*o2 = opalu(AOR) | rsr(REG_TMP, 0, REG_TMP)
 		rel := addrel(cursym)
@@ -1386,16 +1396,16 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 		rel.Add = p.From.Offset
 		rel.Type = objabi.R_ADDRSPARC64HI
 		*o3 = opalu(ASLLD) | rsr(REG_TMP, 32, REG_TMP)
-		*o4 = opcode(ASETHI) | ir(0, p.To.Reg)
-		*o5 = opalu(AOR) | rsr(p.To.Reg, 0, p.To.Reg)
+		*o4 = opcode(ASETHI) | ir(0, ar)
+		*o5 = opalu(AOR) | rsr(ar, 0, ar)
 		rel = addrel(cursym)
 		rel.Off = int32(p.Pc + 12)
 		rel.Siz = 8
 		rel.Sym = p.From.Sym
 		rel.Add = p.From.Offset
 		rel.Type = objabi.R_ADDRSPARC64LO
-		*o6 = opalu(AOR) | rrr(REG_TMP, 0, p.To.Reg, p.To.Reg)
-		*o7 = opload(p.As) | rsr(p.To.Reg, 0, p.To.Reg)
+		*o6 = opalu(AOR) | rrr(REG_TMP, 0, ar, ar)
+		*o7 = opload(p.As) | rsr(ar, 0, p.To.Reg)
 
 	// MOV R, sym(SB) ->
 	// 	SETHI hh($sym), TMP
