@@ -355,31 +355,92 @@ TEXT runtime·sigfwd(SB),NOSPLIT,$0-32
 // pointer in %o1 and, on this architecture, the address of the struct
 // sigcontext embedded in the signal frame in %o2. See
 // signal_linux_sparc64.go for that layout.
+// The handler must run in the SAME register window as the interrupted
+// code. A SAVE here would create a second user window, and the kernel
+// gets the spill/refill bookkeeping of that second window wrong across
+// syscalls made from the handler: a futex(FUTEX_WAKE) issued by the
+// handler returned with %i6/%i7 refilled from the window of the
+// interrupted futex(FUTEX_WAIT) frame, silently replacing the frame
+// anchors of the running Go function. Everything after that returns to
+// the wrong address.
+//
+// Instead keep one window for the whole process, exactly as ordinary Go
+// code does, and preserve the interrupted function's %l0-%l7/%i0-%i7 by
+// hand. g lives in %l6 and is saved with them, so it needs no shuffling
+// through a global register either. The %g and %o registers are part of
+// the signal context and rt_sigreturn restores them, so they are free.
 TEXT runtime·sigtramp(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
-	// Go code never executes SAVE, so the interrupted function's %l and
-	// %i registers (including g in %l6) are live in the current window,
-	// and rt_sigreturn restores only the globals, outs, and PC/nPC.
-	// Shift to a fresh window for the handler: the interrupted window
-	// was flushed to its own stack by the kernel at delivery, and the
-	// RESTORE on the way out refills it untouched.
+	// Run the handler in the INTERRUPTED register window.
 	//
-	// g must move across the window shift by hand: copy it through a
-	// global register.
-	MOVD	g, R5
-	SAVE	$-208, RSP, RSP		// 176 mandatory + args for sigtrampgo
-	MOVD	R5, g
+	// The obvious implementation - SAVE a fresh window for the handler -
+	// is wrong on Linux/sparc64. A SAVE here leaves two live user
+	// windows, and the kernel's window bookkeeping does not survive a
+	// syscall made from inside the handler: the window comes back
+	// holding the registers of the frame the signal interrupted (a
+	// thread parked in futex(FUTEX_WAIT) hands its notesleep frame
+	// anchors to the handler). The flat-frame ABI keeps its frame
+	// anchors in %i6/%i7, so that silently redirects the handler's
+	// returns.
+	//
+	// Go code never executes SAVE, so one window serves the whole
+	// program; keep it that way here and preserve the interrupted
+	// window by hand instead. %g registers need no saving: the kernel
+	// restores them from the signal context.
+	ADD	$-352, RSP
 
-	// The arguments arrived in %o0-%o2 and are now %i0-%i2 (R24-R26).
-	MOVW	R24, (176+0)(BSP)
-	MOVD	R25, (176+8)(BSP)
-	MOVD	R26, (176+16)(BSP)
+	// Save the interrupted window: %l0-%l7, %i0-%i7, and the return
+	// address the kernel left in %o7 (CALL below clobbers it).
+	MOVD	R16, (208+0)(BSP)
+	MOVD	R17, (208+8)(BSP)
+	MOVD	R18, (208+16)(BSP)
+	MOVD	R19, (208+24)(BSP)
+	MOVD	R20, (208+32)(BSP)
+	MOVD	R21, (208+40)(BSP)
+	MOVD	g, (208+48)(BSP)
+	MOVD	R23, (208+56)(BSP)
+	MOVD	R24, (208+64)(BSP)
+	MOVD	R25, (208+72)(BSP)
+	MOVD	R26, (208+80)(BSP)
+	MOVD	R27, (208+88)(BSP)
+	MOVD	R28, (208+96)(BSP)
+	MOVD	R29, (208+104)(BSP)
+	MOVD	R30, (208+112)(BSP)
+	MOVD	R31, (208+120)(BSP)
+	MOVD	LR, (208+128)(BSP)
+
+	// sigtrampgo(sig uint32, info, ctx unsafe.Pointer); the kernel
+	// passed them in %o0-%o2, which this window still holds.
+	MOVW	R8, (176+0)(BSP)
+	MOVD	R9, (176+8)(BSP)
+	MOVD	R10, (176+16)(BSP)
 	MOVD	$runtime·sigtrampgo(SB), R11
 	CALL	(R11)
 
-	// ret; restore: return to the kernel's restorer stub (in %i7, +8
-	// as usual) while switching back to the interrupted window.
-	JMPL	$8(OLR), ZR
-	RESTORE	ZR, ZR, ZR
+	// Restore the interrupted window.
+	MOVD	(208+0)(BSP), R16
+	MOVD	(208+8)(BSP), R17
+	MOVD	(208+16)(BSP), R18
+	MOVD	(208+24)(BSP), R19
+	MOVD	(208+32)(BSP), R20
+	MOVD	(208+40)(BSP), R21
+	MOVD	(208+48)(BSP), g
+	MOVD	(208+56)(BSP), R23
+	MOVD	(208+64)(BSP), R24
+	MOVD	(208+72)(BSP), R25
+	MOVD	(208+80)(BSP), R26
+	MOVD	(208+88)(BSP), R27
+	MOVD	(208+96)(BSP), R28
+	MOVD	(208+104)(BSP), R29
+	MOVD	(208+112)(BSP), R30
+	MOVD	(208+120)(BSP), R31
+	// The restorer address goes to a %g register: every %l and %i is
+	// live again, and the kernel reloads %g from the signal context.
+	MOVD	(208+128)(BSP), R5
+
+	ADD	$352, RSP
+	// Return to the kernel's restorer stub, which lands at +8 as usual.
+	JMPL	$8(R5), ZR
+	RNOP
 
 TEXT runtime·cgoSigtramp(SB),NOSPLIT|NOFRAME,$0
 	JMP	runtime·sigtramp(SB)
@@ -557,3 +618,4 @@ TEXT runtime·sbrk0(SB),NOSPLIT|NOFRAME,$0-8
 	SYS(SYS_brk)
 	MOVD	R8, ret+0(FP)
 	RET
+
