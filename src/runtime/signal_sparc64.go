@@ -42,7 +42,8 @@ func (c *sigctxt) preparePanic(sig uint32, gp *g) {
 	// and stack scanner expect exactly this shape for injected calls.
 	sp := c.sp() - goarch.PtrSize*(_MinFrameSizeWords)
 	c.set_sp(sp)
-	*(*uint64)(unsafe.Pointer(uintptr(sp))) = c.lr()
+	// sp+128: above the register window save area, see pushCall.
+	*(*uint64)(unsafe.Pointer(uintptr(sp) + 128)) = c.lr()
 
 	pc := gp.sigpc
 
@@ -62,7 +63,11 @@ func (c *sigctxt) pushCall(targetPC, resumePC uintptr) {
 	// the traceback machinery knows this shape for injected calls.
 	sp := c.sp() - goarch.PtrSize*(_MinFrameSizeWords)
 	c.set_sp(sp)
-	*(*uint64)(unsafe.Pointer(uintptr(sp))) = c.lr()
+	// The link register is spilled at sp+128, above the register
+	// window save area: a nested signal spills the interrupted
+	// window's registers to [sp+0..127], which would destroy a value
+	// kept at sp+0.
+	*(*uint64)(unsafe.Pointer(uintptr(sp) + 128)) = c.lr()
 	// Make the signalled function look like it calls targetPC at
 	// resumePC. LR gets resumePC-8: asyncPreempt behaves like a normal
 	// framed function, and a SPARC return jumps to the return address

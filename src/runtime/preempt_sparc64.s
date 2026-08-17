@@ -29,8 +29,8 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	RFP, (112)(BSP)
 	MOVD	OLR, (120)(BSP)
 	MOVD	LR, OLR
-	SUB	$496, BSP
-	ADD	$496, RSP, RFP
+	SUB	$512, BSP
+	ADD	$512, RSP, RFP
 
 	MOVD	R1, (176+0)(BSP)
 	MOVD	R2, (176+8)(BSP)
@@ -55,6 +55,14 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	TMP2, (176+288)(BSP)
 	MOVD	RT1, (176+296)(BSP)
 	MOVD	RT2, (176+304)(BSP)
+	// The interrupted code may be preempted between a compare and its
+	// branch: the integer and float condition codes are live state.
+	// Nothing above sets flags (plain SUB/ADD/MOVD), so CCR is still
+	// the interrupted value here. R1 is already saved, so it can be
+	// scratch.
+	RD	CCR, R1
+	MOVD	R1, (176+312)(BSP)
+	STXFSR	(176+320)(BSP)
 	FMOVD	D2, (176+160)(BSP)
 	FMOVD	D4, (176+168)(BSP)
 	FMOVD	D6, (176+176)(BSP)
@@ -105,6 +113,11 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	(176+24)(BSP), R4
 	MOVD	(176+16)(BSP), R3
 	MOVD	(176+8)(BSP), R2
+	// Restore the condition codes (no instruction below sets flags),
+	// using R1 as scratch before its own final reload.
+	LDXFSR	(176+320)(BSP)
+	MOVD	(176+312)(BSP), R1
+	WR	R1, CCR
 	MOVD	(176+0)(BSP), R1
 	MOVD	(176+288)(BSP), TMP2
 	MOVD	(176+296)(BSP), RT1
@@ -117,6 +130,6 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	RFP, RSP		// pop our frame; RSP = pushCall base
 	MOVD	(112)(BSP), RFP		// interrupted RFP
 	MOVD	(120)(BSP), OLR		// interrupted OLR
-	MOVD	(0)(BSP), LR		// interrupted LR (spilled by pushCall)
+	MOVD	(128)(BSP), LR		// interrupted LR (spilled by pushCall at +128)
 	ADD	$176, BSP		// pop the pushCall area
 	JMPL	TMP, ZR

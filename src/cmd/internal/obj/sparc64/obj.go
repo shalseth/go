@@ -238,7 +238,7 @@ func biasfix(p *obj.Prog) {
 	}
 	switch p.As {
 	case AMOVD, AMOVW, AMOVUW, AMOVH, AMOVUH, AMOVB, AMOVUB,
-		AFMOVD, AFMOVS:
+		AFMOVD, AFMOVS, ASTXFSR, ALDXFSR:
 		switch aclass(p.Ctxt, &p.From) {
 		case ClassZero, ClassReg, ClassFReg, ClassDReg:
 			switch {
@@ -647,15 +647,20 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 	// expansions that go through TMP internally have no side effects
 	// before their final instruction and can simply restart.
 	isUnsafePoint := func(p *obj.Prog) bool {
-		return p.From.Reg == REG_TMP || p.Reg == REG_TMP || p.To.Reg == REG_TMP ||
-			p.From.Index == REG_TMP || p.To.Index == REG_TMP
+		if p.From.Reg == REG_TMP || p.Reg == REG_TMP || p.To.Reg == REG_TMP ||
+			p.From.Index == REG_TMP || p.To.Index == REG_TMP {
+			return true
+		}
+		// Multi-instruction expansions that go through TMP implicitly
+		// (ClobberTMP) and control-flow expansions must not be
+		// preempted mid-sequence either; treating them as unsafe
+		// rather than restartable sidesteps mid-sequence resume
+		// entirely.
+		o, err := oplook(autoeditprog(ctxt, cursym, p))
+		return err == nil && (o.OpInfo&ClobberTMP != 0 || o.size > 4)
 	}
 	isRestartable := func(p *obj.Prog) bool {
-		if isUnsafePoint(p) {
-			return false
-		}
-		o, err := oplook(autoeditprog(ctxt, cursym, p))
-		return err == nil && o.size > 4
+		return false
 	}
 	obj.MarkUnsafePoints(ctxt, cursym.Func().Text, newprog, isUnsafePoint, isRestartable)
 

@@ -572,6 +572,12 @@ const (
 	ABVCD
 	ABVSD
 
+	// Ancillary state and float status registers, needed by
+	// asyncPreempt to preserve the interrupted condition codes.
+	AWR // write ancillary state register (rd = the ASR number)
+	ASTXFSR
+	ALDXFSR
+
 	AWORD
 	ADWORD
 

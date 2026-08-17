@@ -532,7 +532,13 @@ func (u *unwinder) next() {
 	// On link register architectures, sighandler saves the LR on stack
 	// before faking a call.
 	if usesLR && injectedCall {
-		x := *(*uintptr)(unsafe.Pointer(frame.sp))
+		lrOff := uintptr(0)
+		if goarch.ArchFamily == goarch.SPARC64 {
+			// The injected-call machinery spills the link register
+			// above the register window save area; see pushCall.
+			lrOff = 128
+		}
+		x := *(*uintptr)(unsafe.Pointer(frame.sp + lrOff))
 		// same as the size bump used in scanframeworker.
 		frame.sp += alignUp(sys.MinFrameSize, sys.StackAlign)
 		f = findfunc(frame.pc)

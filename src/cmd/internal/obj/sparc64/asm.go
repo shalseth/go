@@ -107,6 +107,9 @@ var optab = map[Optab]Opval{
 	Optab{ASTDF, ClassDReg, ClassNone, ClassNone, ClassIndir13}: {8, 4, 0},
 
 	Optab{ARD, ClassSpcReg, ClassNone, ClassNone, ClassReg}: {9, 4, 0},
+	Optab{AWR, ClassReg, ClassNone, ClassNone, ClassSpcReg}:      {60, 4, 0},
+	Optab{ASTXFSR, ClassIndir13, ClassNone, ClassNone, ClassNone}: {61, 4, 0},
+	Optab{ALDXFSR, ClassIndir13, ClassNone, ClassNone, ClassNone}: {61, 4, 0},
 
 	Optab{ACASD, ClassIndir0, ClassReg, ClassNone, ClassReg}: {10, 4, 0},
 
@@ -1228,6 +1231,19 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	// RD Rspecial, R
 	case 9:
 		*o1 = oprd(p.As) | uint32(p.From.Reg&0x1f)<<14 | rd(p.To.Reg)
+
+	// WR R, Rspecial (wr %g0, R, %asrN)
+	case 60:
+		*o1 = op3(2, 0x30) | uint32(p.To.Reg&0x1f)<<25 | uint32(REG_ZR&0x1f)<<14 | uint32(p.From.Reg&0x1f)
+
+	// STXFSR [addr] / LDXFSR [addr]: %fsr transfers, rd=1 selects the
+	// 64-bit form. The memory operand is always From.
+	case 61:
+		op := op3(3, 0x25) // STXFSR
+		if p.As == ALDXFSR {
+			op = op3(3, 0x21) // LDXFSR
+		}
+		*o1 = op | 1<<25 | uint32(p.From.Reg&0x1f)<<14 | 1<<13 | uint32(p.From.Offset)&0x1fff
 
 	// CASD/CASW
 	case 10:

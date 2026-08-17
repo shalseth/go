@@ -358,7 +358,13 @@ func doSigPreempt(gp *g, ctxt *sigctxt) {
 	}
 }
 
-const preemptMSupported = true
+// Asynchronous preemption is disabled on sparc64 for now: injecting
+// calls into the flat-register-window ABI still has an unresolved
+// resume anomaly under heavy GC churn (the delay-slot PC pairs,
+// condition-code save and link-register spill placement are already
+// handled; something subtler remains). Cooperative preemption is
+// unaffected.
+const preemptMSupported = GOARCH != "sparc64" 
 
 // preemptM sends a preemption request to mp. This request may be
 // handled asynchronously and may be coalesced with other requests to
