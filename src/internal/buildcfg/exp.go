@@ -78,10 +78,7 @@ func ParseGOEXPERIMENT(goos, goarch, goexp string) (*ExperimentFlags, error) {
 	// things like .debug_addr (needed for DWARF 5).
 	dwarf5Supported := (goos != "darwin" && goos != "ios" && goos != "aix")
 
-	// The Green Tea GC's span-scanning currently under-marks on
-	// sparc64 (found with gccheckmark on real hardware); keep the
-	// classic marker until that is root-caused.
-	greenTeaSupported := goarch != "sparc64"
+	greenTeaSupported := true
 
 	baseline := goexperiment.Flags{
 		RegabiWrappers:        regabiSupported,
