@@ -126,10 +126,14 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	// Framed epilogue by hand, plus popping the pushCall area and
 	// restoring the interrupted %o7 from its base. The jump goes
 	// through TMP because LR must carry the interrupted value.
+	//
+	// The anchors are read RFP-relative BEFORE RSP moves: the kernel
+	// spills %i6 to [sp+bias+112] on a context switch, so RSP must
+	// never point at a slot pair that disagrees with the live
+	// %i6/%i7 (see the epilogue in cmd/internal/obj/sparc64).
 	ADD	$8, OLR, TMP		// resumePC
-	MOVD	RFP, RSP		// pop our frame; RSP = pushCall base
-	MOVD	(112)(BSP), RFP		// interrupted RFP
-	MOVD	(120)(BSP), OLR		// interrupted OLR
-	MOVD	(128)(BSP), LR		// interrupted LR (spilled by pushCall at +128)
-	ADD	$176, BSP		// pop the pushCall area
+	MOVD	(128+2047)(RFP), LR	// interrupted LR (spilled by pushCall at +128)
+	MOVD	(120+2047)(RFP), OLR	// interrupted OLR
+	MOVD	(112+2047)(RFP), RFP	// interrupted RFP (RFP dies last)
+	ADD	$(512+176), RSP		// pop our frame and the pushCall area
 	JMPL	TMP, ZR

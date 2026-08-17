@@ -562,24 +562,34 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			q1.To.Type = obj.TYPE_REG
 			q1.To.Reg = REG_R31
 
-			// MOVD RFP, RSP (pop the frame; RFP is the entry sp)
-			q1 = obj.Appendp(q1, newprog)
-			q1.As = AMOVD
-			q1.From.Type = obj.TYPE_REG
-			q1.From.Reg = REG_RFP
-			q1.To.Type = obj.TYPE_REG
-			q1.To.Reg = REG_RSP
-			q1.Spadj = -(cursym.Func().Locals + int32(MinStackFrameSize))
-
-			// MOVD (112+StackBias)(RSP), RFP (same slot, via the
-			// just-restored SP)
+			// MOVD (112+StackBias)(RFP), RFP - restore the caller's
+			// frame anchor BEFORE raising SP. The kernel spills %i6
+			// to [sp+bias+112] on every involuntary context switch:
+			// if SP were raised first, there would be a window where
+			// [sp+112] is the caller's anchor slot while %i6 still
+			// holds the dying frame's fp, and a context switch there
+			// would overwrite the anchor with fp itself (the classic
+			// "RFP == RSP after return" corruption). With this order
+			// the transient spill clobbers only the dying frame's
+			// own slot, and once SP is raised, %i6 and [sp+112]
+			// already agree.
 			q1 = obj.Appendp(q1, newprog)
 			q1.As = AMOVD
 			q1.From.Type = obj.TYPE_MEM
-			q1.From.Reg = REG_RSP
+			q1.From.Reg = REG_RFP
 			q1.From.Offset = 112 + StackBias
 			q1.To.Type = obj.TYPE_REG
 			q1.To.Reg = REG_RFP
+
+			// ADD $framesize, RSP (pop the frame by constant - RFP
+			// no longer holds the entry sp)
+			q1 = obj.Appendp(q1, newprog)
+			q1.As = AADD
+			q1.From.Type = obj.TYPE_CONST
+			q1.From.Offset = int64(cursym.Func().Locals) + MinStackFrameSize
+			q1.To.Type = obj.TYPE_REG
+			q1.To.Reg = REG_RSP
+			q1.Spadj = -(cursym.Func().Locals + int32(MinStackFrameSize))
 
 			// The epilogue's SP restore carries Spadj=-frame; the
 			// return itself compensates so instructions after it
