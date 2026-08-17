@@ -711,13 +711,17 @@ func ssaGenBlock(s *ssagen.State, b, next *ssa.Block) {
 }
 
 // zerorange zeroes the stack range [off, off+cnt) at function entry.
+// off is relative to the base of the locals, which sit above the
+// fixed 176-byte frame area (the register window save area plus the
+// outgoing arguments), so the emitted offset must include both the
+// stack bias and the fixed frame size.
 func zerorange(pp *objw.Progs, p *obj.Prog, off, cnt int64, _ *uint32) *obj.Prog {
 	if cnt == 0 {
 		return p
 	}
 	for i := int64(0); i < cnt; i += 8 {
 		p = pp.Append(p, sparc64.AMOVD, obj.TYPE_REG, sparc64.REG_ZR, 0,
-			obj.TYPE_MEM, sparc64.REGSP, sparc64.StackBias+off+i)
+			obj.TYPE_MEM, sparc64.REGSP, sparc64.StackBias+sparc64.MinStackFrameSize+off+i)
 	}
 	return p
 }

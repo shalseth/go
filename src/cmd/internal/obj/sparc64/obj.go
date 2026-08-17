@@ -641,6 +641,27 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 		p.As = ARNOP
 	}
 
+	// A call to a function that never returns (gopanic, panicwrap) may
+	// be the last code in a function. Its return address - the call
+	// plus 8, past the delay slot - would then be the entry of the NEXT
+	// function, and the traceback machinery would resolve the frame to
+	// the wrong symbol with a zero pcsp. Append an UNDEF so the return
+	// address stays inside this function.
+	isLinkingCall := func(p *obj.Prog) bool {
+		return p != nil && (p.As == obj.ACALL || p.As == obj.ADUFFZERO || p.As == obj.ADUFFCOPY ||
+			(p.As == AJMPL && p.To.Reg != REG_ZR))
+	}
+	var prev *obj.Prog
+	for p := cursym.Func().Text; p != nil; prev, p = p, p.Link {
+		if p.Link != nil {
+			continue
+		}
+		if isLinkingCall(p) || (p.As == ARNOP && isLinkingCall(prev)) {
+			q := obj.Appendp(p, newprog)
+			q.As = obj.AUNDEF
+		}
+	}
+
 	// Mark unsafe points for asynchronous preemption. The asyncPreempt
 	// return path clobbers TMP, so any instruction explicitly keeping
 	// a value there must not be preempted; multi-instruction

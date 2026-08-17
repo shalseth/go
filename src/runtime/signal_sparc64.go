@@ -66,8 +66,14 @@ func (c *sigctxt) preparePanic(sig uint32, gp *g) {
 	pc := gp.sigpc
 
 	if shouldPushSigpanic(gp, pc, uintptr(c.lr())) {
-		// Make it look like the faulting PC called sigpanic.
-		c.set_lr(uint64(pc))
+		// Make it look like the faulting PC called sigpanic. The link
+		// register holds a raw %o7 call address, which the traceback
+		// converts to a return PC by adding 8, so store pc-8: the
+		// reconstructed return PC is then exactly the faulting
+		// instruction, matching what the other architectures put in LR,
+		// and pcdata lookups at retpc-1 stay inside the faulting
+		// function.
+		c.set_lr(uint64(pc) - 8)
 	}
 
 	// In case we are panicking from external C code.
