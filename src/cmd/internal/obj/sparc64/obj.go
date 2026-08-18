@@ -692,6 +692,41 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 		}
 	}
 
+	// Mark functions that write the stack pointer in a way the spdelta
+	// table cannot describe -- the stack switches in hand-written assembly,
+	// which load a whole new SP rather than adjust it by a constant
+	// (systemstack, mcall, gogo). Two things depend on this flag, and both
+	// were silently wrong without it:
+	//
+	// The unwinder refuses to walk past such a frame, because past a stack
+	// switch it may not even be on the stack it thinks it is. Missing the
+	// flag, it walked on and read a stack address as a return PC, which is
+	// the "traceback did not unwind completely" this port kept dying on.
+	//
+	// More seriously, isAsyncSafePoint refuses to preempt inside one. Missing
+	// the flag, the runtime async-preempted stack-switching assembly midway
+	// through the switch; proc.go has an explicit assertion against exactly
+	// that. That is a plausible source of the rare, load-dependent memory
+	// corruption seen when building large programs natively.
+	//
+	// Both spellings of the stack pointer have to be recognised: BSP is the
+	// same register as RSP and only marks operands as carrying the bias.
+	for p := cursym.Func().Text; p != nil; p = p.Link {
+		if p.To.Type != obj.TYPE_REG || p.Spadj != 0 {
+			continue
+		}
+		if p.To.Reg != REG_RSP && p.To.Reg != REG_BSP {
+			continue
+		}
+		f := cursym.Func()
+		if f.FuncFlag&abi.FuncFlagSPWrite == 0 {
+			f.FuncFlag |= abi.FuncFlagSPWrite
+			if ctxt.Debugvlog {
+				ctxt.Logf("auto-SPWRITE: %s %v\n", cursym.Name, p)
+			}
+		}
+	}
+
 	// Schedule delay-slots. Only RNOPs for now. A RESTORE directly
 	// after a jump is hand-written asm deliberately placing the window
 	// restore in the delay slot (the `ret; restore` idiom) — leave it.
