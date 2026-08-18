@@ -107,8 +107,6 @@ TEXT runtime·gogo(SB), NOSPLIT|NOFRAME, $0-8
 	CALL	runtime·save_g(SB)
 
 	MOVD	0(g), R4	// make sure g is not nil
-	MOVD	gobuf_sp(R5), R1
-	MOVD	R1, BSP
 	// The frame anchor registers RFP (%i6) and OLR (%i7) are part of a
 	// goroutine's context in the flat-frame ABI: a framed function's
 	// epilogue unwinds through them, and the kernel's register-window
@@ -117,17 +115,29 @@ TEXT runtime·gogo(SB), NOSPLIT|NOFRAME, $0-8
 	// return address). LR gets the same value: for a fresh goroutine
 	// (gostartcall) the entry prologue captures its return address
 	// from LR, while for a parked frame LR is dead anyway.
+	//
+	// Order matters here in a way no PCDATA can express: the kernel
+	// spills the live %i6/%i7 to [%sp+bias+112/120] on every trap,
+	// with no Go code involved. If %sp already pointed at the incoming
+	// goroutine's frame while %i6/%i7 still held scheduler values, any
+	// interrupt in that window would plant foreign pointers in the
+	// frame's anchor slots, to be read by some unwind minutes later.
+	// So: install the anchors while %sp still points at the dead
+	// scheduler frame (spills there are harmless), and switch %sp
+	// last, when a spill writes exactly the right values.
 	MOVD	gobuf_lr(R5), LR
 	MOVD	gobuf_olr(R5), OLR
 	MOVD	gobuf_bp(R5), RFP
 	MOVD	gobuf_ctxt(R5), CTXT
+	MOVD	gobuf_pc(R5), R8
+	MOVD	gobuf_sp(R5), R1
 	MOVD	ZR, gobuf_sp(R5)
 	MOVD	ZR, gobuf_lr(R5)
 	MOVD	ZR, gobuf_olr(R5)
 	MOVD	ZR, gobuf_bp(R5)
 	MOVD	ZR, gobuf_ctxt(R5)
 	CMP	ZR, ZR // set condition codes for == test, needed by stack split
-	MOVD	gobuf_pc(R5), R8
+	MOVD	R1, BSP
 	JMPL	R8, ZR
 
 // void mcall(fn func(*g))
@@ -244,12 +254,14 @@ switch:
 	MOVD	g_m(g), R3
 	MOVD	m_curg(R3), g
 	CALL	runtime·save_g(SB)
+	// Restore the frame anchor BEFORE the stack pointer: the kernel
+	// spills the live %i6/%i7 to [%sp+bias+112/120] on every trap, so
+	// the moment %sp names the goroutine frame, %i6/%i7 must already
+	// hold that frame's anchors or an interrupt plants g0 values in
+	// the frame's anchor slots.
+	MOVD	(g_sched+gobuf_bp)(g), RFP
 	MOVD	(g_sched+gobuf_sp)(g), TMP
 	MOVD	TMP, BSP
-	// Restore the frame anchor too: the code that ran on the system
-	// stack used RFP for its own frames, and this function's epilogue
-	// reads its saved anchors through RFP.
-	MOVD	(g_sched+gobuf_bp)(g), RFP
 	MOVD	$0, (g_sched+gobuf_sp)(g)
 	MOVD	$0, (g_sched+gobuf_bp)(g)
 	RET
