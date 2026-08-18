@@ -120,7 +120,17 @@ func init() {
 
 	// Common individual register masks.
 	var (
-		gp   = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R15 R16 R17 R18 R19 R20 R21 R24 R25 R29")
+		// R15 (%o7, the link register) is deliberately NOT allocatable.
+		// Hardware writes it on every CALL, prologues capture it into
+		// OLR, and the unwinder treats a live %o7 as the return
+		// address of the most recent call. Allocating it as a data
+		// scratch register is dataflow-legal but breaks that ABI
+		// assumption in two ways: a tail call (method wrappers) jumps
+		// into a prologue that publishes the scratch value as the
+		// caller's return-address anchor, and an interrupt inside a
+		// function holding data in %o7 sends the unwinder - and with
+		// it the GC's stack scan - down a fabricated call chain.
+		gp   = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29")
 		gpg      = gp.union(buildReg("g"))
 		gpsp     = gp.union(buildReg("SP"))
 		gpspg    = gpg.union(buildReg("SP"))
