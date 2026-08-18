@@ -663,10 +663,25 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 	// pcsp tables cover asm frames too. The compiler-generated
 	// prologue and epilogue set Spadj explicitly above.
 	for p := cursym.Func().Text; p != nil; p = p.Link {
-		if p.Spadj != 0 || p.From.Type != obj.TYPE_CONST || p.To.Type != obj.TYPE_REG || p.To.Reg != REG_RSP {
+		// BSP is the same physical register as RSP; it only tells the
+		// operand classifier that memory references through it carry the
+		// stack bias. Assembly that adjusts the stack pointer may spell it
+		// either way, and asyncPreempt spells its prologue with BSP and its
+		// epilogue with RSP. Missing the BSP form left that frame out of the
+		// pcsp table entirely, so the unwinder placed the interrupted frame
+		// 512 bytes too low and died with "traceback did not unwind
+		// completely".
+		to, reg := p.To.Reg, p.Reg
+		if to == REG_BSP {
+			to = REG_RSP
+		}
+		if reg == REG_BSP {
+			reg = REG_RSP
+		}
+		if p.Spadj != 0 || p.From.Type != obj.TYPE_CONST || p.To.Type != obj.TYPE_REG || to != REG_RSP {
 			continue
 		}
-		if p.Reg != 0 && p.Reg != REG_RSP {
+		if reg != 0 && reg != REG_RSP {
 			continue
 		}
 		switch p.As {
@@ -910,11 +925,11 @@ var unaryDst = map[obj.As]bool{
 }
 
 var Linksparc64 = obj.LinkArch{
-	Arch:       sys.ArchSPARC64,
-	Init:       buildop,
-	Preprocess: preprocess,
-	Assemble:   span,
-	Progedit:   progedit,
+	Arch:           sys.ArchSPARC64,
+	Init:           buildop,
+	Preprocess:     preprocess,
+	Assemble:       span,
+	Progedit:       progedit,
 	UnaryDst:       unaryDst,
 	DWARFRegisters: SPARCDWARFRegisters,
 }

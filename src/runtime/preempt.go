@@ -356,6 +356,15 @@ func init() {
 	total += funcMaxSPDelta(f)
 	// Add some overhead for return PCs, etc.
 	asyncPreemptStack = uintptr(total) + 8*goarch.PtrSize
+	if goarch.IsSparc64 != 0 {
+		// sparc64's pushCall reserves a MinFrameSize area below the
+		// interrupted stack pointer before asyncPreempt's own frame is
+		// pushed, and the safe-point check below compares against the
+		// interrupted sp, so that area has to be counted as well. The
+		// generic overhead above only covers the single return address
+		// the other link-register ports push.
+		asyncPreemptStack += alignUp(goarch.MinFrameSize, goarch.StackAlign)
+	}
 	if asyncPreemptStack > stackNosplit {
 		// We need more than the nosplit limit. This isn't unsafe, but it may
 		// limit asynchronous preemption. Consider moving state into xRegState.
