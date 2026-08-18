@@ -128,6 +128,8 @@ func main() {
 			gohostarch = "loong64"
 		case strings.Contains(out, "riscv64"):
 			gohostarch = "riscv64"
+		case strings.Contains(out, "sparc64"):
+			gohostarch = "sparc64"
 		case strings.Contains(out, "s390x"):
 			gohostarch = "s390x"
 		case gohostos == "darwin", gohostos == "ios":
