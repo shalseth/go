@@ -1456,6 +1456,10 @@ func fatalthrow(t throwType) {
 			exit(2)
 		}
 
+		if goarch.IsSparc64 != 0 {
+			dumpPushCallLog()
+		}
+
 		startpanic_m()
 
 		if dopanic_m(gp, pc, sp, nil) {

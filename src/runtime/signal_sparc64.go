@@ -9,6 +9,7 @@ package runtime
 import (
 	"internal/abi"
 	"internal/goarch"
+	"internal/runtime/atomic"
 	"unsafe"
 )
 
@@ -81,6 +82,44 @@ func (c *sigctxt) preparePanic(sig uint32, gp *g) {
 	c.set_pc(uint64(abi.FuncPCABIInternal(sigpanic)))
 }
 
+// pushCallRec is a witness record of one asyncPreempt/sigpanic injection.
+// The ring is dumped by fatalthrow on sparc64 so every crash arrives
+// annotated with the injections that preceded it. Diagnostic aid; plain
+// stores only, safe in signal context.
+type pushCallRec struct {
+	goid   uint64
+	pc     uintptr
+	npc    uintptr
+	sp     uintptr
+	ticks  int64
+	target uintptr
+}
+
+var pushCallLog [64]pushCallRec
+var pushCallIdx atomic.Uint32
+
+func dumpPushCallLog() {
+	n := pushCallIdx.Load()
+	if n == 0 {
+		return
+	}
+	print("injection witness log (", n, " total, newest last):\n")
+	lo := uint32(0)
+	if n > 16 {
+		lo = n - 16
+	}
+	now := cputicks()
+	for i := lo; i < n; i++ {
+		r := &pushCallLog[i%uint32(len(pushCallLog))]
+		print("  g", r.goid, " pc=", hex(r.pc))
+		if fn := findfunc(r.pc); fn.valid() {
+			print(" (", funcname(fn), ")")
+		}
+		print(" npc-pc=", int64(r.npc)-int64(r.pc), " sp=", hex(r.sp),
+			" target=", hex(r.target), " ticksago=", now-r.ticks, "\n")
+	}
+}
+
 func (c *sigctxt) pushCall(targetPC, resumePC uintptr) {
 	// A signal that lands on the delay slot of a taken branch has
 	// tnpc != tpc+4: the next instruction is the branch target, not
@@ -93,6 +132,16 @@ func (c *sigctxt) pushCall(targetPC, resumePC uintptr) {
 	// at the next safe opportunity.
 	if c.npc() != c.pc()+4 {
 		return
+	}
+	if gp := getg(); gp != nil && gp.m != nil && gp.m.curg != nil {
+		i := pushCallIdx.Add(1) - 1
+		r := &pushCallLog[i%uint32(len(pushCallLog))]
+		r.goid = gp.m.curg.goid
+		r.pc = uintptr(c.pc())
+		r.npc = uintptr(c.npc())
+		r.sp = uintptr(c.sp())
+		r.ticks = cputicks()
+		r.target = targetPC
 	}
 	// Push a MinFrameSize area with the clobbered link register
 	// spilled at its base; asyncPreempt pops both on the way out, and
