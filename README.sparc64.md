@@ -18,8 +18,20 @@ cd src && GOROOT_BOOTSTRAP=/path/to/go1.24 ./make.bash
 GOOS=linux GOARCH=sparc64 ../bin/go build ./yourprogram
 ```
 
-The toolchain does not yet build *on* sparc64 (no bootstrap binary
-exists); cross-compile and copy the result to the target.
+The toolchain also builds and runs natively on sparc64. Cross-build a
+bootstrap tree once, copy it to the target, and build from there:
+
+```sh
+cd src && GOOS=linux GOARCH=sparc64 ./bootstrap.bash
+scp ../../go-linux-sparc64-bootstrap.tbz target:
+ssh target 'tar xjf go-linux-sparc64-bootstrap.tbz'
+ssh target 'GOROOT_BOOTSTRAP=$HOME/go-linux-sparc64-bootstrap go/src/make.bash'
+```
+
+The gc compiler is one of the heaviest Go workloads there is, so a
+native `go build` doubles as a stress test of the port; several of the
+subtlest runtime bugs on this branch were only ever reproducible that
+way.
 
 ## What works
 
@@ -39,7 +51,6 @@ exists); cross-compile and copy the result to the target.
   `CGO_ENABLED=0`.
 * VDSO support: `time.Now` and friends go through real syscalls.
 * The race detector, and the `-buildmode` variants beyond `exe`.
-* A native bootstrap toolchain.
 
 ## Notes on the ABI
 
