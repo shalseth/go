@@ -114,6 +114,67 @@ type unwinder struct {
 	// flags are the flags to this unwind. Some of these are updated as we
 	// unwind (see the flags documentation).
 	flags unwindFlags
+
+	// trail records the frames resolved so far, so that a failed unwind can
+	// name the frame whose size is wrong rather than only the frame where
+	// the walk noticed something was off. Diagnostic aid for the sparc64
+	// port; sparcUnwindDebug compiles it out elsewhere.
+	trailPC    [8]uintptr
+	trailSP    [8]uintptr
+	trailFP    [8]uintptr
+	trailDelta [8]int32
+	trailN     int
+}
+
+// sparcUnwindDebug turns on the frame trail above.
+const sparcUnwindDebug = goarch.IsSparc64 != 0
+
+// record appends the current frame to the trail.
+func (u *unwinder) record() {
+	if !sparcUnwindDebug {
+		return
+	}
+	i := u.trailN
+	if i >= len(u.trailPC) {
+		// keep the first frames and the most recent one
+		i = len(u.trailPC) - 1
+	}
+	u.trailPC[i] = u.frame.pc
+	u.trailSP[i] = u.frame.sp
+	u.trailFP[i] = u.frame.fp
+	if u.frame.fn.valid() {
+		u.trailDelta[i] = funcspdelta(u.frame.fn, u.frame.pc)
+	} else {
+		u.trailDelta[i] = -1
+	}
+	u.trailN++
+}
+
+// dumpTrail prints the recorded frame chain. Each line is the frame as the
+// unwinder resolved it; a frame whose fp does not equal the next frame's sp,
+// or whose spdelta disagrees with fp-sp, is the one that mis-sized itself.
+func (u *unwinder) dumpTrail(why string) {
+	if !sparcUnwindDebug {
+		return
+	}
+	print("unwind trail (", why, "), ", u.trailN, " frames, newest last:\n")
+	n := u.trailN
+	if n > len(u.trailPC) {
+		n = len(u.trailPC)
+	}
+	for i := 0; i < n; i++ {
+		print("  [", i, "] ")
+		if fn := findfunc(u.trailPC[i]); fn.valid() {
+			print(funcname(fn))
+		} else {
+			print("<invalid>")
+		}
+		print(" pc=", hex(u.trailPC[i]),
+			" sp=", hex(u.trailSP[i]),
+			" fp=", hex(u.trailFP[i]),
+			" fp-sp=", u.trailFP[i]-u.trailSP[i],
+			" spdelta=", u.trailDelta[i], "\n")
+	}
 }
 
 // init initializes u to start unwinding gp's stack and positions the
@@ -228,6 +289,7 @@ func (u *unwinder) initAt(pc0, sp0, lr0 uintptr, gp *g, flags unwindFlags) {
 
 	isSyscall := frame.pc == pc0 && frame.sp == sp0 && pc0 == gp.syscallpc && sp0 == gp.syscallsp
 	u.resolveInternal(true, isSyscall)
+	u.record()
 }
 
 func (u *unwinder) valid() bool {
@@ -497,9 +559,11 @@ func (u *unwinder) next() {
 		}
 		if fail || doPrint {
 			print("runtime: g ", gp.goid, ": unexpected return pc for ", funcname(f), " called from ", hex(frame.lr), "\n")
+			u.dumpTrail("unexpected return pc")
 			tracebackHexdump(gp.stack, frame, 0)
 		}
 		if fail {
+			u.dumpTrail("unknown caller pc")
 			throw("unknown caller pc")
 		}
 		frame.lr = 0
@@ -562,6 +626,7 @@ func (u *unwinder) next() {
 	}
 
 	u.resolveInternal(false, false)
+	u.record()
 }
 
 // finishInternal is an unwinder-internal helper called after the stack has been
@@ -614,6 +679,7 @@ func (u *unwinder) finishInternal() {
 	if u.flags&(unwindPrintErrors|unwindSilentErrors) == 0 && u.frame.sp != gp.stktopsp {
 		print("runtime: g", gp.goid, ": frame.sp=", hex(u.frame.sp), " top=", hex(gp.stktopsp), "\n")
 		print("\tstack=[", hex(gp.stack.lo), "-", hex(gp.stack.hi), "\n")
+		u.dumpTrail("did not unwind completely")
 		throw("traceback did not unwind completely")
 	}
 }
