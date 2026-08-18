@@ -82,6 +82,18 @@ func (c *sigctxt) preparePanic(sig uint32, gp *g) {
 }
 
 func (c *sigctxt) pushCall(targetPC, resumePC uintptr) {
+	// A signal that lands on the delay slot of a taken branch has
+	// tnpc != tpc+4: the next instruction is the branch target, not
+	// the successor. That state cannot be recreated from userspace -
+	// asyncPreempt's final JMPL can only produce a sequential
+	// (pc, pc+4) pair - so injecting here would resume with the
+	// pending branch silently dropped, sending execution into the
+	// wrong basic block with the other path's register state. Skip
+	// the injection; preemption is best-effort and will be retried
+	// at the next safe opportunity.
+	if c.npc() != c.pc()+4 {
+		return
+	}
 	// Push a MinFrameSize area with the clobbered link register
 	// spilled at its base; asyncPreempt pops both on the way out, and
 	// the traceback machinery knows this shape for injected calls.
