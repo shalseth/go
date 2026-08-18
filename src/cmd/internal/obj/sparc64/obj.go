@@ -533,6 +533,35 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.To.Type = obj.TYPE_REG
 			p.To.Reg = REG_R31
 
+			// Publish this frame's own anchors at [own sp+112/120],
+			// the same slots and values the kernel spills there on a
+			// trap. Without this a frame is described only by its
+			// callees: a framed function whose calls so far have all
+			// been to leaf functions has an unwritten return-address
+			// slot, and any unwind that crosses it - the GC stack
+			// scan, save(), a panic's defer walk - reads whatever a
+			// previous occupant of that stack memory left behind and
+			// decodes the rest of the stack from fossils. Storing the
+			// pair at frame birth closes that hole for good.
+
+			// MOVD RFP, (112+bias)(RSP)
+			p = obj.Appendp(p, newprog)
+			p.As = AMOVD
+			p.From.Type = obj.TYPE_REG
+			p.From.Reg = REG_RFP
+			p.To.Type = obj.TYPE_MEM
+			p.To.Reg = REG_RSP
+			p.To.Offset = int64(112 + StackBias)
+
+			// MOVD R31, (120+bias)(RSP)
+			p = obj.Appendp(p, newprog)
+			p.As = AMOVD
+			p.From.Type = obj.TYPE_REG
+			p.From.Reg = REG_R31
+			p.To.Type = obj.TYPE_MEM
+			p.To.Reg = REG_RSP
+			p.To.Offset = int64(120 + StackBias)
+
 			p = ctxt.EndUnsafePoint(p, newprog, -1)
 
 		case obj.ARET:
