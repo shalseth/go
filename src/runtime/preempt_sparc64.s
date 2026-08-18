@@ -26,11 +26,27 @@
 // 15 allocatable float registers (Y1-Y15 = D2..D30).
 TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	// Framed prologue by hand.
+	//
+	// Order matters more here than in a compiled prologue. The kernel
+	// spills the live %i6/%i7 to [%sp+bias+112/120] on every trap, and
+	// the slots at the entry %sp are the injected frame's copied
+	// window - the exit path below reads the interrupted OLR back out
+	// of [entry sp+120]. LR at this point holds pushCall's synthetic
+	// value (resumePC-8), so OLR must not be overwritten until %sp has
+	// moved to this frame, whose own +112/+120 slots are scratch.
+	// With the old order (MOVD LR, OLR before the SUB) a signal
+	// landing in that one-instruction window let the kernel spill the
+	// synthetic LR over the real return address; the goroutine then
+	// resumed into the middle of itself and executed the wrong basic
+	// blocks with the other path's register meanings. Compiled
+	// prologues have the same window but are healed by their birth
+	// stores; this frame's record is the copied window, so the window
+	// must simply never exist.
 	MOVD	RFP, (112)(BSP)
 	MOVD	OLR, (120)(BSP)
-	MOVD	LR, OLR
 	SUB	$512, BSP
 	ADD	$512, RSP, RFP
+	MOVD	LR, OLR
 
 	MOVD	R1, (176+0)(BSP)
 	MOVD	R2, (176+8)(BSP)
