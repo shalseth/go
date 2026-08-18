@@ -539,6 +539,17 @@ func (u *unwinder) next() {
 			lrOff = 128
 		}
 		x := *(*uintptr)(unsafe.Pointer(frame.sp + lrOff))
+		if goarch.ArchFamily == goarch.SPARC64 && x != 0 {
+			// pushCall spilled a raw %o7: the address of the CALL
+			// instruction itself. Convert it to a return-style address,
+			// exactly as the [sp+120] anchor read above does. Left
+			// unconverted the pc is eight bytes early, getStackMap
+			// resolves the previous safepoint, and the frame is scanned
+			// with the wrong pointer map -- which surfaces later as
+			// "invalid pointer found on stack" when a non-pointer slot
+			// is adjusted as though it held a pointer.
+			x += 8
+		}
 		// same as the size bump used in scanframeworker.
 		frame.sp += alignUp(sys.MinFrameSize, sys.StackAlign)
 		f = findfunc(frame.pc)
