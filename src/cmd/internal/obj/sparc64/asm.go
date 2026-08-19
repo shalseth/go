@@ -1155,6 +1155,21 @@ func srcCount(p *obj.Prog) (c int) {
 	return c
 }
 
+// branchOffset returns the displacement in bytes from p to its branch
+// target. A nil target is not an error: linkpatch's jump-collapsing pass
+// resolves each branch to the ultimate destination of the chain of
+// unconditional jumps starting at it, and brloop reports no destination
+// at all for a chain that closes into an infinite loop. Hand-written
+// assembly spells exactly that as "JMP 0(PC)". Such a branch jumps to
+// itself, so a zero displacement is the correct encoding, which is also
+// what the arm and ppc64 backends emit in this situation.
+func branchOffset(p *obj.Prog) int64 {
+	if p.To.Target() == nil {
+		return 0
+	}
+	return p.To.Target().Pc - p.Pc
+}
+
 func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	out = make([]uint32, 7)
 	o1 := &out[0]
@@ -1283,7 +1298,7 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	// BLE XCC, n(PC)
 	// JMP n(PC)
 	case 17:
-		offset := p.To.Target().Pc - p.Pc
+		offset := branchOffset(p)
 		if offset < -1<<22 || offset > 1<<22-1 {
 			return nil, errors.New("branch target out of range")
 		}
@@ -1298,7 +1313,7 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 
 	// BRZ R, n(PC)
 	case 18:
-		offset := p.To.Target().Pc - p.Pc
+		offset := branchOffset(p)
 		if offset < -1<<19 || offset > 1<<19-1 {
 			return nil, errors.New("branch target out of range")
 		}
@@ -1313,7 +1328,7 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 
 	// FBA n(PC)
 	case 19:
-		offset := p.To.Target().Pc - p.Pc
+		offset := branchOffset(p)
 		if offset < -1<<25 || offset > 1<<25-1 {
 			return nil, errors.New("branch target out of range")
 		}
@@ -1493,7 +1508,7 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	// BLED, n(PC)
 	// JMP n(PC)
 	case 38:
-		offset := p.To.Target().Pc - p.Pc
+		offset := branchOffset(p)
 		if offset < -1<<22 || offset > 1<<22-1 {
 			return nil, errors.New("branch target out of range")
 		}
