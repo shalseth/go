@@ -181,8 +181,19 @@ func TestLongAdjustTimers(t *testing.T) {
 	// which needed 77 seconds.
 	// Trybots are slower, so it will fail even more reliably there.
 	// With the fix, the code runs in under a second.
+	budget := 60 * Second
+	if runtime.GOARCH == "sparc64" {
+		// The UltraSPARC hardware this port runs on takes about 17s
+		// here unloaded and 57-59s alongside a full parallel test run,
+		// against a budget calibrated for machines where the fixed
+		// code finishes in under a second. Scale it rather than skip:
+		// the regression this guards against was ~77x slower than the
+		// fix, so the test still discriminates by a wide margin, and
+		// it stops failing on machine speed alone.
+		budget = 180 * Second
+	}
 	done := make(chan bool)
-	AfterFunc(60*Second, func() { close(done) })
+	AfterFunc(budget, func() { close(done) })
 
 	// Set up a queuing goroutine to ping pong through the scheduler.
 	inQ := make(chan func())
