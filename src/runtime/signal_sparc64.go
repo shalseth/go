@@ -32,7 +32,26 @@ func dumpregs(c *sigctxt) {
 func (c *sigctxt) sigpc() uintptr { return uintptr(c.pc()) }
 
 func (c *sigctxt) sigsp() uintptr { return uintptr(c.sp()) }
-func (c *sigctxt) siglr() uintptr { return uintptr(c.lr()) }
+// siglr returns the link register as a return address. A SPARC CALL
+// writes the address of the CALL itself into %o7 and the callee returns
+// with JMPL %o7+8, past the delay slot, so the raw register is eight
+// bytes short of a return address. Every consumer wants a return
+// address: the unwinder seeds frame.lr with this and resolves it as
+// "minus one is inside the CALL", and traceback.initAt applies the same
+// conversion where it takes the link register from gp.sched. Left raw,
+// a signal taken in a leaf resolves its caller one instruction before
+// the call, which is outside the range of any call the compiler
+// inlined there, so inlined frames vanish from the traceback.
+//
+// MIPS, the other delay-slot architecture Go supports, needs no such
+// conversion: JAL stores PC+8 in $31 directly.
+func (c *sigctxt) siglr() uintptr {
+	lr := uintptr(c.lr())
+	if lr == 0 {
+		return 0
+	}
+	return lr + 8
+}
 func (c *sigctxt) fault() uintptr { return uintptr(c.sigaddr()) }
 
 // copyWindow copies the 128-byte register window save area from the
