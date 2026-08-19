@@ -436,17 +436,24 @@ func (u *unwinder) resolveInternal(innermost, isSyscall bool) {
 	} else {
 		var lrPtr uintptr
 		if goarch.ArchFamily == goarch.SPARC64 {
-			// A frame's return address lives at sp+120, stored there
-			// by the prologue of any framed callee (every callee
-			// stores the same value, since the return address of a
-			// frame never changes). The innermost frame's return
-			// address comes from the context (OLR, via gobuf.lr) and
-			// must not be overwritten: its own slot has not been
-			// written unless it called something.
-			// Even a zero-size frame (like the systemstack_switch
-			// marker) sits directly on its caller's region, where
-			// the slot is valid.
-			if frame.lr == 0 {
+			// A framed function stores its own return address at
+			// sp+120 in its prologue, so that slot is authoritative
+			// for any frame that has one.
+			//
+			// The link register is authoritative only for a frame
+			// that has not saved it: a leaf, or a frame still inside
+			// its prologue, both of which have sp == fp here. Any
+			// call a function makes overwrites %o7 with an address
+			// pointing back into the caller itself, so a signal
+			// delivered to a framed function generally finds a stale
+			// return-to-itself value in the register. Trusting it
+			// invents a second copy of the frame. This is the same
+			// test the other link-register architectures apply.
+			//
+			// A zero-size frame (like the systemstack_switch marker)
+			// sits directly on its caller's region, where the slot is
+			// valid.
+			if innermost && frame.sp < frame.fp || frame.lr == 0 {
 				lrPtr = frame.sp + 120
 				frame.lr = *(*uintptr)(unsafe.Pointer(lrPtr))
 				if frame.lr != 0 {
