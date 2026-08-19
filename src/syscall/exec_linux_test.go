@@ -184,6 +184,11 @@ func TestGroupCleanup(t *testing.T) {
 func TestGroupCleanupUserNamespace(t *testing.T) {
 	testenv.MustHaveExecPath(t, "id")
 	cmd := testenv.Command(t, "id")
+	// This test parses id's "groups=" label, which id translates. Ask
+	// for the C locale so it does not depend on the machine's LANG;
+	// TestGroupCleanup above only looks at uid= and gid=, which are
+	// not translated.
+	cmd.Env = append(cmd.Environ(), "LC_ALL=C")
 	uid, gid := os.Getuid(), os.Getgid()
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWUSER,
