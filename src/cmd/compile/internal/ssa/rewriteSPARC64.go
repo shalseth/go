@@ -2506,7 +2506,7 @@ func rewriteValueSPARC64_OpMove(v *Value) bool {
 		return true
 	}
 	// match: (Move [s] {t} dst src mem)
-	// cond: t.Alignment()%8 == 0
+	// cond: t.Alignment()%8 == 0 && logLargeCopy(v, s)
 	// result: (LoweredMove [s<<4|8] dst src mem)
 	for {
 		s := auxIntToInt64(v.AuxInt)
@@ -2514,7 +2514,7 @@ func rewriteValueSPARC64_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%8 == 0) {
+		if !(t.Alignment()%8 == 0 && logLargeCopy(v, s)) {
 			break
 		}
 		v.reset(OpSPARC64LoweredMove)
@@ -2523,7 +2523,7 @@ func rewriteValueSPARC64_OpMove(v *Value) bool {
 		return true
 	}
 	// match: (Move [s] {t} dst src mem)
-	// cond: t.Alignment()%4 == 0
+	// cond: t.Alignment()%4 == 0 && logLargeCopy(v, s)
 	// result: (LoweredMove [s<<4|4] dst src mem)
 	for {
 		s := auxIntToInt64(v.AuxInt)
@@ -2531,7 +2531,7 @@ func rewriteValueSPARC64_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%4 == 0) {
+		if !(t.Alignment()%4 == 0 && logLargeCopy(v, s)) {
 			break
 		}
 		v.reset(OpSPARC64LoweredMove)
@@ -2540,7 +2540,7 @@ func rewriteValueSPARC64_OpMove(v *Value) bool {
 		return true
 	}
 	// match: (Move [s] {t} dst src mem)
-	// cond: t.Alignment()%2 == 0
+	// cond: t.Alignment()%2 == 0 && logLargeCopy(v, s)
 	// result: (LoweredMove [s<<4|2] dst src mem)
 	for {
 		s := auxIntToInt64(v.AuxInt)
@@ -2548,7 +2548,7 @@ func rewriteValueSPARC64_OpMove(v *Value) bool {
 		dst := v_0
 		src := v_1
 		mem := v_2
-		if !(t.Alignment()%2 == 0) {
+		if !(t.Alignment()%2 == 0 && logLargeCopy(v, s)) {
 			break
 		}
 		v.reset(OpSPARC64LoweredMove)
@@ -2557,17 +2557,22 @@ func rewriteValueSPARC64_OpMove(v *Value) bool {
 		return true
 	}
 	// match: (Move [s] dst src mem)
+	// cond: logLargeCopy(v, s)
 	// result: (LoweredMove [s<<4|1] dst src mem)
 	for {
 		s := auxIntToInt64(v.AuxInt)
 		dst := v_0
 		src := v_1
 		mem := v_2
+		if !(logLargeCopy(v, s)) {
+			break
+		}
 		v.reset(OpSPARC64LoweredMove)
 		v.AuxInt = int64ToAuxInt(s<<4 | 1)
 		v.AddArg3(dst, src, mem)
 		return true
 	}
+	return false
 }
 func rewriteValueSPARC64_OpNeg16(v *Value) bool {
 	v_0 := v.Args[0]

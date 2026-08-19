@@ -198,10 +198,10 @@
 (Move [2] {t} dst src mem) && t.Alignment()%2 == 0 => (MOVHstore dst (MOVHload src mem) mem)
 (Move [4] {t} dst src mem) && t.Alignment()%4 == 0 => (MOVWstore dst (MOVWload src mem) mem)
 (Move [8] {t} dst src mem) && t.Alignment()%8 == 0 => (MOVDstore dst (MOVDload src mem) mem)
-(Move [s] {t} dst src mem) && t.Alignment()%8 == 0 => (LoweredMove [s<<4|8] dst src mem)
-(Move [s] {t} dst src mem) && t.Alignment()%4 == 0 => (LoweredMove [s<<4|4] dst src mem)
-(Move [s] {t} dst src mem) && t.Alignment()%2 == 0 => (LoweredMove [s<<4|2] dst src mem)
-(Move [s] dst src mem) => (LoweredMove [s<<4|1] dst src mem)
+(Move [s] {t} dst src mem) && t.Alignment()%8 == 0 && logLargeCopy(v, s) => (LoweredMove [s<<4|8] dst src mem)
+(Move [s] {t} dst src mem) && t.Alignment()%4 == 0 && logLargeCopy(v, s) => (LoweredMove [s<<4|4] dst src mem)
+(Move [s] {t} dst src mem) && t.Alignment()%2 == 0 && logLargeCopy(v, s) => (LoweredMove [s<<4|2] dst src mem)
+(Move [s] dst src mem) && logLargeCopy(v, s) => (LoweredMove [s<<4|1] dst src mem)
 
 // Write barrier.
 (WB ...) => (LoweredWB ...)
