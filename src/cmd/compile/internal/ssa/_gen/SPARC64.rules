@@ -92,6 +92,33 @@
 	&& is32Bit(int64(off1)+int64(off2))
 	=> (FMOV(S|D)load [off1+off2] {mergeSym(sym1,sym2)} ptr mem)
 
+// Fold a constant offset into the memory operand. SPARC addresses memory
+// as a register plus a displacement, so a pointer plus a constant needs
+// no register of its own. Without this every such address is computed
+// separately, and being a pointer it is spilled across calls and kept
+// live for the collector -- test/fixedbugs/issue15747.go sees two extra
+// autotmps live at a call for exactly this reason.
+//
+// The stack bias discussed above is why SP is excluded here: obj adds
+// the 2047 only when rewriting NAME_AUTO and NAME_PARAM operands, so an
+// offset folded onto a bare SP would lose it. Symbol-carrying addresses
+// are handled by the rules above, and SB is left to them.
+(MOV(B|UB|H|UH|W|UW|D)load [off1] {sym} (ADDconst [off2] ptr) mem)
+	&& is32Bit(int64(off1)+off2) && ptr.Op != OpSB && ptr.Op != OpSP
+	=> (MOV(B|UB|H|UH|W|UW|D)load [off1+int32(off2)] {sym} ptr mem)
+
+(FMOV(S|D)load [off1] {sym} (ADDconst [off2] ptr) mem)
+	&& is32Bit(int64(off1)+off2) && ptr.Op != OpSB && ptr.Op != OpSP
+	=> (FMOV(S|D)load [off1+int32(off2)] {sym} ptr mem)
+
+(MOV(B|H|W|D)store [off1] {sym} (ADDconst [off2] ptr) val mem)
+	&& is32Bit(int64(off1)+off2) && ptr.Op != OpSB && ptr.Op != OpSP
+	=> (MOV(B|H|W|D)store [off1+int32(off2)] {sym} ptr val mem)
+
+(FMOV(S|D)store [off1] {sym} (ADDconst [off2] ptr) val mem)
+	&& is32Bit(int64(off1)+off2) && ptr.Op != OpSB && ptr.Op != OpSP
+	=> (FMOV(S|D)store [off1+int32(off2)] {sym} ptr val mem)
+
 // Loads.
 (Load <t> ptr mem) && t.IsBoolean() => (MOVUBload ptr mem)
 (Load <t> ptr mem) && is8BitInt(t) && t.IsSigned() => (MOVBload ptr mem)
