@@ -59,7 +59,10 @@ const (
 	_SIGABRT = 0x6
 	// SPARC has no SIGSTKFLT. Signal 7 is SIGEMT, and the runtime's
 	// signal tables are indexed by number, so it takes that slot.
-	_SIGSTKFLT = 0x7
+	// SPARC has no SIGSTKFLT. Signal 7 is SIGEMT, so name it that:
+	// shared code that ever reaches for _SIGSTKFLT should fail to build
+	// here rather than silently mean SIGEMT.
+	_SIGEMT    = 0x7
 	_SIGFPE    = 0x8
 	_SIGKILL   = 0x9
 	_SIGBUS    = 0xa
