@@ -271,30 +271,182 @@ mcerr:
 	MOVW	R8, ret+24(FP)
 	RET
 
+#define CLOCK_REALTIME	0
+#define CLOCK_MONOTONIC	1
+
+// Calling the vDSO from the flat-frame ABI needs three things that a
+// plain syscall does not.
+//
+// It is ordinary C code, so it may execute SAVE and open a frame of its
+// own; run it on g0's stack, which has room, rather than a goroutine's.
+// %l and %i registers survive it either way - a callee that SAVEs gets a
+// fresh window, and a leaf callee may touch only %o and %g - so state is
+// carried across the call in %l0-%l3, after spilling what was there.
+//
+// While it runs, the current window is the vDSO's, so %l6 is not our g.
+// A signal taken there would find garbage, so leave g at the base of the
+// signal stack for sigFetchG, which knows to look when the faulting PC
+// is inside the vDSO.
+//
+// Finally m.vdsoPC and m.vdsoSP let a SIGPROF traceback step over code
+// that has no Go frame information.
+
 // func walltime() (sec int64, nsec int32)
-TEXT runtime·walltime(SB),NOSPLIT,$32-12
-	MOVD	$0, R8			// CLOCK_REALTIME
-	// Above the window save area; see usleep.
-	MOVD	$(176+8)(BSP), R9
+TEXT runtime·walltime(SB),NOSPLIT,$64-12
+	MOVD	R16, (176+16)(BSP)
+	MOVD	R17, (176+24)(BSP)
+	MOVD	R18, (176+32)(BSP)
+	MOVD	R19, (176+40)(BSP)
+
+	MOVD	BSP, R16		// our stack pointer, unbiased
+	MOVD	g_m(g), R17		// m
+
+	MOVD	m_vdsoPC(R17), R3
+	MOVD	m_vdsoSP(R17), R4
+	MOVD	R3, (176+0)(BSP)
+	MOVD	R4, (176+8)(BSP)
+	ADD	$8, LR, R3		// our return address
+	MOVD	R3, m_vdsoPC(R17)
+	MOVD	$sec+0(FP), R4
+	MOVD	R4, m_vdsoSP(R17)
+
+	MOVD	runtime·vdsoClockgettimeSym(SB), R2
+	CMP	ZR, R2
+	BED	walltime_fallback
+
+	MOVD	BSP, R1
+	MOVD	m_curg(R17), R5
+	CMP	g, R5
+	BNED	walltime_noswitch
+	MOVD	m_g0(R17), R5
+	MOVD	(g_sched+gobuf_sp)(R5), R1
+walltime_noswitch:
+	SUB	$192, R1
+	AND	$~15, R1
+	MOVD	R1, BSP
+
+	MOVD	ZR, R18
+	MOVD	m_gsignal(R17), R19
+	CMP	ZR, R19
+	BED	walltime_nosaveg
+	CMP	g, R19
+	BED	walltime_nosaveg
+	MOVD	(g_stack+stack_lo)(R19), R18
+	MOVD	g, (R18)
+walltime_nosaveg:
+	MOVD	$CLOCK_REALTIME, R8
+	MOVD	$176(BSP), R9		// timespec, clear of the window save area
+	CALL	(R2)
+
+	CMP	ZR, R18
+	BED	walltime_noclearg
+	MOVD	ZR, (R18)
+walltime_noclearg:
+	MOVD	176(BSP), R9
+	MOVD	(176+8)(BSP), R10
+	MOVD	R16, BSP
+	JMP	walltime_finish
+
+walltime_fallback:
+	MOVD	$CLOCK_REALTIME, R8
+	MOVD	$(176+48)(BSP), R9
 	SYS(SYS_clock_gettime)
-	MOVD	(176+8)(BSP), R9
-	MOVD	(176+16)(BSP), R10
+	MOVD	(176+48)(BSP), R9
+	MOVD	(176+56)(BSP), R10
+
+walltime_finish:
+	MOVD	(176+8)(BSP), R3
+	MOVD	R3, m_vdsoSP(R17)
+	MOVD	(176+0)(BSP), R3
+	MOVD	R3, m_vdsoPC(R17)
+
 	MOVD	R9, sec+0(FP)
 	MOVW	R10, nsec+8(FP)
+
+	MOVD	(176+16)(BSP), R16
+	MOVD	(176+24)(BSP), R17
+	MOVD	(176+32)(BSP), R18
+	MOVD	(176+40)(BSP), R19
 	RET
 
 // func nanotime1() int64
-TEXT runtime·nanotime1(SB),NOSPLIT,$32-8
-	MOVD	$1, R8			// CLOCK_MONOTONIC
-	// Above the window save area; see usleep.
-	MOVD	$(176+8)(BSP), R9
+TEXT runtime·nanotime1(SB),NOSPLIT,$64-8
+	MOVD	R16, (176+16)(BSP)
+	MOVD	R17, (176+24)(BSP)
+	MOVD	R18, (176+32)(BSP)
+	MOVD	R19, (176+40)(BSP)
+
+	MOVD	BSP, R16
+	MOVD	g_m(g), R17
+
+	MOVD	m_vdsoPC(R17), R3
+	MOVD	m_vdsoSP(R17), R4
+	MOVD	R3, (176+0)(BSP)
+	MOVD	R4, (176+8)(BSP)
+	ADD	$8, LR, R3
+	MOVD	R3, m_vdsoPC(R17)
+	MOVD	$ret+0(FP), R4
+	MOVD	R4, m_vdsoSP(R17)
+
+	MOVD	runtime·vdsoClockgettimeSym(SB), R2
+	CMP	ZR, R2
+	BED	nanotime_fallback
+
+	MOVD	BSP, R1
+	MOVD	m_curg(R17), R5
+	CMP	g, R5
+	BNED	nanotime_noswitch
+	MOVD	m_g0(R17), R5
+	MOVD	(g_sched+gobuf_sp)(R5), R1
+nanotime_noswitch:
+	SUB	$192, R1
+	AND	$~15, R1
+	MOVD	R1, BSP
+
+	MOVD	ZR, R18
+	MOVD	m_gsignal(R17), R19
+	CMP	ZR, R19
+	BED	nanotime_nosaveg
+	CMP	g, R19
+	BED	nanotime_nosaveg
+	MOVD	(g_stack+stack_lo)(R19), R18
+	MOVD	g, (R18)
+nanotime_nosaveg:
+	MOVD	$CLOCK_MONOTONIC, R8
+	MOVD	$176(BSP), R9
+	CALL	(R2)
+
+	CMP	ZR, R18
+	BED	nanotime_noclearg
+	MOVD	ZR, (R18)
+nanotime_noclearg:
+	MOVD	176(BSP), R9
+	MOVD	(176+8)(BSP), R10
+	MOVD	R16, BSP
+	JMP	nanotime_finish
+
+nanotime_fallback:
+	MOVD	$CLOCK_MONOTONIC, R8
+	MOVD	$(176+48)(BSP), R9
 	SYS(SYS_clock_gettime)
-	MOVD	(176+8)(BSP), R9
-	MOVD	(176+16)(BSP), R10
+	MOVD	(176+48)(BSP), R9
+	MOVD	(176+56)(BSP), R10
+
+nanotime_finish:
+	MOVD	(176+8)(BSP), R3
+	MOVD	R3, m_vdsoSP(R17)
+	MOVD	(176+0)(BSP), R3
+	MOVD	R3, m_vdsoPC(R17)
+
 	MOVD	$1000000000, R11
 	MULD	R11, R9, R9
 	ADD	R10, R9, R9
 	MOVD	R9, ret+0(FP)
+
+	MOVD	(176+16)(BSP), R16
+	MOVD	(176+24)(BSP), R17
+	MOVD	(176+32)(BSP), R18
+	MOVD	(176+40)(BSP), R19
 	RET
 
 // func rtsigprocmask(how int32, new, old *sigset, size int32)
