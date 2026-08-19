@@ -8,6 +8,8 @@
 // arguments in %o0-%o5 (R8-R13). An error is signaled by the carry
 // flag, with the (positive) errno in %o0.
 
+#define SYS_clone	217
+
 // func rawVforkSyscall(trap, a1, a2, a3 uintptr) (r1 uintptr, err Errno)
 TEXT ·rawVforkSyscall(SB),NOSPLIT|NOFRAME,$0-48
 	MOVD	trap+0(FP), R1
@@ -16,13 +18,28 @@ TEXT ·rawVforkSyscall(SB),NOSPLIT|NOFRAME,$0-48
 	MOVD	a3+24(FP), R10
 	TA	$0x6d
 	BCSW	err
-	// Fork-like syscalls return the pid in %o0 in both processes;
-	// %o1 is 0 in the parent and 1 in the child. Convert to the
-	// Linux convention of returning 0 in the child.
+	// sys_clone has a sparc wrapper that keeps the SunOS convention:
+	// the pid comes back in %o0 to *both* processes and %o1 tells them
+	// apart, zero in the parent and nonzero in the child. Convert that
+	// to the Linux convention of returning 0 in the child.
+	//
+	// clone3 has no such wrapper - it is generic kernel code - so it
+	// already follows the Linux convention, and %o1 is left holding
+	// the size argument the caller passed in, which is never zero.
+	// Applying the sys_clone rule there tells the *parent* it is the
+	// child, and the parent goes on to execve itself.
+	//
+	// Re-read the syscall number from the frame rather than keeping it
+	// in a register: this runs with CLONE_VM, so the child shares this
+	// stack, but both processes read the same still-live argument slot.
+	MOVD	trap+0(FP), R2
+	MOVD	$SYS_clone, R3
+	CMP	R2, R3
+	BNED	done
 	CMP	R9, ZR
-	BED	parent
+	BED	done
 	MOVD	ZR, R8
-parent:
+done:
 	MOVD	R8, r1+32(FP)
 	MOVD	ZR, err+40(FP)
 	RET
