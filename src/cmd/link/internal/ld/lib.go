@@ -183,6 +183,15 @@ type Arch struct {
 	Minalign   int
 	Dwarfregsp int
 	Dwarfreglr int
+	// Dwarfcfabias is added to the SP register to form the CFA. It is
+	// zero everywhere except sparc64, whose ABI biases %sp by 2047.
+	Dwarfcfabias int64
+	// Dwarfraoffset is added to -framesize to give the CFA-relative
+	// address at which a frame's return address is stored. It is zero on
+	// architectures whose prologue spills the link register at the bottom
+	// of the frame; sparc64 instead publishes it at a fixed slot inside
+	// the frame's register save area.
+	Dwarfraoffset int64
 
 	// Threshold of total text size, used for trampoline insertion. If the total
 	// text size is smaller than TrampLimit, we won't need to insert trampolines.

@@ -19,6 +19,8 @@ func Init() (*sys.Arch, ld.Arch) {
 		Minalign:         minAlign,
 		Dwarfregsp:       dwarfRegSP,
 		Dwarfreglr:       dwarfRegLR,
+		Dwarfcfabias:     dwarfCFABias,
+		Dwarfraoffset:    dwarfRAOffset,
 		Adddynrel:        adddynrel,
 		Archinit:         archinit,
 		Archreloc:        archreloc,

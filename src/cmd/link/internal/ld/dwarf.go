@@ -1419,9 +1419,19 @@ const (
 )
 
 // appendPCDeltaCFA appends per-PC CFA deltas to b and returns the final slice.
-func appendPCDeltaCFA(arch *sys.Arch, b []byte, deltapc, cfa int64) []byte {
-	b = append(b, dwarf.DW_CFA_def_cfa_offset_sf)
-	b = dwarf.AppendSleb128(b, cfa/dataAlignmentFactor)
+//
+// bias is the architecture's constant offset from the SP register to the
+// CFA, zero everywhere but sparc64. The factored form cannot carry it:
+// offsets there are multiples of dataAlignmentFactor, and 2047 is not,
+// so a biased architecture uses the unscaled opcode instead.
+func appendPCDeltaCFA(arch *sys.Arch, b []byte, deltapc, cfa, bias int64) []byte {
+	if bias != 0 {
+		b = append(b, dwarf.DW_CFA_def_cfa_offset)
+		b = dwarf.AppendUleb128(b, uint64(cfa+bias))
+	} else {
+		b = append(b, dwarf.DW_CFA_def_cfa_offset_sf)
+		b = dwarf.AppendSleb128(b, cfa/dataAlignmentFactor)
+	}
 
 	switch {
 	case deltapc < 0x40:
@@ -1471,14 +1481,21 @@ func (d *dwctxt) writeframes(fs loader.Sym) dwarfSecInfo {
 	fsu.AddUint8(dwarf.DW_CFA_def_cfa)                  // Set the current frame address..
 	dwarf.Uleb128put(d, fsd, int64(thearch.Dwarfregsp)) // ...to use the value in the platform's SP register (defined in l.go)...
 	if haslr {
-		dwarf.Uleb128put(d, fsd, int64(0)) // ...plus a 0 offset.
+		dwarf.Uleb128put(d, fsd, thearch.Dwarfcfabias) // ...plus the architecture's SP bias, usually 0.
 
 		fsu.AddUint8(dwarf.DW_CFA_same_value) // The platform's link register is unchanged during the prologue.
 		dwarf.Uleb128put(d, fsd, int64(thearch.Dwarfreglr))
 
-		fsu.AddUint8(dwarf.DW_CFA_val_offset)               // The previous value...
-		dwarf.Uleb128put(d, fsd, int64(thearch.Dwarfregsp)) // ...of the platform's SP register...
-		dwarf.Uleb128put(d, fsd, int64(0))                  // ...is CFA+0.
+		if thearch.Dwarfcfabias == 0 {
+			fsu.AddUint8(dwarf.DW_CFA_val_offset)               // The previous value...
+			dwarf.Uleb128put(d, fsd, int64(thearch.Dwarfregsp)) // ...of the platform's SP register...
+			dwarf.Uleb128put(d, fsd, int64(0))                  // ...is CFA+0.
+		}
+		// With a bias the previous SP register is CFA-bias, which
+		// DW_CFA_val_offset cannot express: its offset is factored by
+		// dataAlignmentFactor and 2047 is not a multiple of it. The CFA
+		// rule already implies the value, and gcc emits no rule here
+		// either, so leave it out.
 	} else {
 		dwarf.Uleb128put(d, fsd, int64(d.arch.PtrSize)) // ...plus the word size (because the call instruction implicitly adds one word to the frame).
 
@@ -1546,7 +1563,7 @@ func (d *dwctxt) writeframes(fs loader.Sym) dwarfSecInfo {
 					// after a stack frame has been allocated.
 					deltaBuf = append(deltaBuf, dwarf.DW_CFA_offset_extended_sf)
 					deltaBuf = dwarf.AppendUleb128(deltaBuf, uint64(thearch.Dwarfreglr))
-					deltaBuf = dwarf.AppendSleb128(deltaBuf, -spdelta/dataAlignmentFactor)
+					deltaBuf = dwarf.AppendSleb128(deltaBuf, (-spdelta+thearch.Dwarfraoffset)/dataAlignmentFactor)
 				} else {
 					// The return address is restored into the link register
 					// when a stack frame has been de-allocated.
@@ -1555,7 +1572,7 @@ func (d *dwctxt) writeframes(fs loader.Sym) dwarfSecInfo {
 				}
 			}
 
-			deltaBuf = appendPCDeltaCFA(d.arch, deltaBuf, int64(nextpc)-int64(pcsp.PC), spdelta)
+			deltaBuf = appendPCDeltaCFA(d.arch, deltaBuf, int64(nextpc)-int64(pcsp.PC), spdelta, thearch.Dwarfcfabias)
 		}
 		pad := int(Rnd(int64(len(deltaBuf)), int64(d.arch.PtrSize))) - len(deltaBuf)
 		deltaBuf = append(deltaBuf, zeros[:pad]...)
