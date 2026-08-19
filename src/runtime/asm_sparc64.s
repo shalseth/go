@@ -848,9 +848,14 @@ TEXT runtime·panicBounds(SB),NOSPLIT,$144-0
 	MOVD	R19, (176+128)(BSP)
 	MOVD	R20, (176+136)(BSP)
 
-	// The prologue moved the incoming return address into OLR, so it
-	// is the PC immediately after the call to panicBounds.
-	MOVD	OLR, (176+0)(BSP)
+	// The prologue moved the incoming return address into OLR, but it
+	// is a raw %o7: the address of the CALL to panicBounds itself.
+	// panicBounds64 wants a return address - it reads the bounds
+	// metadata with pcdatavalue at pc-1 and expects that to land inside
+	// the call - so step over the call and its delay slot. R1 is already
+	// saved above, so it is free as scratch.
+	ADD	$8, OLR, R1
+	MOVD	R1, (176+0)(BSP)
 	MOVD	$(176+16)(BSP), R1	// pointer to the save area
 	MOVD	R1, (176+8)(BSP)
 	CALL	runtime·panicBounds64(SB)
