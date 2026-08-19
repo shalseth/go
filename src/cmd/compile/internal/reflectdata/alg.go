@@ -510,7 +510,21 @@ func eqFunc(sig string) *ir.Func {
 			//     for i := off; i < off + N*elemSize; i += elemSize {
 			//         if !eqfn(p+i, q+i) { goto neq }
 			//     }
-			elemFn := eqFunc(sigTrimSkip(elemSig)).Nname
+			// The elements sit at off+i*elemSize from a pointer we know
+			// only to be align-aligned, so the element function must not
+			// assume more than the largest power of two dividing all of
+			// align, off and elemSize. Unless we say so it is built for
+			// the default pointer alignment and may load the elements
+			// more widely than they permit.
+			elemAlign := min(align, int64(types.PtrSize))
+			for elemAlign > 1 && (off%elemAlign != 0 || elemSize%elemAlign != 0) {
+				elemAlign /= 2
+			}
+			elemFnSig := sigTrimSkip(elemSig)
+			if !unalignedOk && elemAlign < int64(types.PtrSize) {
+				elemFnSig = fmt.Sprintf("%c%d%s", sigAlign, elemAlign, elemFnSig)
+			}
+			elemFn := eqFunc(elemFnSig).Nname
 			idx := typecheck.TempAt(pos, ir.CurFunc, types.Types[types.TUINTPTR])
 			init := ir.NewAssignStmt(pos, idx, ir.NewInt(pos, off))
 			cond := ir.NewBinaryExpr(pos, ir.OLT, idx, ir.NewInt(pos, off+n*elemSize))
