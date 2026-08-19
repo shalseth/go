@@ -308,6 +308,10 @@ TEXT runtime·walltime(SB),NOSPLIT,$64-12
 	ADD	$8, LR, R3		// our return address
 	MOVD	R3, m_vdsoPC(R17)
 	MOVD	$sec+0(FP), R4
+	// The caller's frame pointer, not the address of its argument
+	// area: outgoing arguments sit MinStackFrameSize into the
+	// caller's frame, and sigprof unwinds from this as a frame SP.
+	SUB	$176, R4
 	MOVD	R4, m_vdsoSP(R17)
 
 	MOVD	runtime·vdsoClockgettimeSym(SB), R2
@@ -386,6 +390,10 @@ TEXT runtime·nanotime1(SB),NOSPLIT,$64-8
 	ADD	$8, LR, R3
 	MOVD	R3, m_vdsoPC(R17)
 	MOVD	$ret+0(FP), R4
+	// The caller's frame pointer, not the address of its argument
+	// area: outgoing arguments sit MinStackFrameSize into the
+	// caller's frame, and sigprof unwinds from this as a frame SP.
+	SUB	$176, R4
 	MOVD	R4, m_vdsoSP(R17)
 
 	MOVD	runtime·vdsoClockgettimeSym(SB), R2

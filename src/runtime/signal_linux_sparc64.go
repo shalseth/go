@@ -66,7 +66,12 @@ func (c *sigctxt) lr() uint64 { return c.regs().u_regs[_UREG_O7] }
 // hardware sees it, which is the real stack address minus the bias.
 func (c *sigctxt) sp() uint64 { return c.regs().u_regs[_UREG_O6] + stackBias }
 
-func (c *sigctxt) pc() uint64  { return c.regs().tpc }
+// pc is on sigFetchG's path, which runs in signal context before the
+// stack bounds are switched, so it must not be preemptible.
+//
+//go:nosplit
+//go:nowritebarrierrec
+func (c *sigctxt) pc() uint64 { return c.regs().tpc }
 func (c *sigctxt) npc() uint64 { return c.regs().tnpc }
 
 func (c *sigctxt) sigcode() uint64 { return uint64(c.info.si_code) }
