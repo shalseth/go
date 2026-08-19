@@ -72,6 +72,56 @@ and raising the stack pointer, and any signal handler that opens a
 second register window. Those regions are now either ordered so the
 invariant holds or marked non-preemptible.
 
+### Return addresses
+
+The single fact that has produced the most bugs on this branch: a SPARC
+`CALL` writes **the address of the CALL instruction itself** into `%o7`,
+and the callee returns with `JMPL %o7+8`, stepping over both the call
+and its delay slot. A raw `%o7` is therefore *not* a return address; it
+is eight bytes short of one. Three rules follow, and every one of them
+has been violated at least once:
+
+1. **Converting.** Any raw `%o7` read out of a register, a signal
+   context or a frame anchor must have 8 added before the rest of the
+   runtime sees it. The runtime resolves a return address by the
+   universal rule "subtract one and you are inside the CALL", so an
+   unconverted value resolves one instruction too early. That is usually
+   still the right *line* — the instructions before a call belong to the
+   same statement — which is what makes the mistake so quiet. What it
+   loses is anything finer: inlined frames vanish, because the earlier
+   instruction lies outside the range of the call that was inlined
+   there.
+
+2. **Storing.** Anything that arranges to be *returned into* — an
+   injected `sigpanic` or `asyncPreempt` call — must store `target-8`,
+   so that the conversion above reconstructs the intended address.
+
+3. **Trusting.** The link register is authoritative only for a frame
+   that has not saved it: a leaf, or a frame still inside its prologue.
+   Every other frame has stored its own return address at `[sp+120]`,
+   and that slot wins. Any call a function makes overwrites `%o7` with
+   an address pointing back into that same function, so a signal
+   delivered to a framed function generally finds a stale
+   return-to-itself value in the register. Trusting it duplicates the
+   frame.
+
+The conversions are deliberately centralised in the unwinder and the
+signal context rather than spread across their callers, so profiling,
+tracing, heap dumps and `testing.T.Helper` all inherit them. Add new
+ones there, not at the call site.
+
+There is a related consequence for generated code. Because the return
+address points past the delay slot, "return address minus one" lands in
+the delay slot, never in the call. The slot must therefore carry the
+call's own position, which is why the assembler always appends its own
+`RNOP` rather than adopting whatever instruction follows a jump — an
+existing `RNOP` may be an inline mark, whose position the inline tree
+records as the parent frame's call site.
+
+MIPS, the only other delay-slot architecture Go supports, needs none of
+this: `JAL` writes `PC+8` into `$31` directly, so its link register is
+already a return address.
+
 Other things worth knowing before touching this code:
 
 * The stack pointer carries the SPARC V9 bias of 2047; real addresses
