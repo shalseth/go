@@ -83,7 +83,19 @@ const (
 	_SIGPWR    = 0x1d
 	_SIGUSR1   = 0x1e
 	_SIGUSR2   = 0x1f
-	_SIGRTMIN  = 0x22
+	// The classic signals are renumbered on SPARC, but the real-time
+	// range is not: asm/signal.h defines SIGRTMIN as 32, the same as
+	// every other Linux port. 34 is glibc's userspace SIGRTMIN, which
+	// hides the two signals NPTL reserves - a distinction the runtime,
+	// which talks to the kernel directly, does not make.
+	//
+	// The value has to be the kernel's, because sigPerThreadSyscall is
+	// _SIGRTMIN+1 and the signal table marks exactly 32, 33 and 34
+	// _SigUnblock. At 34 the per-thread syscall signal landed on 35,
+	// which is blockable, so ensureSigM's locked thread masked it and
+	// doAllThreadsSyscall waited for an acknowledgement that could
+	// never arrive.
+	_SIGRTMIN  = 0x20
 
 	_FPE_INTDIV = 0x1
 	_FPE_INTOVF = 0x2
