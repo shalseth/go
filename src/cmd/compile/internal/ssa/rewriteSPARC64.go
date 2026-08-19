@@ -345,10 +345,14 @@ func rewriteValueSPARC64(v *Value) bool {
 	case OpPubBarrier:
 		v.Op = OpSPARC64LoweredPubBarrier
 		return true
+	case OpRotateLeft16:
+		return rewriteValueSPARC64_OpRotateLeft16(v)
 	case OpRotateLeft32:
 		return rewriteValueSPARC64_OpRotateLeft32(v)
 	case OpRotateLeft64:
 		return rewriteValueSPARC64_OpRotateLeft64(v)
+	case OpRotateLeft8:
+		return rewriteValueSPARC64_OpRotateLeft8(v)
 	case OpRound32F:
 		v.Op = OpCopy
 		return true
@@ -2816,6 +2820,34 @@ func rewriteValueSPARC64_OpOffPtr(v *Value) bool {
 		return true
 	}
 }
+func rewriteValueSPARC64_OpRotateLeft16(v *Value) bool {
+	v_1 := v.Args[1]
+	v_0 := v.Args[0]
+	b := v.Block
+	typ := &b.Func.Config.Types
+	// match: (RotateLeft16 <t> x (MOVDconst [c]))
+	// result: (Or16 (Lsh16x64 <t> x (MOVDconst [c&15])) (Rsh16Ux64 <t> x (MOVDconst [-c&15])))
+	for {
+		t := v.Type
+		x := v_0
+		if v_1.Op != OpSPARC64MOVDconst {
+			break
+		}
+		c := auxIntToInt64(v_1.AuxInt)
+		v.reset(OpOr16)
+		v0 := b.NewValue0(v.Pos, OpLsh16x64, t)
+		v1 := b.NewValue0(v.Pos, OpSPARC64MOVDconst, typ.UInt64)
+		v1.AuxInt = int64ToAuxInt(c & 15)
+		v0.AddArg2(x, v1)
+		v2 := b.NewValue0(v.Pos, OpRsh16Ux64, t)
+		v3 := b.NewValue0(v.Pos, OpSPARC64MOVDconst, typ.UInt64)
+		v3.AuxInt = int64ToAuxInt(-c & 15)
+		v2.AddArg2(x, v3)
+		v.AddArg2(v0, v2)
+		return true
+	}
+	return false
+}
 func rewriteValueSPARC64_OpRotateLeft32(v *Value) bool {
 	v_1 := v.Args[1]
 	v_0 := v.Args[0]
@@ -2865,6 +2897,34 @@ func rewriteValueSPARC64_OpRotateLeft64(v *Value) bool {
 		v.AddArg2(v0, v1)
 		return true
 	}
+}
+func rewriteValueSPARC64_OpRotateLeft8(v *Value) bool {
+	v_1 := v.Args[1]
+	v_0 := v.Args[0]
+	b := v.Block
+	typ := &b.Func.Config.Types
+	// match: (RotateLeft8 <t> x (MOVDconst [c]))
+	// result: (Or8 (Lsh8x64 <t> x (MOVDconst [c&7])) (Rsh8Ux64 <t> x (MOVDconst [-c&7])))
+	for {
+		t := v.Type
+		x := v_0
+		if v_1.Op != OpSPARC64MOVDconst {
+			break
+		}
+		c := auxIntToInt64(v_1.AuxInt)
+		v.reset(OpOr8)
+		v0 := b.NewValue0(v.Pos, OpLsh8x64, t)
+		v1 := b.NewValue0(v.Pos, OpSPARC64MOVDconst, typ.UInt64)
+		v1.AuxInt = int64ToAuxInt(c & 7)
+		v0.AddArg2(x, v1)
+		v2 := b.NewValue0(v.Pos, OpRsh8Ux64, t)
+		v3 := b.NewValue0(v.Pos, OpSPARC64MOVDconst, typ.UInt64)
+		v3.AuxInt = int64ToAuxInt(-c & 7)
+		v2.AddArg2(x, v3)
+		v.AddArg2(v0, v2)
+		return true
+	}
+	return false
 }
 func rewriteValueSPARC64_OpRsh16Ux16(v *Value) bool {
 	v_1 := v.Args[1]

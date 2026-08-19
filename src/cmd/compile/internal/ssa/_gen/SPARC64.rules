@@ -399,6 +399,13 @@
 (RotateLeft64 <t> x y) => (OR <t> (SLLD <t> x y) (SRLD <t> x (SUB <typ.UInt64> (MOVDconst <typ.UInt64> [64]) y)))
 (RotateLeft32 <t> x y) => (OR <t> (SLLW <t> x y) (SRLW <t> x (SUB <typ.UInt64> (MOVDconst <typ.UInt64> [32]) y)))
 
+// canRotate reports false for sparc64, so the idiom recognizer never forms
+// an 8- or 16-bit rotate. divisible.rules emits them anyway for constant
+// divisibility tests, always with a constant rotate amount, so a
+// constant-only decomposition into shifts is enough.
+(RotateLeft8  <t> x (MOVDconst [c])) => (Or8  (Lsh8x64  <t> x (MOVDconst [c&7]))  (Rsh8Ux64  <t> x (MOVDconst [-c&7])))
+(RotateLeft16 <t> x (MOVDconst [c])) => (Or16 (Lsh16x64 <t> x (MOVDconst [c&15])) (Rsh16Ux64 <t> x (MOVDconst [-c&15])))
+
 // Miscellaneous.
 (Not x) => (XORconst <typ.Bool> [1] x)
 (Slicemask <t> x) => (SRADconst <t> [63] (NEG <t> x))
