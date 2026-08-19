@@ -18,8 +18,17 @@ import (
 func TestMmapErrorSign(t *testing.T) {
 	p, err := runtime.Mmap(nil, ^uintptr(0)&^(runtime.GetPhysPageSize()-1), 0, runtime.MAP_ANON|runtime.MAP_PRIVATE, -1, 0)
 
-	if p != nil || err != runtime.ENOMEM {
-		t.Errorf("mmap = %v, %v, want nil, %v", p, err, runtime.ENOMEM)
+	// A length at or above the hole in SPARC's virtual address space is
+	// rejected by sparc64_mmap_check with EINVAL, before the generic
+	// path that reports ENOMEM elsewhere. Either answer exercises what
+	// this test is for, which is that the errno arrives with the right
+	// sign rather than as a negative return value.
+	want := runtime.ENOMEM
+	if runtime.GOARCH == "sparc64" {
+		want = 0x16 // EINVAL
+	}
+	if p != nil || err != want {
+		t.Errorf("mmap = %v, %v, want nil, %v", p, err, want)
 	}
 }
 
