@@ -102310,6 +102310,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         2,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymRead,
 		asm:            sparc64.AMOVB,
 		reg: regInfo{
@@ -102326,6 +102327,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         2,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymRead,
 		asm:            sparc64.AMOVUB,
 		reg: regInfo{
@@ -102342,6 +102344,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         2,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymRead,
 		asm:            sparc64.AMOVH,
 		reg: regInfo{
@@ -102358,6 +102361,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         2,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymRead,
 		asm:            sparc64.AMOVUH,
 		reg: regInfo{
@@ -102374,6 +102378,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         2,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymRead,
 		asm:            sparc64.AMOVW,
 		reg: regInfo{
@@ -102390,6 +102395,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         2,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymRead,
 		asm:            sparc64.AMOVUW,
 		reg: regInfo{
@@ -102406,6 +102412,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         2,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymRead,
 		asm:            sparc64.AMOVD,
 		reg: regInfo{
@@ -102422,6 +102429,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         2,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymRead,
 		asm:            sparc64.AFMOVS,
 		reg: regInfo{
@@ -102438,6 +102446,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         2,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymRead,
 		asm:            sparc64.AFMOVD,
 		reg: regInfo{
@@ -102454,6 +102463,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         3,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymWrite,
 		asm:            sparc64.AMOVB,
 		reg: regInfo{
@@ -102468,6 +102478,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         3,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymWrite,
 		asm:            sparc64.AMOVH,
 		reg: regInfo{
@@ -102482,6 +102493,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         3,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymWrite,
 		asm:            sparc64.AMOVW,
 		reg: regInfo{
@@ -102496,6 +102508,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         3,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymWrite,
 		asm:            sparc64.AMOVD,
 		reg: regInfo{
@@ -102510,6 +102523,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         3,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymWrite,
 		asm:            sparc64.AFMOVS,
 		reg: regInfo{
@@ -102524,6 +102538,7 @@ var opcodeTable = [...]opInfo{
 		auxType:        auxSymOff,
 		argLen:         3,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		symEffect:      SymWrite,
 		asm:            sparc64.AFMOVD,
 		reg: regInfo{
@@ -103078,6 +103093,7 @@ var opcodeTable = [...]opInfo{
 		argLen:         2,
 		clobberFlags:   true,
 		faultOnNilArg0: true,
+		addrSinkArg0:   true,
 		reg: regInfo{
 			inputs: []inputInfo{
 				{0, regMask{v1: 2, v2: 0}}, // R1
@@ -103092,6 +103108,8 @@ var opcodeTable = [...]opInfo{
 		clobberFlags:   true,
 		faultOnNilArg0: true,
 		faultOnNilArg1: true,
+		addrSinkArg0:   true,
+		addrSinkArg1:   true,
 		reg: regInfo{
 			inputs: []inputInfo{
 				{0, regMask{v1: 4, v2: 0}}, // R2
