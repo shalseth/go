@@ -41,6 +41,12 @@ func badLR2(arg int) {
 	if runtime.GOARCH == "ppc64" || runtime.GOARCH == "ppc64le" {
 		lrOff = 32 // FIXED_FRAME or sys.MinFrameSize
 	}
+	if runtime.GOARCH == "sparc64" {
+		// Arguments start at the 176-byte minimum frame and the return
+		// address anchor sits at sp+120, where the hardware would spill
+		// %i7 for this window.
+		lrOff = 176 - 120
+	}
 	lrPtr := (*uintptr)(unsafe.Pointer(uintptr(unsafe.Pointer(&arg)) - lrOff))
 	*lrPtr = 0xbad
 
