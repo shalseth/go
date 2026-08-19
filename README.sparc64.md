@@ -50,6 +50,13 @@ way.
 * cgo and external linking. Everything must be built with
   `CGO_ENABLED=0`.
 * VDSO support: `time.Now` and friends go through real syscalls.
+* Atomic intrinsics. The atomics are correct - hand-written assembly in
+  `internal/runtime/atomic` - but the compiler does not inline them, so
+  every atomic operation is an out-of-line call. That also blocks
+  inlining of the `sync` fast paths, which is why `test/inline_sync.go`
+  excludes this architecture alongside 386, arm and wasm. Fixing it
+  means adding the SSA ops: a CASD/CASW retry loop with the right
+  membar placement for the TSO model.
 * The race detector, and the `-buildmode` variants beyond `exe`.
 
 ## Notes on the ABI
