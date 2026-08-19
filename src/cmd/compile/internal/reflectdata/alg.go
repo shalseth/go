@@ -249,14 +249,20 @@ func geneq(t *types.Type) *obj.LSym {
 // geneqSig returns a symbol which is the closure used to compute
 // equality for two objects with equality signature sig.
 func geneqSig(sig string) *obj.LSym {
+	// body is sig without its alignment directive. The directive selects
+	// among the fixed-size runtime closures below, but it must stay part
+	// of sig itself: the function sig names is built for the alignment
+	// the directive states, so two signatures differing only in it need
+	// different closures pointing at different functions.
 	align := int64(types.PtrSize)
+	body := sig
 	if len(sig) > 0 && sig[0] == sigAlign {
-		align, sig = parseNum(sig[1:])
+		align, body = parseNum(sig[1:])
 	}
 	if base.Ctxt.Arch.CanMergeLoads {
 		align = 8
 	}
-	switch sig {
+	switch body {
 	case "":
 		return sysClosure("memequal0")
 	case string(sigMemory) + "1":
@@ -298,8 +304,8 @@ func geneqSig(sig string) *obj.LSym {
 		return closure
 	}
 
-	if sig[0] == sigMemory {
-		n, rest := parseNum(sig[1:])
+	if body[0] == sigMemory {
+		n, rest := parseNum(body[1:])
 		if rest == "" {
 			// Just M%d. We can make a memequal_varlen closure.
 			// The size of the memory region to compare is encoded in the closure.
