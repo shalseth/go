@@ -474,6 +474,94 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p = obj.Appendp(p, newprog)
 			p.As = ARNOP
 
+			if ctxt.Flag_maymorestack != "" && !cursym.Func().Text.From.Sym.NoSplit() {
+				// Call the maymorestack hook once per call, above
+				// the point morestack resumes at, so growing the
+				// stack does not call it again.
+				//
+				// Publish the caller's anchors first: this is a real
+				// call and must be unwindable. The frame is not open
+				// yet, so open one of our own for it, and keep LR -
+				// this function's return address, which the call
+				// would otherwise clobber - along with the context
+				// register.
+				p = obj.Appendp(p, newprog)
+				p.As = AMOVD
+				p.From.Type = obj.TYPE_REG
+				p.From.Reg = REG_RFP
+				p.To.Type = obj.TYPE_MEM
+				p.To.Reg = REG_RSP
+				p.To.Offset = int64(112 + StackBias)
+
+				p = obj.Appendp(p, newprog)
+				p.As = AMOVD
+				p.From.Type = obj.TYPE_REG
+				p.From.Reg = REG_R31
+				p.To.Type = obj.TYPE_MEM
+				p.To.Reg = REG_RSP
+				p.To.Offset = int64(120 + StackBias)
+
+				p = cursym.Func().SpillRegisterArgs(p, newprog)
+
+				const hookFrame = MinStackFrameSize + 16
+
+				p = obj.Appendp(p, newprog)
+				p.As = AADD
+				p.From.Type = obj.TYPE_CONST
+				p.From.Offset = -hookFrame
+				p.To.Type = obj.TYPE_REG
+				p.To.Reg = REG_RSP
+				p.Spadj = hookFrame
+
+				p = obj.Appendp(p, newprog)
+				p.As = AMOVD
+				p.From.Type = obj.TYPE_REG
+				p.From.Reg = REG_LR
+				p.To.Type = obj.TYPE_MEM
+				p.To.Reg = REG_RSP
+				p.To.Offset = MinStackFrameSize + StackBias
+
+				p = obj.Appendp(p, newprog)
+				p.As = AMOVD
+				p.From.Type = obj.TYPE_REG
+				p.From.Reg = REG_CTXT
+				p.To.Type = obj.TYPE_MEM
+				p.To.Reg = REG_RSP
+				p.To.Offset = MinStackFrameSize + 8 + StackBias
+
+				p = obj.Appendp(p, newprog)
+				p.As = obj.ACALL
+				p.To.Type = obj.TYPE_MEM
+				p.To.Name = obj.NAME_EXTERN
+				p.To.Sym = ctxt.LookupABI(ctxt.Flag_maymorestack, cursym.ABI())
+
+				p = obj.Appendp(p, newprog)
+				p.As = AMOVD
+				p.From.Type = obj.TYPE_MEM
+				p.From.Reg = REG_RSP
+				p.From.Offset = MinStackFrameSize + 8 + StackBias
+				p.To.Type = obj.TYPE_REG
+				p.To.Reg = REG_CTXT
+
+				p = obj.Appendp(p, newprog)
+				p.As = AMOVD
+				p.From.Type = obj.TYPE_MEM
+				p.From.Reg = REG_RSP
+				p.From.Offset = MinStackFrameSize + StackBias
+				p.To.Type = obj.TYPE_REG
+				p.To.Reg = REG_LR
+
+				p = obj.Appendp(p, newprog)
+				p.As = AADD
+				p.From.Type = obj.TYPE_CONST
+				p.From.Offset = hookFrame
+				p.To.Type = obj.TYPE_REG
+				p.To.Reg = REG_RSP
+				p.Spadj = -hookFrame
+
+				p = cursym.Func().UnspillRegisterArgs(p, newprog)
+			}
+
 			// MOVD RFP, (112+bias)(RSP)
 			p = obj.Appendp(p, newprog)
 			storeAnchors := p
