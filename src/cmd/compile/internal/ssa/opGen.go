@@ -6242,6 +6242,22 @@ const (
 	OpSPARC64FXTOD
 	OpSPARC64FMOVDgp
 	OpSPARC64FMOVDfp
+	OpSPARC64LoweredAtomicLoad8
+	OpSPARC64LoweredAtomicLoad32
+	OpSPARC64LoweredAtomicLoad64
+	OpSPARC64LoweredAtomicStore8
+	OpSPARC64LoweredAtomicStore32
+	OpSPARC64LoweredAtomicStore64
+	OpSPARC64LoweredAtomicExchange32
+	OpSPARC64LoweredAtomicExchange64
+	OpSPARC64LoweredAtomicAdd32
+	OpSPARC64LoweredAtomicAdd64
+	OpSPARC64LoweredAtomicCas32
+	OpSPARC64LoweredAtomicCas64
+	OpSPARC64LoweredAtomicAnd32
+	OpSPARC64LoweredAtomicOr32
+	OpSPARC64LoweredAtomicAnd8
+	OpSPARC64LoweredAtomicOr8
 	OpSPARC64CALLstatic
 	OpSPARC64CALLtail
 	OpSPARC64CALLclosure
@@ -102995,6 +103011,237 @@ var opcodeTable = [...]opInfo{
 			},
 			outputs: []outputInfo{
 				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+			},
+		},
+	},
+	{
+		name:           "LoweredAtomicLoad8",
+		argLen:         2,
+		faultOnNilArg0: true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:           "LoweredAtomicLoad32",
+		argLen:         2,
+		faultOnNilArg0: true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:           "LoweredAtomicLoad64",
+		argLen:         2,
+		faultOnNilArg0: true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:           "LoweredAtomicStore8",
+		argLen:         3,
+		faultOnNilArg0: true,
+		hasSideEffects: true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578815, v2: 0}},     // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+		},
+	},
+	{
+		name:           "LoweredAtomicStore32",
+		argLen:         3,
+		faultOnNilArg0: true,
+		hasSideEffects: true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578815, v2: 0}},     // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+		},
+	},
+	{
+		name:           "LoweredAtomicStore64",
+		argLen:         3,
+		faultOnNilArg0: true,
+		hasSideEffects: true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578815, v2: 0}},     // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+		},
+	},
+	{
+		name:            "LoweredAtomicExchange32",
+		argLen:          3,
+		resultNotInArgs: true,
+		faultOnNilArg0:  true,
+		hasSideEffects:  true,
+		unsafePoint:     true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:            "LoweredAtomicExchange64",
+		argLen:          3,
+		resultNotInArgs: true,
+		faultOnNilArg0:  true,
+		hasSideEffects:  true,
+		unsafePoint:     true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:            "LoweredAtomicAdd32",
+		argLen:          3,
+		resultNotInArgs: true,
+		faultOnNilArg0:  true,
+		hasSideEffects:  true,
+		unsafePoint:     true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:            "LoweredAtomicAdd64",
+		argLen:          3,
+		resultNotInArgs: true,
+		faultOnNilArg0:  true,
+		hasSideEffects:  true,
+		unsafePoint:     true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:            "LoweredAtomicCas32",
+		argLen:          4,
+		resultNotInArgs: true,
+		faultOnNilArg0:  true,
+		hasSideEffects:  true,
+		unsafePoint:     true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{2, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:            "LoweredAtomicCas64",
+		argLen:          4,
+		resultNotInArgs: true,
+		faultOnNilArg0:  true,
+		hasSideEffects:  true,
+		unsafePoint:     true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{2, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:           "LoweredAtomicAnd32",
+		argLen:         3,
+		faultOnNilArg0: true,
+		hasSideEffects: true,
+		unsafePoint:    true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+		},
+	},
+	{
+		name:           "LoweredAtomicOr32",
+		argLen:         3,
+		faultOnNilArg0: true,
+		hasSideEffects: true,
+		unsafePoint:    true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+		},
+	},
+	{
+		name:           "LoweredAtomicAnd8",
+		argLen:         3,
+		faultOnNilArg0: true,
+		hasSideEffects: true,
+		unsafePoint:    true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+			},
+		},
+	},
+	{
+		name:           "LoweredAtomicOr8",
+		argLen:         3,
+		faultOnNilArg0: true,
+		hasSideEffects: true,
+		unsafePoint:    true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
 			},
 		},
 	},

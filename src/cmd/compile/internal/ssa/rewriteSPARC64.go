@@ -48,6 +48,60 @@ func rewriteValueSPARC64(v *Value) bool {
 	case OpAndB:
 		v.Op = OpSPARC64AND
 		return true
+	case OpAtomicAdd32:
+		v.Op = OpSPARC64LoweredAtomicAdd32
+		return true
+	case OpAtomicAdd64:
+		v.Op = OpSPARC64LoweredAtomicAdd64
+		return true
+	case OpAtomicAnd32:
+		v.Op = OpSPARC64LoweredAtomicAnd32
+		return true
+	case OpAtomicAnd8:
+		v.Op = OpSPARC64LoweredAtomicAnd8
+		return true
+	case OpAtomicCompareAndSwap32:
+		v.Op = OpSPARC64LoweredAtomicCas32
+		return true
+	case OpAtomicCompareAndSwap64:
+		v.Op = OpSPARC64LoweredAtomicCas64
+		return true
+	case OpAtomicExchange32:
+		v.Op = OpSPARC64LoweredAtomicExchange32
+		return true
+	case OpAtomicExchange64:
+		v.Op = OpSPARC64LoweredAtomicExchange64
+		return true
+	case OpAtomicLoad32:
+		v.Op = OpSPARC64LoweredAtomicLoad32
+		return true
+	case OpAtomicLoad64:
+		v.Op = OpSPARC64LoweredAtomicLoad64
+		return true
+	case OpAtomicLoad8:
+		v.Op = OpSPARC64LoweredAtomicLoad8
+		return true
+	case OpAtomicLoadPtr:
+		v.Op = OpSPARC64LoweredAtomicLoad64
+		return true
+	case OpAtomicOr32:
+		v.Op = OpSPARC64LoweredAtomicOr32
+		return true
+	case OpAtomicOr8:
+		v.Op = OpSPARC64LoweredAtomicOr8
+		return true
+	case OpAtomicStore32:
+		v.Op = OpSPARC64LoweredAtomicStore32
+		return true
+	case OpAtomicStore64:
+		v.Op = OpSPARC64LoweredAtomicStore64
+		return true
+	case OpAtomicStore8:
+		v.Op = OpSPARC64LoweredAtomicStore8
+		return true
+	case OpAtomicStorePtrNoWB:
+		v.Op = OpSPARC64LoweredAtomicStore64
+		return true
 	case OpAvg64u:
 		return rewriteValueSPARC64_OpAvg64u(v)
 	case OpClosureCall:

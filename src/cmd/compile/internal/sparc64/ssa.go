@@ -13,9 +13,9 @@ import (
 	"cmd/compile/internal/ssa/block"
 	"cmd/compile/internal/ssagen"
 	"cmd/compile/internal/types"
-	"internal/abi"
 	"cmd/internal/obj"
 	"cmd/internal/obj/sparc64"
+	"internal/abi"
 	"math"
 )
 
@@ -106,6 +106,40 @@ func storeByType(t *types.Type, r int16) obj.As {
 		return sparc64.AMOVD
 	}
 	panic("bad store type")
+}
+
+// SPARC's memory model is TSO: loads are ordered against loads and
+// stores, and stores against stores, without any barrier. Only
+// store-then-load can be reordered, so a sequentially consistent store
+// needs #StoreLoad and a read-modify-write needs a full barrier before
+// anything after it may be observed.
+const (
+	membarStoreLoad = 2  // #StoreLoad
+	membarFull      = 15 // #LoadLoad|#StoreLoad|#LoadStore|#StoreStore
+)
+
+func membar(s *ssagen.State, mask int64) {
+	p := s.Prog(sparc64.AMEMBAR)
+	p.From.Type = obj.TYPE_CONST
+	p.From.Offset = mask
+}
+
+// casLoop emits the tail of a compare-and-swap retry loop: compare the
+// value CAS returned against the value we expected to find, and branch
+// back to top if they differ. CASW and CASD leave the old memory
+// contents in their destination register, so equality means the swap
+// happened.
+func casLoop(s *ssagen.State, got, want int16, top *obj.Prog) {
+	p := s.Prog(sparc64.ASUBCC)
+	p.From.Type = obj.TYPE_REG
+	p.From.Reg = got
+	p.Reg = want
+	p.To.Type = obj.TYPE_REG
+	p.To.Reg = sparc64.REG_ZR
+	b := s.Prog(sparc64.ABNED)
+	b.To.Type = obj.TYPE_BRANCH
+	b.To.SetTarget(top)
+	membar(s, membarFull)
 }
 
 // condMove maps a flag-reading op to the SPARC conditional move that
@@ -494,6 +528,306 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.From.Val = math.Float64frombits(uint64(v.AuxInt))
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
+
+	case ssa.OpSPARC64LoweredAtomicLoad8, ssa.OpSPARC64LoweredAtomicLoad32, ssa.OpSPARC64LoweredAtomicLoad64:
+		// A plain load. Under TSO it is already an acquire.
+		ld := sparc64.AMOVD
+		switch v.Op {
+		case ssa.OpSPARC64LoweredAtomicLoad8:
+			ld = sparc64.AMOVUB
+		case ssa.OpSPARC64LoweredAtomicLoad32:
+			ld = sparc64.AMOVUW
+		}
+		p := s.Prog(ld)
+		p.From.Type = obj.TYPE_MEM
+		p.From.Reg = v.Args[0].Reg()
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = v.Reg0()
+
+	case ssa.OpSPARC64LoweredAtomicStore8, ssa.OpSPARC64LoweredAtomicStore32, ssa.OpSPARC64LoweredAtomicStore64:
+		// A plain store is already a release; #StoreLoad is what keeps
+		// a later load from passing it.
+		st := sparc64.AMOVD
+		switch v.Op {
+		case ssa.OpSPARC64LoweredAtomicStore8:
+			st = sparc64.AMOVB
+		case ssa.OpSPARC64LoweredAtomicStore32:
+			st = sparc64.AMOVW
+		}
+		p := s.Prog(st)
+		p.From.Type = obj.TYPE_REG
+		p.From.Reg = v.Args[1].Reg()
+		p.To.Type = obj.TYPE_MEM
+		p.To.Reg = v.Args[0].Reg()
+		membar(s, membarStoreLoad)
+
+	case ssa.OpSPARC64LoweredAtomicExchange32, ssa.OpSPARC64LoweredAtomicExchange64:
+		// again:
+		//	MOV(UW|D)	(ptr), out
+		//	MOVD		val, TMP
+		//	CAS(W|D)	(ptr), out, TMP
+		//	SUBCC		TMP, out, ZR
+		//	BNED		again
+		//	MEMBAR		$15
+		ld, cas := sparc64.AMOVD, sparc64.ACASD
+		if v.Op == ssa.OpSPARC64LoweredAtomicExchange32 {
+			ld, cas = sparc64.AMOVUW, sparc64.ACASW
+		}
+		ptr, val, out := v.Args[0].Reg(), v.Args[1].Reg(), v.Reg0()
+		top := s.Prog(ld)
+		top.From.Type = obj.TYPE_MEM
+		top.From.Reg = ptr
+		top.To.Type = obj.TYPE_REG
+		top.To.Reg = out
+		p1 := s.Prog(sparc64.AMOVD)
+		p1.From.Type = obj.TYPE_REG
+		p1.From.Reg = val
+		p1.To.Type = obj.TYPE_REG
+		p1.To.Reg = sparc64.REG_TMP
+		p2 := s.Prog(cas)
+		p2.From.Type = obj.TYPE_MEM
+		p2.From.Reg = ptr
+		p2.Reg = out
+		p2.To.Type = obj.TYPE_REG
+		p2.To.Reg = sparc64.REG_TMP
+		casLoop(s, sparc64.REG_TMP, out, top)
+
+	case ssa.OpSPARC64LoweredAtomicAdd32, ssa.OpSPARC64LoweredAtomicAdd64:
+		// again:
+		//	MOV(UW|D)	(ptr), TMP
+		//	ADD		delta, TMP, out
+		//	MOVD		out, TMP2
+		//	CAS(W|D)	(ptr), TMP, TMP2
+		//	SUBCC		TMP2, TMP, ZR
+		//	BNED		again
+		//	MEMBAR		$15
+		// The result is the new value, which is what Xadd returns.
+		ld, cas := sparc64.AMOVD, sparc64.ACASD
+		if v.Op == ssa.OpSPARC64LoweredAtomicAdd32 {
+			ld, cas = sparc64.AMOVUW, sparc64.ACASW
+		}
+		ptr, delta, out := v.Args[0].Reg(), v.Args[1].Reg(), v.Reg0()
+		top := s.Prog(ld)
+		top.From.Type = obj.TYPE_MEM
+		top.From.Reg = ptr
+		top.To.Type = obj.TYPE_REG
+		top.To.Reg = sparc64.REG_TMP
+		p1 := s.Prog(sparc64.AADD)
+		p1.From.Type = obj.TYPE_REG
+		p1.From.Reg = delta
+		p1.Reg = sparc64.REG_TMP
+		p1.To.Type = obj.TYPE_REG
+		p1.To.Reg = out
+		p2 := s.Prog(sparc64.AMOVD)
+		p2.From.Type = obj.TYPE_REG
+		p2.From.Reg = out
+		p2.To.Type = obj.TYPE_REG
+		p2.To.Reg = sparc64.REG_TMP2
+		p3 := s.Prog(cas)
+		p3.From.Type = obj.TYPE_MEM
+		p3.From.Reg = ptr
+		p3.Reg = sparc64.REG_TMP
+		p3.To.Type = obj.TYPE_REG
+		p3.To.Reg = sparc64.REG_TMP2
+		casLoop(s, sparc64.REG_TMP2, sparc64.REG_TMP, top)
+
+	case ssa.OpSPARC64LoweredAtomicCas32, ssa.OpSPARC64LoweredAtomicCas64:
+		//	MOVD		new, TMP	// CAS overwrites its destination
+		//	CAS(W|D)	(ptr), old, TMP
+		//	MEMBAR		$15
+		//	SUBCC		TMP, old, ZR
+		//	MOVD		ZR, out
+		//	MOVE		XCC, $1, out
+		// Read the 32-bit condition codes for the 32-bit form. CASW
+		// zero-extends the word it returns, but the old value it is
+		// compared against is an arbitrary SSA value that may be held
+		// sign-extended, so a 64-bit compare of the two disagrees
+		// whenever bit 31 is set. SUBCC sets both code sets, and icc
+		// looks only at the low word.
+		cas, cc := sparc64.ACASD, int16(sparc64.REG_XCC)
+		if v.Op == ssa.OpSPARC64LoweredAtomicCas32 {
+			cas, cc = sparc64.ACASW, sparc64.REG_ICC
+		}
+		ptr, old, new, out := v.Args[0].Reg(), v.Args[1].Reg(), v.Args[2].Reg(), v.Reg0()
+		p := s.Prog(sparc64.AMOVD)
+		p.From.Type = obj.TYPE_REG
+		p.From.Reg = new
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sparc64.REG_TMP
+		p1 := s.Prog(cas)
+		p1.From.Type = obj.TYPE_MEM
+		p1.From.Reg = ptr
+		p1.Reg = old
+		p1.To.Type = obj.TYPE_REG
+		p1.To.Reg = sparc64.REG_TMP
+		membar(s, membarFull)
+		p2 := s.Prog(sparc64.ASUBCC)
+		p2.From.Type = obj.TYPE_REG
+		p2.From.Reg = sparc64.REG_TMP
+		p2.Reg = old
+		p2.To.Type = obj.TYPE_REG
+		p2.To.Reg = sparc64.REG_ZR
+		p3 := s.Prog(sparc64.AMOVD)
+		p3.From.Type = obj.TYPE_REG
+		p3.From.Reg = sparc64.REG_ZR
+		p3.To.Type = obj.TYPE_REG
+		p3.To.Reg = out
+		p4 := s.Prog(sparc64.AMOVE)
+		p4.From.Type = obj.TYPE_REG
+		p4.From.Reg = cc
+		p4.AddRestSourceConst(1)
+		p4.To.Type = obj.TYPE_REG
+		p4.To.Reg = out
+
+	case ssa.OpSPARC64LoweredAtomicAnd32, ssa.OpSPARC64LoweredAtomicOr32:
+		// again:
+		//	MOVUW	(ptr), TMP
+		//	AND/OR	val, TMP, TMP2
+		//	CASW	(ptr), TMP, TMP2
+		//	SUBCC	TMP2, TMP, ZR
+		//	BNED	again
+		//	MEMBAR	$15
+		logical := sparc64.AAND
+		if v.Op == ssa.OpSPARC64LoweredAtomicOr32 {
+			logical = sparc64.AOR
+		}
+		ptr, val := v.Args[0].Reg(), v.Args[1].Reg()
+		top := s.Prog(sparc64.AMOVUW)
+		top.From.Type = obj.TYPE_MEM
+		top.From.Reg = ptr
+		top.To.Type = obj.TYPE_REG
+		top.To.Reg = sparc64.REG_TMP
+		p1 := s.Prog(logical)
+		p1.From.Type = obj.TYPE_REG
+		p1.From.Reg = val
+		p1.Reg = sparc64.REG_TMP
+		p1.To.Type = obj.TYPE_REG
+		p1.To.Reg = sparc64.REG_TMP2
+		p2 := s.Prog(sparc64.ACASW)
+		p2.From.Type = obj.TYPE_MEM
+		p2.From.Reg = ptr
+		p2.Reg = sparc64.REG_TMP
+		p2.To.Type = obj.TYPE_REG
+		p2.To.Reg = sparc64.REG_TMP2
+		casLoop(s, sparc64.REG_TMP2, sparc64.REG_TMP, top)
+
+	case ssa.OpSPARC64LoweredAtomicAnd8, ssa.OpSPARC64LoweredAtomicOr8:
+		// SPARC has no byte-width CAS, so operate on the containing
+		// aligned word. Big-endian, so the byte at p sits at bit
+		// (3 - (p & 3)) * 8.
+		//
+		//	AND	$3, ptr, RT1		// RT1 = ptr & 3
+		//	MOVD	$3, RT2
+		//	SUB	RT1, RT2, RT1
+		//	SLLD	$3, RT1, RT1		// RT1 = shift
+		//	AND	$-4, ptr, TMP		// TMP = aligned pointer
+		//	AND	$255, val, TMP2\n		//	SLLD	RT1, TMP2, TMP2		// TMP2 = (val&0xff) << shift
+		// and only, so the other bytes survive the AND:
+		//	MOVD	$255, RT2
+		//	SLLD	RT1, RT2, RT2
+		//	XOR	$-1, RT2, RT2		// RT2 = ~mask
+		//	OR	RT2, TMP2, TMP2
+		// again:
+		//	MOVUW	(TMP), RT2
+		//	AND/OR	TMP2, RT2, RT1
+		//	CASW	(TMP), RT2, RT1
+		//	SUBCC	RT1, RT2, ZR
+		//	BNED	again
+		//	MEMBAR	$15
+		isAnd := v.Op == ssa.OpSPARC64LoweredAtomicAnd8
+		ptr, val := v.Args[0].Reg(), v.Args[1].Reg()
+
+		p := s.Prog(sparc64.AAND)
+		p.From.Type = obj.TYPE_CONST
+		p.From.Offset = 3
+		p.Reg = ptr
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sparc64.REG_RT1
+		p = s.Prog(sparc64.AMOVD)
+		p.From.Type = obj.TYPE_CONST
+		p.From.Offset = 3
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sparc64.REG_RT2
+		p = s.Prog(sparc64.ASUB)
+		p.From.Type = obj.TYPE_REG
+		p.From.Reg = sparc64.REG_RT1
+		p.Reg = sparc64.REG_RT2
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sparc64.REG_RT1
+		p = s.Prog(sparc64.ASLLD)
+		p.From.Type = obj.TYPE_CONST
+		p.From.Offset = 3
+		p.Reg = sparc64.REG_RT1
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sparc64.REG_RT1
+		p = s.Prog(sparc64.AAND)
+		p.From.Type = obj.TYPE_CONST
+		p.From.Offset = -4
+		p.Reg = ptr
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sparc64.REG_TMP
+		// Mask the value to its byte before shifting it into place: it
+		// is an arbitrary SSA value and may be held sign-extended, and
+		// stray high bits would land on the neighbouring bytes.
+		p = s.Prog(sparc64.AAND)
+		p.From.Type = obj.TYPE_CONST
+		p.From.Offset = 255
+		p.Reg = val
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sparc64.REG_TMP2
+		p = s.Prog(sparc64.ASLLD)
+		p.From.Type = obj.TYPE_REG
+		p.From.Reg = sparc64.REG_RT1
+		p.Reg = sparc64.REG_TMP2
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sparc64.REG_TMP2
+		if isAnd {
+			p = s.Prog(sparc64.AMOVD)
+			p.From.Type = obj.TYPE_CONST
+			p.From.Offset = 255
+			p.To.Type = obj.TYPE_REG
+			p.To.Reg = sparc64.REG_RT2
+			p = s.Prog(sparc64.ASLLD)
+			p.From.Type = obj.TYPE_REG
+			p.From.Reg = sparc64.REG_RT1
+			p.Reg = sparc64.REG_RT2
+			p.To.Type = obj.TYPE_REG
+			p.To.Reg = sparc64.REG_RT2
+			p = s.Prog(sparc64.AXOR)
+			p.From.Type = obj.TYPE_CONST
+			p.From.Offset = -1
+			p.Reg = sparc64.REG_RT2
+			p.To.Type = obj.TYPE_REG
+			p.To.Reg = sparc64.REG_RT2
+			p = s.Prog(sparc64.AOR)
+			p.From.Type = obj.TYPE_REG
+			p.From.Reg = sparc64.REG_RT2
+			p.Reg = sparc64.REG_TMP2
+			p.To.Type = obj.TYPE_REG
+			p.To.Reg = sparc64.REG_TMP2
+		}
+		logical := sparc64.AAND
+		if !isAnd {
+			logical = sparc64.AOR
+		}
+		top := s.Prog(sparc64.AMOVUW)
+		top.From.Type = obj.TYPE_MEM
+		top.From.Reg = sparc64.REG_TMP
+		top.To.Type = obj.TYPE_REG
+		top.To.Reg = sparc64.REG_RT2
+		p = s.Prog(logical)
+		p.From.Type = obj.TYPE_REG
+		p.From.Reg = sparc64.REG_TMP2
+		p.Reg = sparc64.REG_RT2
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sparc64.REG_RT1
+		p = s.Prog(sparc64.ACASW)
+		p.From.Type = obj.TYPE_MEM
+		p.From.Reg = sparc64.REG_TMP
+		p.Reg = sparc64.REG_RT2
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sparc64.REG_RT1
+		casLoop(s, sparc64.REG_RT1, sparc64.REG_RT2, top)
 
 	case ssa.OpSPARC64LoweredZero:
 		// MOVD	$size, TMP2

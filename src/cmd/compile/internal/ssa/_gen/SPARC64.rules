@@ -206,7 +206,32 @@
 // Write barrier.
 (WB ...) => (LoweredWB ...)
 
-// TODO(sparc64): atomics need a CASD retry loop; not lowered yet.
+// Atomics. Everything but load, store and compare-and-swap becomes a
+// CAS retry loop: CASW/CASD are the only read-modify-write primitives
+// SPARC V9 has. See SPARC64Ops.go for the memory-ordering argument.
+(AtomicLoad8  ...) => (LoweredAtomicLoad8  ...)
+(AtomicLoad32 ...) => (LoweredAtomicLoad32 ...)
+(AtomicLoad64 ...) => (LoweredAtomicLoad64 ...)
+(AtomicLoadPtr ...) => (LoweredAtomicLoad64 ...)
+
+(AtomicStore8  ...) => (LoweredAtomicStore8  ...)
+(AtomicStore32 ...) => (LoweredAtomicStore32 ...)
+(AtomicStore64 ...) => (LoweredAtomicStore64 ...)
+(AtomicStorePtrNoWB ...) => (LoweredAtomicStore64 ...)
+
+(AtomicExchange32 ...) => (LoweredAtomicExchange32 ...)
+(AtomicExchange64 ...) => (LoweredAtomicExchange64 ...)
+
+(AtomicAdd32 ...) => (LoweredAtomicAdd32 ...)
+(AtomicAdd64 ...) => (LoweredAtomicAdd64 ...)
+
+(AtomicCompareAndSwap32 ...) => (LoweredAtomicCas32 ...)
+(AtomicCompareAndSwap64 ...) => (LoweredAtomicCas64 ...)
+
+(AtomicAnd32 ...) => (LoweredAtomicAnd32 ...)
+(AtomicOr32  ...) => (LoweredAtomicOr32  ...)
+(AtomicAnd8  ...) => (LoweredAtomicAnd8  ...)
+(AtomicOr8   ...) => (LoweredAtomicOr8   ...)
 
 // Optimizations. Fold a constant into the immediate field when it fits
 // SPARC's 13-bit signed range; otherwise leave it in a register.

@@ -154,6 +154,9 @@ func init() {
 		gp1flags = regInfo{inputs: []regMask{gpg}}
 		gpload   = regInfo{inputs: []regMask{gpspsbg}, outputs: []regMask{gp}}
 		gpstore  = regInfo{inputs: []regMask{gpspsbg, gpg.union(rz)}}
+		gpxchg   = regInfo{inputs: []regMask{gpspsbg, gpg}, outputs: []regMask{gp}}
+		gpcas    = regInfo{inputs: []regMask{gpspsbg, gpg, gpg}, outputs: []regMask{gp}}
+		gprmw    = regInfo{inputs: []regMask{gpspsbg, gpg}}
 		fp01     = regInfo{inputs: nil, outputs: []regMask{fp}}
 		fp11     = regInfo{inputs: []regMask{fp}, outputs: []regMask{fp}}
 		fp21     = regInfo{inputs: []regMask{fp, fp}, outputs: []regMask{fp}}
@@ -279,10 +282,42 @@ func init() {
 		{name: "FMOVDgp", argLength: 1, reg: fpgp, asm: "FMOVD"}, // move float64 bits to integer register
 		{name: "FMOVDfp", argLength: 1, reg: gpfp, asm: "FMOVD"}, // move integer bits to float register
 
-		// TODO(sparc64): atomics. These need a CASD/CASW retry loop and
-		// the right membar placement for the TSO model; omitted until
-		// that is written, so the compiler fails loudly instead of
-		// emitting something subtly wrong.
+		// Atomics. CASW and CASD are the only read-modify-write
+		// primitives SPARC V9 has - there is no atomic add and no
+		// LL/SC - so everything except load, store and
+		// compare-and-swap is a CAS retry loop. Under TSO a plain load
+		// is already acquire and a plain store release; only a
+		// sequentially consistent store needs MEMBAR #StoreLoad. The
+		// emitted sequences mirror internal/runtime/atomic/atomic_sparc64.s,
+		// which has been under load since the port started.
+		{name: "LoweredAtomicLoad8", argLength: 2, reg: gpload, faultOnNilArg0: true},
+		{name: "LoweredAtomicLoad32", argLength: 2, reg: gpload, faultOnNilArg0: true},
+		{name: "LoweredAtomicLoad64", argLength: 2, reg: gpload, faultOnNilArg0: true},
+
+		{name: "LoweredAtomicStore8", argLength: 3, reg: gpstore, faultOnNilArg0: true, hasSideEffects: true},
+		{name: "LoweredAtomicStore32", argLength: 3, reg: gpstore, faultOnNilArg0: true, hasSideEffects: true},
+		{name: "LoweredAtomicStore64", argLength: 3, reg: gpstore, faultOnNilArg0: true, hasSideEffects: true},
+
+		// arg0 = pointer, arg1 = value, arg2 = memory; returns the old value.
+		{name: "LoweredAtomicExchange32", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+		{name: "LoweredAtomicExchange64", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+
+		// arg0 = pointer, arg1 = delta, arg2 = memory; returns the new value.
+		{name: "LoweredAtomicAdd32", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+		{name: "LoweredAtomicAdd64", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+
+		// arg0 = pointer, arg1 = old, arg2 = new, arg3 = memory; returns whether it swapped.
+		{name: "LoweredAtomicCas32", argLength: 4, reg: gpcas, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+		{name: "LoweredAtomicCas64", argLength: 4, reg: gpcas, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+
+		// arg0 = pointer, arg1 = value, arg2 = memory; no result.
+		// The 8-bit forms use a 32-bit CAS on the containing aligned
+		// word, since SPARC has no byte-width CAS; big-endian, so the
+		// byte at p sits at bit (3 - (p & 3)) * 8.
+		{name: "LoweredAtomicAnd32", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+		{name: "LoweredAtomicOr32", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+		{name: "LoweredAtomicAnd8", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+		{name: "LoweredAtomicOr8", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
 
 		// Calls.
 		{name: "CALLstatic", argLength: -1, reg: regInfo{clobbers: callerSave}, aux: "CallOff", clobberFlags: true, call: true},

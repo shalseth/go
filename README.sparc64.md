@@ -49,19 +49,20 @@ way.
   `GODEBUG=gccheckmark=1`.
 * Signals: `os/signal`, `signal.NotifyContext`, SIGPIPE semantics,
   fork/exec, `net`, `net/http`, `os`, `syscall`.
+* The vDSO, for `walltime` and `nanotime`. `time.Now` costs about 278ns
+  here rather than the 2043ns two `clock_gettime` syscalls took.
+* Atomic intrinsics. `CASW`/`CASD` are SPARC V9's only read-modify-write
+  primitives - there is no atomic add and no LL/SC - so exchange, add,
+  and and or lower to CAS retry loops, and the 8-bit forms use a 32-bit
+  CAS on the containing aligned word. Under TSO a plain load is already
+  acquire and a plain store release; only a sequentially consistent
+  store needs `MEMBAR #StoreLoad`, and a read-modify-write a full
+  barrier.
 
 ## What is missing
 
 * cgo and external linking. Everything must be built with
   `CGO_ENABLED=0`.
-* VDSO support: `time.Now` and friends go through real syscalls.
-* Atomic intrinsics. The atomics are correct - hand-written assembly in
-  `internal/runtime/atomic` - but the compiler does not inline them, so
-  every atomic operation is an out-of-line call. That also blocks
-  inlining of the `sync` fast paths, which is why `test/inline_sync.go`
-  excludes this architecture alongside 386, arm and wasm. Fixing it
-  means adding the SSA ops: a CASD/CASW retry loop with the right
-  membar placement for the TSO model.
 * The race detector, and the `-buildmode` variants beyond `exe`.
 * Optimised assembly for the routines that ship a generic Go
   fallback: `math/big`'s `addVV`/`subVV`/`mulAddVWW`/`lshVU`/`rshVU`,
