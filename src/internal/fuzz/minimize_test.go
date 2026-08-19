@@ -16,7 +16,17 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+	"unsafe"
 )
+
+// alignedRegion returns a byte slice of the given size aligned the way
+// sharedMemMapFile's mmap would be. header casts the front of a region to
+// a *sharedMemHeader and reads 64-bit fields from it, which faults on a
+// machine that traps unaligned access; make gives a []byte no alignment.
+func alignedRegion(size int) []byte {
+	backing := make([]int64, (size+7)/8)
+	return unsafe.Slice((*byte)(unsafe.Pointer(&backing[0])), size)
+}
 
 func TestMinimizeInput(t *testing.T) {
 	type testcase struct {
@@ -139,7 +149,7 @@ func TestMinimizeInput(t *testing.T) {
 					return time.Second, tc.fn(e)
 				},
 			}
-			mem := &sharedMem{region: make([]byte, 100)} // big enough to hold value and header
+			mem := &sharedMem{region: alignedRegion(100)} // big enough to hold value and header
 			vals := tc.input
 			success, err := ws.minimizeInput(context.Background(), vals, mem, minimizeArgs{})
 			if !success {
@@ -165,7 +175,7 @@ func TestMinimizeFlaky(t *testing.T) {
 	ws := &workerServer{fuzzFn: func(e CorpusEntry) (time.Duration, error) {
 		return time.Second, errors.New("ohno")
 	}}
-	mem := &sharedMem{region: make([]byte, 100)} // big enough to hold value and header
+	mem := &sharedMem{region: alignedRegion(100)} // big enough to hold value and header
 	vals := []any{[]byte(nil)}
 	args := minimizeArgs{KeepCoverage: make([]byte, len(coverageSnapshot))}
 	success, err := ws.minimizeInput(context.Background(), vals, mem, args)
