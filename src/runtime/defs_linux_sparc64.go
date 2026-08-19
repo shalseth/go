@@ -143,13 +143,16 @@ func (ts *timespec) setNsec(ns int64) {
 	ts.tv_nsec = ns % 1e9
 }
 
+// tv_usec is 32 bits here: sparc64 is the one 64-bit Linux port whose
+// __kernel_suseconds_t is int rather than long.
 type timeval struct {
 	tv_sec  int64
-	tv_usec int64
+	tv_usec int32
+	_       [4]byte
 }
 
 func (tv *timeval) set_usec(x int32) {
-	tv.tv_usec = int64(x)
+	tv.tv_usec = x
 }
 
 // sigactiont matches the kernel's struct __new_sigaction from

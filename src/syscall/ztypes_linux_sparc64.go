@@ -26,9 +26,14 @@ type Timespec struct {
 	Nsec int64
 }
 
+// SPARC is the one 64-bit Linux port where __kernel_suseconds_t is int
+// rather than long: asm/posix_types.h picks it for __arch64__ too, so
+// tv_usec is 32 bits followed by 32 bits of padding. Declaring it int64
+// puts the real value in the high half on this big-endian machine.
 type Timeval struct {
 	Sec  int64
-	Usec int64
+	Usec int32
+	_    [4]byte
 }
 
 type Timex struct {
