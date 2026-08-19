@@ -731,8 +731,22 @@ TEXT runtime·abort(SB),NOSPLIT|NOFRAME,$0-0
 	UNDEF
 
 // func cputicks() int64
+//
+// Read %stick, not %tick. %tick counts the strand's own cycles and the
+// strands do not agree: on an UltraSPARC T4, passing a token around a
+// ring of thread-locked goroutines, a third of the handoffs saw %tick
+// go *backwards* across the happens-before edge, by as much as 6ms.
+// Callers assume a process-wide timebase - the debug log merges its
+// shards by this value, and the mutex profile subtracts two reads taken
+// on different threads - so a per-strand counter produces garbage
+// orderings and negative-turned-huge durations.
+//
+// %stick is driven from a system-wide reference and measured zero
+// backwards steps over the same experiment. It ticks slower (about 1GHz
+// against 2.85GHz here), which costs resolution the runtime does not
+// need: ticksPerSecond calibrates against nanotime either way.
 TEXT runtime·cputicks(SB),NOSPLIT,$0-0
-	RD	TICK, R1
+	RD	STICK, R1
 	MOVD	R1, ret+0(FP)
 	RET
 
