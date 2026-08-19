@@ -827,10 +827,17 @@ func TestBadTraceback(t *testing.T) {
 		t.Skip("skipped test: checkptr mode catches the corruption")
 	}
 	output := runTestProg(t, "testprog", "BadTraceback")
+	// The hex dump shows the value as stored. On sparc64 the anchor holds
+	// a raw %o7, eight less than the return address the unwinder reports,
+	// so the two differ.
+	smashed := "00000bad"
+	if runtime.GOARCH == "sparc64" {
+		smashed = "00000ba5"
+	}
 	for _, want := range []string{
 		"unexpected return pc",
 		"called from 0xbad",
-		"00000bad",    // Smashed LR in hex dump
+		smashed,       // Smashed LR in hex dump
 		"<main.badLR", // Symbolization in hex dump (badLR1 or badLR2)
 	} {
 		if !strings.Contains(output, want) {
