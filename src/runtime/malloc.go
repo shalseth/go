@@ -806,9 +806,35 @@ func (h *mheap) sysAlloc(n uintptr, hintList **arenaHint, arenaList *[]arenaIdx)
 		// All of the hints failed, so we'll take any
 		// (sufficiently aligned) address the kernel will give
 		// us.
-		v, size = sysReserveAligned(nil, n, heapArenaBytes, "heap")
-		if v == nil {
-			return nil, 0
+		if goarch.IsSparc64 != 0 {
+			// linux/sparc64 answers an unhinted mmap in the high
+			// half of a 52-bit sign-extended address space
+			// (0xfff8...), which arenaIndex cannot represent: the
+			// arena map spans 48 bits and, unlike amd64, no single
+			// arenaBaseOffset folds 52 bits into 48. The kernel
+			// honours a hint that is free but does not search
+			// upward from one that is taken - it returns its high
+			// default instead - so offer a spread of low bases and
+			// keep the first that lands where we can index it.
+			for shift := uintptr(40); shift < heapAddrBits-1; shift++ {
+				p, psize := sysReserveAligned(unsafe.Pointer(uintptr(1)<<shift), n, heapArenaBytes, "heap")
+				if p == nil {
+					continue
+				}
+				if arenaIndex(uintptr(p)) < 1<<arenaBits && arenaIndex(uintptr(p)+psize-1) < 1<<arenaBits {
+					v, size = p, psize
+					break
+				}
+				sysUnreserve(p, psize)
+			}
+		}
+		// v may still hold a stale pointer from a hint that failed
+		// above; size is the reliable signal that nothing is reserved.
+		if size == 0 {
+			v, size = sysReserveAligned(nil, n, heapArenaBytes, "heap")
+			if v == nil {
+				return nil, 0
+			}
 		}
 
 		// Create new hints for extending this region.
