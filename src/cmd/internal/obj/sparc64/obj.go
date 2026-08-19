@@ -759,11 +759,29 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 	// Schedule delay-slots. Only RNOPs for now. A RESTORE directly
 	// after a jump is hand-written asm deliberately placing the window
 	// restore in the delay slot (the `ret; restore` idiom) — leave it.
+	//
+	// The slot must belong to the jump, and Appendp gives the RNOP the
+	// jump's position. A call's return address points past the delay
+	// slot, so the runtime's universal "a return address minus one is
+	// inside the CALL" rule — unwinder.symPC, and through it
+	// CallersFrames, testing.T.Helper attribution and every profile and
+	// trace stack — resolves to the slot rather than to the call. A slot
+	// carrying a foreign position reports the call as coming from
+	// whichever line that instruction belongs to.
+	//
+	// Never adopt an RNOP that is already there instead of appending
+	// one. Ginsnop emits an RNOP for ssa.OpInlMark, and the inline tree
+	// records that instruction's PC as the position of the parent frame
+	// at an inlined call site. Such a mark frequently follows a call,
+	// and reusing it as the delay slot would force one instruction to
+	// carry two different positions: the caller would be reported at the
+	// inlined call site, or the inlined frame at the caller's previous
+	// call, depending on which position won.
 	for p := cursym.Func().Text; p != nil; p = p.Link {
 		if !isJump[p.As] {
 			continue
 		}
-		if p.Link != nil && (p.Link.As == ARNOP || p.Link.As == ARESTORE) {
+		if p.Link != nil && p.Link.As == ARESTORE {
 			continue
 		}
 		p = obj.Appendp(p, newprog)
