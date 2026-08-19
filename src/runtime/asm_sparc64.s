@@ -293,13 +293,15 @@ TEXT runtime·morestack(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	g_m(g), R8
 	MOVD	m_g0(R8), R4
 	CMP	g, R4
-	BNED	2(PC)
+	BNED	3(PC)
+	CALL	runtime·badmorestackg0(SB)
 	JMP	runtime·abort(SB)
 
 	// Cannot grow signal stack (m->gsignal).
 	MOVD	m_gsignal(R8), R4
 	CMP	g, R4
-	BNED	2(PC)
+	BNED	3(PC)
+	CALL	runtime·badmorestackgsignal(SB)
 	JMP	runtime·abort(SB)
 
 	// Called from f.
