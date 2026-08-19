@@ -166,6 +166,10 @@ const (
 	REG_CCR  = REG_SPECIAL + 2
 	REG_TICK = REG_SPECIAL + 4
 	REG_RPC  = REG_SPECIAL + 5
+	// %stick is ASR 24. Unlike %tick, which counts the strand's own
+	// cycles and is not synchronised between strands, it is driven
+	// from a system-wide reference.
+	REG_STICK = REG_SPECIAL + 24
 
 	// Biased views of the stack and frame pointers. On SPARC V9 the
 	// 64-bit ABI stores %sp and %fp biased by StackBias; these encode

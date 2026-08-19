@@ -824,6 +824,7 @@ func archSPARC64() *Arch {
 	register["XCC"] = sparc64.REG_XCC
 	register["CCR"] = sparc64.REG_CCR
 	register["TICK"] = sparc64.REG_TICK
+	register["STICK"] = sparc64.REG_STICK
 	register["RPC"] = sparc64.REG_RPC
 	register["BSP"] = sparc64.REG_BSP
 	register["BFP"] = sparc64.REG_BFP

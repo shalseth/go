@@ -58,6 +58,8 @@ func Rconv(r int) string {
 		return "TICK"
 	case r == REG_RPC:
 		return "RPC"
+	case r == REG_STICK:
+		return "STICK"
 	}
 	switch {
 	case REG_R0 <= r && r <= REG_R31:
