@@ -1005,6 +1005,19 @@ func Reboot(cmd int) (err error) {
 }
 
 func ReadDirent(fd int, buf []byte) (n int, err error) {
+	if direntBufAlign > 1 && len(buf) > 0 &&
+		uintptr(unsafe.Pointer(&buf[0]))&(direntBufAlign-1) != 0 {
+		// Go promises no particular alignment for a []byte, so read
+		// into a buffer we have aligned ourselves and copy back.
+		tmp := make([]byte, len(buf)+direntBufAlign-1)
+		off := int(-uintptr(unsafe.Pointer(&tmp[0])) & (direntBufAlign - 1))
+		aligned := tmp[off : off+len(buf)]
+		n, err = Getdents(fd, aligned)
+		if n > 0 {
+			copy(buf, aligned[:n])
+		}
+		return n, err
+	}
 	return Getdents(fd, buf)
 }
 
