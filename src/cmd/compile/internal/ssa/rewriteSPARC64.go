@@ -772,12 +772,12 @@ func rewriteValueSPARC64_OpCvt32Fto32(v *Value) bool {
 	b := v.Block
 	typ := &b.Func.Config.Types
 	// match: (Cvt32Fto32 x)
-	// result: (MOVW <typ.Int64> (FSTOX <typ.Int64> x))
+	// result: (MOVW <typ.Int64> (FSTOI <typ.Int32> x))
 	for {
 		x := v_0
 		v.reset(OpSPARC64MOVW)
 		v.Type = typ.Int64
-		v0 := b.NewValue0(v.Pos, OpSPARC64FSTOX, typ.Int64)
+		v0 := b.NewValue0(v.Pos, OpSPARC64FSTOI, typ.Int32)
 		v0.AddArg(x)
 		v.AddArg(v0)
 		return true
@@ -818,12 +818,12 @@ func rewriteValueSPARC64_OpCvt64Fto32(v *Value) bool {
 	b := v.Block
 	typ := &b.Func.Config.Types
 	// match: (Cvt64Fto32 x)
-	// result: (MOVW <typ.Int64> (FDTOX <typ.Int64> x))
+	// result: (MOVW <typ.Int64> (FDTOI <typ.Int32> x))
 	for {
 		x := v_0
 		v.reset(OpSPARC64MOVW)
 		v.Type = typ.Int64
-		v0 := b.NewValue0(v.Pos, OpSPARC64FDTOX, typ.Int64)
+		v0 := b.NewValue0(v.Pos, OpSPARC64FDTOI, typ.Int32)
 		v0.AddArg(x)
 		v.AddArg(v0)
 		return true

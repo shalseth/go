@@ -272,6 +272,8 @@ func init() {
 		{name: "FDTOS", argLength: 1, reg: fp11, asm: "FDTOS"}, // float64 -> float32
 		{name: "FSTOX", argLength: 1, reg: fp11, asm: "FSTOX"}, // float32 -> int64
 		{name: "FDTOX", argLength: 1, reg: fp11, asm: "FDTOX"}, // float64 -> int64
+		{name: "FSTOI", argLength: 1, reg: fp11, asm: "FSTOI"}, // float32 -> int32
+		{name: "FDTOI", argLength: 1, reg: fp11, asm: "FDTOI"}, // float64 -> int32
 		{name: "FXTOS", argLength: 1, reg: fp11, asm: "FXTOS"}, // int64 -> float32
 		{name: "FXTOD", argLength: 1, reg: fp11, asm: "FXTOD"}, // int64 -> float64
 		{name: "FMOVDgp", argLength: 1, reg: fpgp, asm: "FMOVD"}, // move float64 bits to integer register

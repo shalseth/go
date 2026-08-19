@@ -370,6 +370,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		ssa.OpSPARC64FSQRTS, ssa.OpSPARC64FSQRTD,
 		ssa.OpSPARC64FSTOD, ssa.OpSPARC64FDTOS,
 		ssa.OpSPARC64FSTOX, ssa.OpSPARC64FDTOX,
+		ssa.OpSPARC64FSTOI, ssa.OpSPARC64FDTOI,
 		ssa.OpSPARC64FXTOS, ssa.OpSPARC64FXTOD,
 		ssa.OpSPARC64FMOVDgp, ssa.OpSPARC64FMOVDfp:
 		p := s.Prog(v.Op.Asm())

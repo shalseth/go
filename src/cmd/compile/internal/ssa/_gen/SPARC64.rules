@@ -384,7 +384,10 @@
 
 // Conversions.
 (Cvt32to(32|64)F x) => (FXTO(S|D) (SignExt32to64 <typ.Int64> x))
-(Cvt(32|64)Fto32 x) => (MOVW <typ.Int64> (F(S|D)TOX <typ.Int64> x))
+// Use the 32-bit conversion, not a 64-bit one narrowed afterwards: the
+// hardware saturates to the width it converts to, so truncating a
+// saturated int64 loses the clamp entirely (+Inf became -1).
+(Cvt(32|64)Fto32 x) => (MOVW <typ.Int64> (F(S|D)TOI <typ.Int32> x))
 (Round(32|64)F ...) => (Copy ...)
 (Sqrt ...) => (FSQRTD ...)
 (Sqrt32 ...) => (FSQRTS ...)

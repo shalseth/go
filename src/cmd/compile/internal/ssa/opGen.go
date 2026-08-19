@@ -6236,6 +6236,8 @@ const (
 	OpSPARC64FDTOS
 	OpSPARC64FSTOX
 	OpSPARC64FDTOX
+	OpSPARC64FSTOI
+	OpSPARC64FDTOI
 	OpSPARC64FXTOS
 	OpSPARC64FXTOD
 	OpSPARC64FMOVDgp
@@ -102894,6 +102896,32 @@ var opcodeTable = [...]opInfo{
 		name:   "FDTOX",
 		argLen: 1,
 		asm:    sparc64.AFDTOX,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+			},
+		},
+	},
+	{
+		name:   "FSTOI",
+		argLen: 1,
+		asm:    sparc64.AFSTOI,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+			},
+		},
+	},
+	{
+		name:   "FDTOI",
+		argLen: 1,
+		asm:    sparc64.AFDTOI,
 		reg: regInfo{
 			inputs: []inputInfo{
 				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
