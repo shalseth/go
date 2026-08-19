@@ -305,6 +305,9 @@ TestCases:
 		case "s390x":
 			ptrSize = 8
 			fmt.Fprintf(&buf, "#define REGISTER R10\n")
+		case "sparc64":
+			ptrSize = 8
+			fmt.Fprintf(&buf, "#define REGISTER (R3)\n")
 		default:
 			fmt.Fprintf(&buf, "#define REGISTER AX\n")
 		}
