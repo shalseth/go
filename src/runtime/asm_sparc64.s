@@ -276,6 +276,45 @@ noswitch:
 	MOVD	0(CTXT), R3	// code pointer
 	RET	R3
 
+
+// func switchToCrashStack0(fn func())
+TEXT runtime·switchToCrashStack0(SB), NOSPLIT, $0-8
+	MOVD	fn+0(FP), R3
+	MOVD	R3, CTXT	// context register
+	MOVD	g_m(g), R4	// R4 = curm
+
+	// set g to gcrash
+	MOVD	$runtime·gcrash(SB), g	// g = &gcrash
+	CALL	runtime·save_g(SB)
+	MOVD	R4, g_m(g)	// g.m = curm
+	MOVD	g, m_g0(R4)	// curm.g0 = g
+
+	// Switch to the crash stack. A SPARC frame's register-window and
+	// argument save area sits *above* %sp, so the new stack pointer
+	// has to leave a whole minimum frame below stack.hi or the first
+	// window spill runs off the end of the stack; clone reserves the
+	// same 192 bytes when it hands a child its stack. Assigning to BSP
+	// applies the stack bias.
+	MOVD	(g_stack+stack_hi)(g), R5
+	SUB	$192, R5	// MinStackFrameSize, rounded up to 16-byte alignment
+	AND	$~15, R5
+	MOVD	R5, BSP
+
+	// Root the frame chain here. fn's prologue publishes our RFP and
+	// OLR into this frame's anchor slots, and the kernel spills the
+	// same two registers there on any trap, so zeroing them is what
+	// stops a traceback at this frame instead of sending it back into
+	// the stack we just abandoned.
+	MOVD	ZR, RFP
+	MOVD	ZR, OLR
+
+	// call target function
+	MOVD	0(CTXT), R3	// code pointer
+	CALL	(R3)
+
+	// should never return
+	CALL	runtime·abort(SB)
+	UNDEF
 /*
  * support for morestack
  */
