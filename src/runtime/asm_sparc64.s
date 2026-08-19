@@ -267,10 +267,14 @@ switch:
 	RET
 
 noswitch:
-	// already on m stack, just call directly
+	// already on m stack, just call directly.
+	// Tail-call so that systemstack does not remain as an intermediate
+	// frame: an unwinder reaching it jumps to the goroutine stack, and
+	// nested systemstack calls - which all land here after the first -
+	// would each lose the frames above them. The epilogue leaves CTXT
+	// and R3 alone, so fn still gets its context.
 	MOVD	0(CTXT), R3	// code pointer
-	CALL	(R3)
-	RET
+	RET	R3
 
 /*
  * support for morestack
