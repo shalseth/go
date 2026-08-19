@@ -9,6 +9,11 @@ Status: the standard library test suite passes, and Grafana Alloy — an
 OpenTelemetry collector with roughly two and a half thousand packages —
 builds, runs, scrapes metrics and shuts down cleanly on the T4.
 
+Hardware: UltraSPARC-III or later. The runtime reads `%stick` for its
+cycle counter, which those implementations added; `%tick` exists
+everywhere but counts each strand's own cycles, and the strands do not
+agree closely enough for a process-wide timebase (see "Timebase" below).
+
 ## Building
 
 Cross-compile from any supported host (amd64 here):
@@ -63,6 +68,21 @@ way.
   `internal/bytealg`'s `cmpbody`, and `crypto/internal/fips140/bigmod`'s
   `addMulVVW1024`/`1536`/`2048`. These are correct but slow; they are a
   performance gap, not a correctness one.
+
+## Timebase
+
+`cputicks` reads `%stick`, not `%tick`. `%tick` counts the strand's own
+cycles: passing a token around a ring of OS-thread-locked goroutines on
+the T4, a third of the handoffs saw `%tick` go *backwards* across the
+happens-before edge, by as much as 6ms. Callers assume a process-wide
+timebase — the debug log merges its per-P shards by this value, and the
+mutex profile subtracts two reads taken on different threads — so a
+per-strand counter yields impossible orderings and durations.
+
+`%stick` is driven from a system-wide reference and measured zero
+backwards steps over the same experiment. It runs slower, about 1GHz
+against 2.85GHz on this machine, which costs resolution the runtime does
+not need; `ticksPerSecond` calibrates against `nanotime` either way.
 
 ## Notes on the ABI
 
