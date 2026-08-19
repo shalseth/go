@@ -74,8 +74,17 @@ const (
 	// and iOS because they do not use a separate stack.
 	stackSystem = goos.IsWindows*4096 + goos.IsPlan9*512 + goos.IsIos*goarch.IsArm64*1024
 
-	// The minimum size of stack used by Go code
-	stackMin = 2048
+	// The minimum size of stack used by Go code.
+	//
+	// This must stay above stackGuard. On a fresh stack of exactly
+	// stackMin a guard at stack.lo+stackGuard would sit at or above
+	// stack.hi, so every split check would fail and the goroutine would
+	// grow on its first call. In runtime.main that happens before
+	// maxstacksize is assigned, and newstack then reports a 0-byte limit
+	// and throws. stackGuard scales with StackGuardMultiplier, so this
+	// has to as well; the expression leaves 2048 in place for every
+	// multiplier that already fits.
+	stackMin = 2048 + 2048*(stackGuard/2048)
 
 	// The minimum stack size to allocate.
 	// The hackery here rounds fixedStack0 up to a power of 2.
