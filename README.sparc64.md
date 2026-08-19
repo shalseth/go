@@ -58,6 +58,11 @@ way.
   means adding the SSA ops: a CASD/CASW retry loop with the right
   membar placement for the TSO model.
 * The race detector, and the `-buildmode` variants beyond `exe`.
+* Optimised assembly for the routines that ship a generic Go
+  fallback: `math/big`'s `addVV`/`subVV`/`mulAddVWW`/`lshVU`/`rshVU`,
+  `internal/bytealg`'s `cmpbody`, and `crypto/internal/fips140/bigmod`'s
+  `addMulVVW1024`/`1536`/`2048`. These are correct but slow; they are a
+  performance gap, not a correctness one.
 
 ## Notes on the ABI
 
