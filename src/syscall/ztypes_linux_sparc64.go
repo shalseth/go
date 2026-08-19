@@ -121,20 +121,22 @@ type Stat_t struct {
 	_       [3]int64
 }
 
+// struct statfs is the 64-bit asm-generic layout here: every field is a
+// full word, so the struct is 120 bytes. The 32-bit layout this used to
+// carry made Statfs report a 548G filesystem as 0.2G.
 type Statfs_t struct {
-	Type    uint32
-	Bsize   uint32
+	Type    int64
+	Bsize   int64
 	Blocks  uint64
 	Bfree   uint64
 	Bavail  uint64
 	Files   uint64
 	Ffree   uint64
 	Fsid    Fsid
-	Namelen uint32
-	Frsize  uint32
-	Flags   uint32
-	Spare   [4]uint32
-	_       [4]byte
+	Namelen int64
+	Frsize  int64
+	Flags   int64
+	Spare   [4]int64
 }
 
 type Dirent struct {
