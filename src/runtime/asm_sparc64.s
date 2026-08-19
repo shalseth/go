@@ -328,6 +328,31 @@ TEXT runtime·switchToCrashStack0(SB), NOSPLIT, $0-8
 // calling the scheduler calling newm calling gc), so we must
 // record an argument size. For that purpose, it has no arguments.
 TEXT runtime·morestack(SB),NOSPLIT|NOFRAME,$0-0
+	// Called from f.
+	// Set g->sched to context in f.
+	// gogo resumes at gobuf_pc exactly; LR is the address of the CALL
+	// morestack in f's split block, so resume at LR+8 (the jump back
+	// to the start of f). gobuf_lr stays the raw %o7 value of f's
+	// caller: it is restored into LR, and f returns through it with
+	// the usual +8.
+	//
+	// This has to come before the g0 and gsignal checks below:
+	// badmorestackg0 tracebacks from g->sched, so leaving a stale
+	// one there makes it print an unrelated stack.
+	MOVD	CTXT, (g_sched+gobuf_ctxt)(g)
+	MOVD	BSP, TMP
+	MOVD	TMP, (g_sched+gobuf_sp)(g)
+	ADD	$8, LR, TMP
+	MOVD	TMP, (g_sched+gobuf_pc)(g)
+	MOVD	R3, (g_sched+gobuf_lr)(g)
+	// f's prologue has not run, so RFP and OLR still belong to f's
+	// caller. OLR must be preserved exactly: while SP is still at f's
+	// entry, the kernel window spill mirrors %i7 into [sp+bias+120],
+	// the very slot holding the caller's return address anchor.
+	MOVD	RFP, (g_sched+gobuf_bp)(g)
+	MOVD	OLR, TMP
+	MOVD	TMP, (g_sched+gobuf_olr)(g)
+
 	// Cannot grow scheduler stack (m->g0).
 	MOVD	g_m(g), R8
 	MOVD	m_g0(R8), R4
@@ -342,27 +367,6 @@ TEXT runtime·morestack(SB),NOSPLIT|NOFRAME,$0-0
 	BNED	3(PC)
 	CALL	runtime·badmorestackgsignal(SB)
 	JMP	runtime·abort(SB)
-
-	// Called from f.
-	// Set g->sched to context in f.
-	// gogo resumes at gobuf_pc exactly; LR is the address of the CALL
-	// morestack in f's split block, so resume at LR+8 (the jump back
-	// to the start of f). gobuf_lr stays the raw %o7 value of f's
-	// caller: it is restored into LR, and f returns through it with
-	// the usual +8.
-	MOVD	CTXT, (g_sched+gobuf_ctxt)(g)
-	MOVD	BSP, TMP
-	MOVD	TMP, (g_sched+gobuf_sp)(g)
-	ADD	$8, LR, TMP
-	MOVD	TMP, (g_sched+gobuf_pc)(g)
-	MOVD	R3, (g_sched+gobuf_lr)(g)
-	// f's prologue has not run, so RFP and OLR still belong to f's
-	// caller. OLR must be preserved exactly: while SP is still at f's
-	// entry, the kernel window spill mirrors %i7 into [sp+bias+120],
-	// the very slot holding the caller's return address anchor.
-	MOVD	RFP, (g_sched+gobuf_bp)(g)
-	MOVD	OLR, TMP
-	MOVD	TMP, (g_sched+gobuf_olr)(g)
 
 	// Called from f.
 	// Set m->morebuf to f's callers.
