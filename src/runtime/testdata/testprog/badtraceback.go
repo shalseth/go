@@ -48,7 +48,14 @@ func badLR2(arg int) {
 		lrOff = 176 - 120
 	}
 	lrPtr := (*uintptr)(unsafe.Pointer(uintptr(unsafe.Pointer(&arg)) - lrOff))
-	*lrPtr = 0xbad
+	badPC := uintptr(0xbad)
+	if runtime.GOARCH == "sparc64" {
+		// The anchor holds a raw %o7, the address of the call, which the
+		// unwinder turns into a return address by adding 8. Store the
+		// value that converts to 0xbad.
+		badPC -= 8
+	}
+	*lrPtr = badPC
 
 	runtime.KeepAlive(lrPtr) // prevent dead store elimination
 

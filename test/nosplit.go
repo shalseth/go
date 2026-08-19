@@ -1,10 +1,23 @@
 // run
 
-//go:build !nacl && !js && !aix && !openbsd && !wasip1 && !gcflags_noopt && gc
+//go:build !nacl && !js && !aix && !openbsd && !wasip1 && !sparc64 && !gcflags_noopt && gc
 
 // Copyright 2014 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+
+// sparc64 is excluded because the cost model below does not fit it. The
+// cases are written against a fixed 800-byte nosplit budget and adjust
+// the first nosplit frame once to relocate the boundary, which assumes
+// a frame costs exactly what it declares. On sparc64 every frame also
+// carries the 176-byte mandatory minimum - a 128-byte register window
+// save area plus the argument area, against 8 bytes or less everywhere
+// else - so the real cost of a chain grows with its depth, which a
+// single adjustment cannot express, and the budget is 2400 rather than
+// 800 because stackGuardMultiplier is raised for exactly that reason.
+// Annotating the affected stanzas would work until the multiplier
+// changes, and would then fail in the accepting direction, which is the
+// one this test exists to catch.
 
 package main
 
