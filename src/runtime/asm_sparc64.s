@@ -672,8 +672,13 @@ TEXT setg_gcc<>(SB),NOSPLIT,$16
 	MOVD	savedTMP-8(SP), TMP
 	RET
 
+// The signal handler recognises an abort by the faulting PC (isAbortPC),
+// so the fault must happen at an instruction inside this function. A jump
+// to a bad address faults with PC=0 instead, which findfunc cannot resolve:
+// the abort is then downgraded to a recoverable nil-pointer panic and every
+// traceback below it reads "unknown pc 0x0".
 TEXT runtime·abort(SB),NOSPLIT|NOFRAME,$0-0
-	JMPL	ZR, ZR
+	MOVD	ZR, (ZR)	// boom
 	UNDEF
 
 // func cputicks() int64
