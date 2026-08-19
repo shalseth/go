@@ -446,8 +446,15 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			if frameSize < 0 {
 				ctxt.Diag("%v: negative frame size %d", p, frameSize)
 			}
-			if frameSize%16 != 0 {
-				ctxt.Diag("%v: unaligned frame size %d - must be 0 mod 16", p, frameSize)
+			// SPARC requires the stack pointer to stay 16-byte
+			// aligned. The compiler already rounds its frames, but
+			// hand-written assembly may declare any size, so pad here
+			// rather than rejecting it - arm64, which has the same
+			// requirement, does the same.
+			if pad := frameSize % 16; pad != 0 {
+				frameSize += 16 - pad
+				cursym.Func().Locals = frameSize
+				p.To.Offset = int64(frameSize)
 			}
 			if frameSize != 0 && isNOFRAME(p) {
 				ctxt.Diag("%v: non-zero framesize for NOFRAME function", p)
