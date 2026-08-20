@@ -299,25 +299,25 @@ func init() {
 		{name: "LoweredAtomicStore64", argLength: 3, reg: gpstore, faultOnNilArg0: true, hasSideEffects: true},
 
 		// arg0 = pointer, arg1 = value, arg2 = memory; returns the old value.
-		{name: "LoweredAtomicExchange32", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
-		{name: "LoweredAtomicExchange64", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+		{name: "LoweredAtomicExchange32", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true, clobberFlags: true},
+		{name: "LoweredAtomicExchange64", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true, clobberFlags: true},
 
 		// arg0 = pointer, arg1 = delta, arg2 = memory; returns the new value.
-		{name: "LoweredAtomicAdd32", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
-		{name: "LoweredAtomicAdd64", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+		{name: "LoweredAtomicAdd32", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true, clobberFlags: true},
+		{name: "LoweredAtomicAdd64", argLength: 3, reg: gpxchg, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true, clobberFlags: true},
 
 		// arg0 = pointer, arg1 = old, arg2 = new, arg3 = memory; returns whether it swapped.
-		{name: "LoweredAtomicCas32", argLength: 4, reg: gpcas, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
-		{name: "LoweredAtomicCas64", argLength: 4, reg: gpcas, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+		{name: "LoweredAtomicCas32", argLength: 4, reg: gpcas, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true, clobberFlags: true},
+		{name: "LoweredAtomicCas64", argLength: 4, reg: gpcas, resultNotInArgs: true, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true, clobberFlags: true},
 
 		// arg0 = pointer, arg1 = value, arg2 = memory; no result.
 		// The 8-bit forms use a 32-bit CAS on the containing aligned
 		// word, since SPARC has no byte-width CAS; big-endian, so the
 		// byte at p sits at bit (3 - (p & 3)) * 8.
-		{name: "LoweredAtomicAnd32", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
-		{name: "LoweredAtomicOr32", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
-		{name: "LoweredAtomicAnd8", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
-		{name: "LoweredAtomicOr8", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true},
+		{name: "LoweredAtomicAnd32", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true, clobberFlags: true},
+		{name: "LoweredAtomicOr32", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true, clobberFlags: true},
+		{name: "LoweredAtomicAnd8", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true, clobberFlags: true},
+		{name: "LoweredAtomicOr8", argLength: 3, reg: gprmw, faultOnNilArg0: true, hasSideEffects: true, unsafePoint: true, clobberFlags: true},
 
 		// Calls.
 		{name: "CALLstatic", argLength: -1, reg: regInfo{clobbers: callerSave}, aux: "CallOff", clobberFlags: true, call: true},
