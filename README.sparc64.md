@@ -16,37 +16,18 @@ an OpenTelemetry collector with roughly two and a half thousand packages
 
 VIS3 is the baseline: SPARC T3 or later (T3, T4, T5, S7, M5-M8), or
 Fujitsu SPARC64 X or later. Earlier machines - UltraSPARC I through IV,
-T1, T2, SPARC64 V/VI/VII - fault with SIGILL during runtime startup.
-Verified: a static binary from this branch dies immediately with SIGILL
-on an UltraSPARC IIIi (Sun Fire V240).
+T1, T2, SPARC64 V/VI/VII - fault with SIGILL during runtime startup; a
+binary from this branch dies immediately on an UltraSPARC IIIi.
 
-Three things need VIS3, all of them emitted by the compiler; no
-hand-written assembly in the port uses a VIS3 instruction.
-
-  - Moves between the integer and float register files: `MOVXTOD`,
-    `MOVDTOX`, `MOVSTOUW`, `MOVWTOS`, emitted by `regMoveOp` in
-    `cmd/compile/internal/sparc64/ssa.go`. This is the pervasive one.
-    The conversions themselves are plain V9 - `FXTOD` and `FDTOX` work
-    everywhere - it is moving the bits across the register files that
-    needs VIS3, and the register allocator inserts those moves wherever
-    an integer value meets a float one.
-  - `UMULXHI`, for `Hmul64u`, `Hmul64` and `Mul64uhilo`.
-  - `ADDXC`, for `Add64carry` and `Sub64borrow`.
-
-Supporting a pre-VIS3 machine would not cost a VIS3 build anything: the
-selection belongs at build time, in a `GOSPARC64=v9|vis3` feature level
-alongside `GOAMD64` and `GOPPC64` in `internal/buildcfg`, so a `vis3`
-build would emit exactly the code it emits today. The work is lopsided,
-though. Gating `UMULXHI` and `ADDXC` is easy - condition the rules on
-the level, drop sparc64 from the `math/bits` intrinsic lists, and give
-`Hmul64u` a software fallback, since the generic magic-division rewrite
-produces it. The register-file moves are the real cost: without VIS3 the
-only route between the files is memory, `stx` then `ldd`, which needs a
-scratch slot reserved in every frame before the register allocator
-inserts the move. Go used to carry that machinery for 386
-(`NeedsFpScratch`); it is gone from the tree, so it would have to be
-rebuilt inside frame layout - the part of this port that has produced
-every one of its hardest bugs. It has not been attempted.
+Three things need it, all emitted by the compiler: the register-file
+moves `MOVXTOD`, `MOVDTOX`, `MOVSTOUW` and `MOVWTOS`, which the register
+allocator inserts wherever an integer value meets a float one;
+`UMULXHI`, for the high half of a 64x64 multiply; and `ADDXC`, for
+`Add64carry` and `Sub64borrow`. Going below VIS3 would mean a build-time
+feature level in the style of `GOAMD64`, software fallbacks for the
+multiply and the carries, and - the hard part - reimplementing the
+register-file moves as memory round trips, which needs a scratch slot
+reserved in every frame. It has not been attempted.
 
 Independently of VIS3, the runtime reads `%stick` for its cycle counter,
 which UltraSPARC-III and later added; `%tick` exists everywhere but
