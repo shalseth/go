@@ -136,6 +136,19 @@ Three files came out of it:
   - `crypto/internal/fips140/bigmod/nat_sparc64.s`: `addMulVVW1024`,
     `1536` and `2048`, three entry points that set a group count and
     tail-jump into a shared core.
+  - `internal/bytealg/indexbyte_sparc64.s` and `count_sparc64.s`:
+    `IndexByte`, `IndexByteString`, `Count` and `CountString`, scanning
+    eight bytes at a time. Xor the word with the byte broadcast across
+    all eight lanes and a match becomes a zero byte; the usual
+    `(v - 0x01..01) &^ v & 0x80..80` then reports whether any lane is
+    zero. That test is exact as a yes/no answer but not per lane - the
+    subtraction borrows between lanes - so `IndexByte` finds the lane by
+    rescanning those eight bytes, which costs a few instructions once
+    per call. `Count` cannot do that, since it reads the mask itself, so
+    it builds an exact mask the other way: masking off each lane's high
+    bit and adding `0x7f` cannot carry out of the lane. Summing the
+    lanes needs no `POPC` either - shifting the markers down and
+    multiplying by `0x01..01` accumulates them into the top byte.
   - `internal/bytealg/compare_sparc64.s`: `Compare` and
     `runtime.cmpstring`. SPARC traps on unaligned access, so the word
     loop runs only once both pointers are 8-aligned; if they share a
@@ -159,6 +172,8 @@ intrinsics, and after the assembly.
 | RSA-2048 verify | 0.656ms | 0.526ms | 0.211ms | 3.1x |
 | `bytes.Compare`, 64B | 331ns | 331ns | 32.0ns | 10.4x |
 | `bytes.Compare`, 4KB | 19.6us | 19.6us | 1.29us | 15.2x |
+| `bytes.IndexByte`, 4KB | 14.0us | 14.0us | 1.52us | 9.2x |
+| `bytes.Count`, 4KB | 6.24us | 6.24us | 1.69us | 3.7x |
 
 `bytes.Compare` reaches 3.1 GB/s on 4KB buffers against 197 MB/s for the
 byte-at-a-time generic version. Operands whose addresses differ mod 8
@@ -167,6 +182,19 @@ and the other's words are assembled from two aligned loads and a shift;
 that runs at 2.3 GB/s. It only engages while at least 16 bytes remain,
 which is what keeps the second load from reaching past the end of the
 shorter operand.
+
+Substring search gains less than `IndexByte` alone suggests.
+`bytes.Index` scans with `IndexByte` and confirms with `Equal`, so the
+speedup depends on how often the needle's first byte appears in the
+haystack: searching a 5KB block of HTTP headers, a needle that is absent
+runs 3.9x faster, `Content-Length` 2.0x, and `\r\n\r\n` - whose first
+byte occurs 160 times in that block - 1.5x, because the confirmations
+dominate. The `bytes` package's own `BenchmarkIndex` shows no change at
+all: it searches an all-zero buffer for a needle whose leading bytes are
+also zero, so the first-byte test never fails and `IndexByte` is never
+reached. `bytealg.Index` itself stays unimplemented here - it is worth
+writing only with a vector prefilter, which this port has no way to
+emit.
 
 ECDSA is unchanged by all of this: P-256 and friends use `nistec`'s own
 field arithmetic rather than `bigmod`, and that code has no assembly
