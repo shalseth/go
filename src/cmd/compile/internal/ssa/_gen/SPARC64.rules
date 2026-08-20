@@ -468,4 +468,10 @@
 // computed separately and paired; the generic rules then fold the
 // Select0/Select1 that consume them.
 (Mul64uhilo ...) => (MULDU ...)
+
+// VIS3's ADDXC can copy the carry out of xcc into a register, so
+// add/subtract with carry lower to a four-instruction pair rather
+// than the generic body's arithmetic recovery of the carry bit.
+(Add64carry ...) => (ADDCARRY ...)
+(Sub64borrow ...) => (SUBBORROW ...)
 (TailCallInter ...) => (CALLtail ...)

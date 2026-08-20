@@ -6168,6 +6168,8 @@ const (
 	OpSPARC64SDIVD
 	OpSPARC64UMULXHI
 	OpSPARC64MULDU
+	OpSPARC64ADDCARRY
+	OpSPARC64SUBBORROW
 	OpSPARC64UDIVD
 	OpSPARC64AND
 	OpSPARC64ANDconst
@@ -101970,6 +101972,38 @@ var opcodeTable = [...]opInfo{
 			inputs: []inputInfo{
 				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
 				{1, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{1, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:            "ADDCARRY",
+		argLen:          3,
+		resultNotInArgs: true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{1, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{2, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{1, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:            "SUBBORROW",
+		argLen:          3,
+		resultNotInArgs: true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{1, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{2, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
 				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29

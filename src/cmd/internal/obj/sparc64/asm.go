@@ -213,6 +213,8 @@ var optab = map[Optab]Opval{
 	Optab{AMOVD, ClassTLSAddr, ClassNone, ClassNone, ClassReg}: {50, 12, 0},
 
 	Optab{AUMULXHI, ClassReg, ClassReg, ClassNone, ClassReg}: {51, 4, 0},
+	Optab{AADDXC, ClassReg, ClassReg, ClassNone, ClassReg}:   {51, 4, 0},
+	Optab{AADDXCCC, ClassReg, ClassReg, ClassNone, ClassReg}: {51, 4, 0},
 
 	Optab{AMOVDTOX, ClassDReg, ClassNone, ClassNone, ClassReg}:  {54, 4, 0},
 	Optab{AMOVSTOUW, ClassFReg, ClassNone, ClassNone, ClassReg}: {54, 4, 0},
@@ -1615,11 +1617,22 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	case 54:
 		*o1 = opcode(p.As) | uint32(p.To.Reg&31)<<25 | uint32(p.From.Reg&31)
 
-	// UMULXHI Rs1, Rs2, Rd
+	// UMULXHI/ADDXC/ADDXCCC Rs1, Rs2, Rd
 	case 51:
 		// VIS3 three-register form: op3 is 0x36 and the opf field
-		// selects the operation within it. UMULXHI is opf 0x016.
-		*o1 = op3(2, 0x36) | rrr(p.Reg, 0x16, p.From.Reg, p.To.Reg)
+		// selects the operation within it.
+		var opf int16
+		switch p.As {
+		case AUMULXHI:
+			opf = 0x16
+		case AADDXC:
+			opf = 0x11
+		case AADDXCCC:
+			opf = 0x13
+		default:
+			return nil, fmt.Errorf("unknown VIS3 three-register opcode in %v", p)
+		}
+		*o1 = op3(2, 0x36) | rrr(p.Reg, opf, p.From.Reg, p.To.Reg)
 
 	// MOVE	FCCn, $simm11, Rd
 	case 52:

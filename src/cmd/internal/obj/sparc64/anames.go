@@ -131,6 +131,8 @@ var Anames = []string{
 	"SAVE",
 	"SDIVD",
 	"UMULXHI",
+	"ADDXC",
+	"ADDXCCC",
 	"MOVDTOX",
 	"MOVSTOUW",
 	"MOVXTOD",

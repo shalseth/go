@@ -493,6 +493,8 @@ const (
 	ASAVE    // not used under normal circumstances
 	ASDIVD
 	AUMULXHI // VIS3: high 64 bits of an unsigned 64x64 multiply
+	AADDXC   // VIS3: add with the carry out of xcc
+	AADDXCCC // VIS3: add with the carry out of xcc, setting the codes
 
 	// VIS3 register moves between the float and integer files. SPARC V9
 	// without VIS3 has to round-trip through memory for these, so the

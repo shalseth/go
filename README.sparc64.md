@@ -5,14 +5,53 @@ developed on an UltraSPARC T4-1 running Gentoo. This branch adds
 `GOARCH=sparc64` to the compiler, assembler, linker and runtime; the
 `master` branch tracks upstream unchanged.
 
-Status: the standard library test suite passes, and Grafana Alloy — an
-OpenTelemetry collector with roughly two and a half thousand packages —
-builds, runs, scrapes metrics and shuts down cleanly on the T4.
+Status: `go tool dist test -k` runs 442 packages green, including all of
+the `test/` language suite. Five tests fail, and all five are the same
+missing piece: there is no sparc64 disassembler, so `cmd/objdump` and
+`cmd/pprof` cannot disassemble (see "What is missing"). Grafana Alloy —
+an OpenTelemetry collector with roughly two and a half thousand packages
+— builds, runs, scrapes metrics and shuts down cleanly on the T4.
 
-Hardware: UltraSPARC-III or later. The runtime reads `%stick` for its
-cycle counter, which those implementations added; `%tick` exists
-everywhere but counts each strand's own cycles, and the strands do not
-agree closely enough for a process-wide timebase (see "Timebase" below).
+## Hardware requirements
+
+VIS3 is the baseline: SPARC T3 or later (T3, T4, T5, S7, M5-M8), or
+Fujitsu SPARC64 X or later. Earlier machines - UltraSPARC I through IV,
+T1, T2, SPARC64 V/VI/VII - fault with SIGILL during runtime startup.
+Verified: a static binary from this branch dies immediately with SIGILL
+on an UltraSPARC IIIi (Sun Fire V240).
+
+Three things need VIS3, all of them emitted by the compiler; no
+hand-written assembly in the port uses a VIS3 instruction.
+
+  - Moves between the integer and float register files: `MOVXTOD`,
+    `MOVDTOX`, `MOVSTOUW`, `MOVWTOS`, emitted by `regMoveOp` in
+    `cmd/compile/internal/sparc64/ssa.go`. This is the pervasive one.
+    The conversions themselves are plain V9 - `FXTOD` and `FDTOX` work
+    everywhere - it is moving the bits across the register files that
+    needs VIS3, and the register allocator inserts those moves wherever
+    an integer value meets a float one.
+  - `UMULXHI`, for `Hmul64u`, `Hmul64` and `Mul64uhilo`.
+  - `ADDXC`, for `Add64carry` and `Sub64borrow`.
+
+Supporting a pre-VIS3 machine would not cost a VIS3 build anything: the
+selection belongs at build time, in a `GOSPARC64=v9|vis3` feature level
+alongside `GOAMD64` and `GOPPC64` in `internal/buildcfg`, so a `vis3`
+build would emit exactly the code it emits today. The work is lopsided,
+though. Gating `UMULXHI` and `ADDXC` is easy - condition the rules on
+the level, drop sparc64 from the `math/bits` intrinsic lists, and give
+`Hmul64u` a software fallback, since the generic magic-division rewrite
+produces it. The register-file moves are the real cost: without VIS3 the
+only route between the files is memory, `stx` then `ldd`, which needs a
+scratch slot reserved in every frame before the register allocator
+inserts the move. Go used to carry that machinery for 386
+(`NeedsFpScratch`); it is gone from the tree, so it would have to be
+rebuilt inside frame layout - the part of this port that has produced
+every one of its hardest bugs. It has not been attempted.
+
+Independently of VIS3, the runtime reads `%stick` for its cycle counter,
+which UltraSPARC-III and later added; `%tick` exists everywhere but
+counts each strand's own cycles, and the strands do not agree closely
+enough for a process-wide timebase (see "Timebase" below).
 
 ## Building
 
@@ -64,11 +103,35 @@ way.
 * cgo and external linking. Everything must be built with
   `CGO_ENABLED=0`.
 * The race detector, and the `-buildmode` variants beyond `exe`.
+* A disassembler. `cmd/internal/disasm` has no sparc64 support and
+  there is no `golang.org/x/arch/sparc64asm` to build on, so `go tool
+  objdump` and `pprof`'s annotated-assembly view do not work. This is
+  the only part of the test suite still failing — `TestDisasm`,
+  `TestDisasmCode`, `TestDisasmGnuAsm`, `TestDisasmGoobj` and
+  `TestGoobjFileNumber`, across `cmd/objdump` and `cmd/pprof`.
+  Collecting and reading profiles is unaffected; only disassembly is.
+
 * Optimised assembly for the routines that ship a generic Go
   fallback: `math/big`'s `addVV`/`subVV`/`mulAddVWW`/`lshVU`/`rshVU`,
   `internal/bytealg`'s `cmpbody`, and `crypto/internal/fips140/bigmod`'s
   `addMulVVW1024`/`1536`/`2048`. These are correct but slow; they are a
   performance gap, not a correctness one.
+
+  A cause sits underneath them: `bits.Add64` and `bits.Sub64` are not
+  intrinsified on this branch, so each limb of a carry chain costs the
+  pure-Go body - two adds plus five logical ops to recover the carry -
+  where `ADDCC` and VIS3's `ADDXC` need four instructions, and a
+  hand-written loop that keeps the carry live in `xcc` needs one.
+  (`bits.Mul64` *is* intrinsified, via `MULDU` to `MULD` and `UMULXHI`;
+  the multiply itself is already two instructions.) Intrinsifying the
+  carry pair would speed up the generic fallbacks themselves, and every
+  other user of `math/bits`, before a line of assembly is added.
+
+  Measured on an idle T4: `addVV` 6.2ns per 64-bit limb, `mulAddVWW`
+  6.1ns, `addMulVVW` 8.9ns; RSA-2048 sign 19.7ms, verify 0.66ms. Note
+  also that the generic implementations are *faster* than the `asm`
+  entry points, which on this branch are only forwarding wrappers that
+  do not inline: 54.7ns against 71.6ns for a one-word `addVV`.
 
 ## Timebase
 

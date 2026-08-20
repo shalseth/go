@@ -428,6 +428,47 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg1()
 
+	case ssa.OpSPARC64ADDCARRY, ssa.OpSPARC64SUBBORROW:
+		// (sum, carry) = arg0 +- arg1 +- arg2, with arg2 and carry in {0, 1}:
+		//
+		//	ADDCC/SUBCC arg1, arg0, sum   // xcc.c = c1
+		//	ADDXC       ZR, ZR, carry     // carry = c1
+		//	ADDCC/SUBCC arg2, sum, sum    // xcc.c = c2
+		//	ADDXC       carry, ZR, carry  // carry = c1 + c2
+		//
+		// At most one of c1 and c2 can be set, so the last add cannot
+		// itself carry. resultNotInArgs keeps sum clear of arg2, which
+		// is still live for the third instruction.
+		op := sparc64.AADDCC
+		if v.Op == ssa.OpSPARC64SUBBORROW {
+			op = sparc64.ASUBCC
+		}
+		sum, carry := v.Reg0(), v.Reg1()
+		p := s.Prog(op)
+		p.From.Type = obj.TYPE_REG
+		p.From.Reg = v.Args[1].Reg()
+		p.Reg = v.Args[0].Reg()
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sum
+		p = s.Prog(sparc64.AADDXC)
+		p.From.Type = obj.TYPE_REG
+		p.From.Reg = sparc64.REG_ZR
+		p.Reg = sparc64.REG_ZR
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = carry
+		p = s.Prog(op)
+		p.From.Type = obj.TYPE_REG
+		p.From.Reg = v.Args[2].Reg()
+		p.Reg = sum
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = sum
+		p = s.Prog(sparc64.AADDXC)
+		p.From.Type = obj.TYPE_REG
+		p.From.Reg = sparc64.REG_ZR
+		p.Reg = carry
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = carry
+
 	case ssa.OpSPARC64MOVDconst:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_CONST

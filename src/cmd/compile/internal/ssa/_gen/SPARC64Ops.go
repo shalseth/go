@@ -150,6 +150,7 @@ func init() {
 		gp11sp   = regInfo{inputs: []regMask{gpspg}, outputs: []regMask{gp}}
 		gp21     = regInfo{inputs: []regMask{gpg, gpg.union(rz)}, outputs: []regMask{gp}}
 		gp22     = regInfo{inputs: []regMask{gpg, gpg}, outputs: []regMask{gp, gp}}
+		gp32     = regInfo{inputs: []regMask{gpg, gpg, gpg}, outputs: []regMask{gp, gp}}
 		gp2flags = regInfo{inputs: []regMask{gpg, gpg.union(rz)}}
 		gp1flags = regInfo{inputs: []regMask{gpg}}
 		gpload   = regInfo{inputs: []regMask{gpspsbg}, outputs: []regMask{gp}}
@@ -186,6 +187,15 @@ func init() {
 		// single instruction for it, so this emits UMULXHI followed by
 		// MULD; results are (high, low).
 		{name: "MULDU", argLength: 2, reg: gp22, commutative: true, resultNotInArgs: true, typ: "(UInt64,UInt64)"}, // (hi, lo) = arg0 * arg1; the two-instruction expansion must not clobber its inputs
+
+		// Add and subtract with carry, as a pair. VIS3's ADDXC copies the
+		// 64-bit carry out of xcc into a register, so the four-instruction
+		// expansion of these beats the generic Go body, which needs two
+		// adds plus five logical ops to recover the carry. As with MULDU
+		// the expansion reads an input after writing an output, so the
+		// results must not share registers with the arguments.
+		{name: "ADDCARRY", argLength: 3, reg: gp32, resultNotInArgs: true, typ: "(UInt64,UInt64)"},  // (sum, carryOut) = arg0 + arg1 + arg2; arg2 is 0 or 1, and so is carryOut
+		{name: "SUBBORROW", argLength: 3, reg: gp32, resultNotInArgs: true, typ: "(UInt64,UInt64)"}, // (diff, borrowOut) = arg0 - arg1 - arg2; arg2 is 0 or 1, and so is borrowOut
 		{name: "UDIVD", argLength: 2, reg: gp21, asm: "UDIVD"},                   // arg0 / arg1, unsigned
 
 		{name: "AND", argLength: 2, reg: gp21, asm: "AND", commutative: true},   // arg0 & arg1

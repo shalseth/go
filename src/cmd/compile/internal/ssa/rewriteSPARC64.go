@@ -25,6 +25,9 @@ func rewriteValueSPARC64(v *Value) bool {
 	case OpAdd64F:
 		v.Op = OpSPARC64FADDD
 		return true
+	case OpAdd64carry:
+		v.Op = OpSPARC64ADDCARRY
+		return true
 	case OpAdd8:
 		v.Op = OpSPARC64ADD
 		return true
@@ -600,6 +603,9 @@ func rewriteValueSPARC64(v *Value) bool {
 		return true
 	case OpSub64F:
 		v.Op = OpSPARC64FSUBD
+		return true
+	case OpSub64borrow:
+		v.Op = OpSPARC64SUBBORROW
 		return true
 	case OpSub8:
 		v.Op = OpSPARC64SUB
