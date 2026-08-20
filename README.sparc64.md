@@ -100,43 +100,29 @@ way.
   "Performance"). The generator's test only checks the architectures it
   knows, so a hand-written file is not flagged, but it does not track
   changes to the generator either.
-* Use of the on-core crypto instructions, which is the largest
-  performance gap left in the port by a wide margin. The kernel reports
-  them in `/proc/cpuinfo` on a T4:
+* Use of the rest of the on-core crypto instructions. SHA-256 is done -
+  see "Performance" - but the others are not. The kernel reports the
+  whole set in `/proc/cpuinfo` on a T4:
 
   ```
   aes, des, kasumi, camellia, md5, sha1, sha256, sha512,
   mpmul, montmul, montsqr, crc32c, popc
   ```
 
-  `sha256` consumes a whole block in one instruction; `montmul` and
-  `montsqr` are the Montgomery multiply and square that
+  `montmul` and `montsqr` are the Montgomery multiply and square that
   `crypto/internal/fips140/bigmod` does in software; `aes` is the
   equivalent of AES-NI; `crc32c` is what `hash/crc32` wants for the
-  Castagnoli polynomial. Nothing here uses any of them, so SHA-256 runs
-  at 19 MB/s - about 150 cycles per byte - where the hardware unit
-  should be near 5. Going by what OpenSSL gets from the same
-  instructions, hardware SHA-256 is worth roughly 25x, AES-GCM 10-20x,
-  CRC32C 10x, and Montgomery multiply about another 3x on top of the
-  assembly described under "Performance".
+  Castagnoli polynomial; `md5`, `sha1` and `sha512` are single
+  instructions like `sha256`. Going by what SHA-256 turned out to be
+  worth, and by what OpenSSL gets from the same instructions, AES-GCM
+  should be worth 10-20x, CRC32C 10x, and Montgomery multiply another 3x
+  on top of the assembly under "Performance".
 
-  Scalar assembly is *not* the answer for SHA-256. The generic code is
-  loop-based with the 64-word schedule in memory and six rotations per
-  round at three instructions each, since SPARC has no rotate; unrolling
-  it and holding the state in registers would be worth perhaps 3x, and
-  the hardware instruction is worth 25.
-
-  Three pieces are needed. The assembler has to learn the opcodes, which
-  live in the implementation-dependent space and read their operands
-  from the *float* register file - so data crosses through `MOVXTOD`,
-  which is one reason VIS3 is the baseline. `internal/cpu` needs to read
-  `AT_HWCAP` for sparc64, so the paths are gated on the hardware
-  actually having them rather than assumed. Then the assembly itself
-  goes behind the per-architecture hooks Go already has in
-  `crypto/internal/fips140/sha256`, `crypto/aes` and `hash/crc32`.
-  OpenSSL's `sha256-sparcv9.pl`, `aest4-sparcv9.pl` and
-  `sparct4-mont.pl` are working references for the instruction
-  sequences.
+  The groundwork is done: the assembler encodes this part of the opcode
+  space, `internal/cpu` reads `AT_HWCAP`, and `SPARC64.HasCrypto` gates
+  the paths. What remains per algorithm is its opcode and the assembly
+  around it. OpenSSL's `aest4-sparcv9.pl` and `sparct4-mont.pl` are
+  working references for the sequences.
 
 ## Performance
 
@@ -215,6 +201,29 @@ and the other's words are assembled from two aligned loads and a shift;
 that runs at 2.3 GB/s. It only engages while at least 16 bytes remain,
 which is what keeps the second load from reaching past the end of the
 shorter operand.
+
+`crypto/sha256` uses the T4's `sha256` instruction, which hashes a whole
+512-bit block per issue. It takes no operands at all: the eight state
+words come from `%f0-%f7`, the block from `%f8-%f23`, and the result is
+written back over the state. So `sha256block_sparc64.s` loads the state
+once, loads each block over the same eight double registers, and stores
+the state at the end. Big-endian pays off a third time - SHA-256 defines
+its block as big-endian words, which is how a load already lands them,
+so unlike the little-endian implementations this one byte-swaps nothing.
+
+| | software | hardware | |
+|---|---|---|---|
+| `sha256`, 8KB | 19.2 MB/s | 846 MB/s | 44x |
+| `sha256`, 1KB | 17.9 MB/s | 566 MB/s | 32x |
+| block loop alone | - | 898 MB/s | - |
+
+That is 3.2 cycles per byte against roughly 150 for the Go code. Two
+details: the instruction reads its block with `ldd`, which traps on an
+unaligned address, so misaligned input is copied a block at a time
+through an aligned buffer - declared as words, since a `[64]byte` local
+carries no alignment guarantee. And `GODEBUG=cpu.crypto=off` returns to
+the generic implementation, which is how the two rows above were
+measured on the same binary.
 
 Substring search gains less than `IndexByte` alone suggests.
 `bytes.Index` scans with `IndexByte` and confirms with `Equal`, so the
