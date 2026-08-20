@@ -100,10 +100,43 @@ way.
   "Performance"). The generator's test only checks the architectures it
   knows, so a hand-written file is not flagged, but it does not track
   changes to the generator either.
-* A hand-written `sha256` block function. SHA-256 runs at about 19 MB/s,
-  roughly 150 cycles per byte, and no intrinsic fixes it: SPARC has no
-  rotate instruction, so each of the 64 rounds pays two shifts and an OR
-  per rotation. This is the largest remaining single-primitive gap.
+* Use of the on-core crypto instructions, which is the largest
+  performance gap left in the port by a wide margin. The kernel reports
+  them in `/proc/cpuinfo` on a T4:
+
+  ```
+  aes, des, kasumi, camellia, md5, sha1, sha256, sha512,
+  mpmul, montmul, montsqr, crc32c, popc
+  ```
+
+  `sha256` consumes a whole block in one instruction; `montmul` and
+  `montsqr` are the Montgomery multiply and square that
+  `crypto/internal/fips140/bigmod` does in software; `aes` is the
+  equivalent of AES-NI; `crc32c` is what `hash/crc32` wants for the
+  Castagnoli polynomial. Nothing here uses any of them, so SHA-256 runs
+  at 19 MB/s - about 150 cycles per byte - where the hardware unit
+  should be near 5. Going by what OpenSSL gets from the same
+  instructions, hardware SHA-256 is worth roughly 25x, AES-GCM 10-20x,
+  CRC32C 10x, and Montgomery multiply about another 3x on top of the
+  assembly described under "Performance".
+
+  Scalar assembly is *not* the answer for SHA-256. The generic code is
+  loop-based with the 64-word schedule in memory and six rotations per
+  round at three instructions each, since SPARC has no rotate; unrolling
+  it and holding the state in registers would be worth perhaps 3x, and
+  the hardware instruction is worth 25.
+
+  Three pieces are needed. The assembler has to learn the opcodes, which
+  live in the implementation-dependent space and read their operands
+  from the *float* register file - so data crosses through `MOVXTOD`,
+  which is one reason VIS3 is the baseline. `internal/cpu` needs to read
+  `AT_HWCAP` for sparc64, so the paths are gated on the hardware
+  actually having them rather than assumed. Then the assembly itself
+  goes behind the per-architecture hooks Go already has in
+  `crypto/internal/fips140/sha256`, `crypto/aes` and `hash/crc32`.
+  OpenSSL's `sha256-sparcv9.pl`, `aest4-sparcv9.pl` and
+  `sparct4-mont.pl` are working references for the instruction
+  sequences.
 
 ## Performance
 
