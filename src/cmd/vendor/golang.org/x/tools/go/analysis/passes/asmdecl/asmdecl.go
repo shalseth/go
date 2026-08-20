@@ -99,6 +99,7 @@ var (
 	asmArchS390X    = asmArch{name: "s390x", bigEndian: true, stack: "R15", lr: true}
 	asmArchWasm     = asmArch{name: "wasm", bigEndian: false, stack: "SP", lr: false}
 	asmArchLoong64  = asmArch{name: "loong64", bigEndian: false, stack: "R3", lr: true, retRegs: []string{"R4", "F0"}, writeResult: []string{"SYSCALL"}}
+	asmArchSparc64  = asmArch{name: "sparc64", bigEndian: true, stack: "RSP", lr: true}
 
 	arches = []*asmArch{
 		&asmArch386,
@@ -115,6 +116,7 @@ var (
 		&asmArchS390X,
 		&asmArchWasm,
 		&asmArchLoong64,
+		&asmArchSparc64,
 	}
 )
 

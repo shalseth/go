@@ -111,27 +111,95 @@ way.
   `TestGoobjFileNumber`, across `cmd/objdump` and `cmd/pprof`.
   Collecting and reading profiles is unaffected; only disassembly is.
 
-* Optimised assembly for the routines that ship a generic Go
-  fallback: `math/big`'s `addVV`/`subVV`/`mulAddVWW`/`lshVU`/`rshVU`,
-  `internal/bytealg`'s `cmpbody`, and `crypto/internal/fips140/bigmod`'s
-  `addMulVVW1024`/`1536`/`2048`. These are correct but slow; they are a
-  performance gap, not a correctness one.
+* A sparc64 architecture definition for `math/big`'s
+  `internal/asmgen`, which generates the `arith_$GOARCH.s` files for the
+  other architectures. `arith_sparc64.s` is hand-written instead,
+  because the generator's model wants a single subtract-with-borrow
+  instruction and SPARC has none for 64-bit operands (see
+  "Performance"). The generator's test only checks the architectures it
+  knows, so a hand-written file is not flagged, but it does not track
+  changes to the generator either.
+* A hand-written `sha256` block function. SHA-256 runs at about 19 MB/s,
+  roughly 150 cycles per byte, and no intrinsic fixes it: SPARC has no
+  rotate instruction, so each of the 64 rounds pays two shifts and an OR
+  per rotation. This is the largest remaining single-primitive gap.
 
-  A cause sits underneath them: `bits.Add64` and `bits.Sub64` are not
-  intrinsified on this branch, so each limb of a carry chain costs the
-  pure-Go body - two adds plus five logical ops to recover the carry -
-  where `ADDCC` and VIS3's `ADDXC` need four instructions, and a
-  hand-written loop that keeps the carry live in `xcc` needs one.
-  (`bits.Mul64` *is* intrinsified, via `MULDU` to `MULD` and `UMULXHI`;
-  the multiply itself is already two instructions.) Intrinsifying the
-  carry pair would speed up the generic fallbacks themselves, and every
-  other user of `math/bits`, before a line of assembly is added.
+## Performance
 
-  Measured on an idle T4: `addVV` 6.2ns per 64-bit limb, `mulAddVWW`
-  6.1ns, `addMulVVW` 8.9ns; RSA-2048 sign 19.7ms, verify 0.66ms. Note
-  also that the generic implementations are *faster* than the `asm`
-  entry points, which on this branch are only forwarding wrappers that
-  do not inline: 54.7ns against 71.6ns for a one-word `addVV`.
+Two changes closed most of the gap against the other 64-bit ports.
+
+The first was intrinsifying `bits.Add64` and `bits.Sub64`. VIS3's
+`ADDXC` copies the 64-bit carry out of `xcc` into a register, so
+`Add64carry` lowers to four instructions - `ADDCC`, `ADDXC`, `ADDCC`,
+`ADDXC` - where the pure-Go body needed two adds plus five logical ops
+to recover the carry bit. `Sub64borrow` is the same shape with `SUBCC`.
+(`bits.Mul64` was already intrinsified, through `MULDU` to `MULD` and
+`UMULXHI`.)
+
+The second was assembly for the vector routines, which the intrinsics
+made worth writing: `ADDXCcc` both uses and sets the carry, so a chain
+runs one instruction per limb with the carry never leaving `xcc`.
+Nothing between the adds may disturb it, which rules out the usual
+loop-counter compare; the register branches `BRZ` and `BRNZ` leave the
+condition codes alone and are what the loops use instead. There is no
+64-bit subtract-with-borrow - VIS3 added `ADDXC` and `ADDXCcc` but no
+subtract counterpart - so borrow chains run as add chains over the
+complement: `x - y - b` is `x + ^y + (1-b)`, and the carry out is one
+minus the borrow out. That costs one `XNOR` per limb.
+
+Three files came out of it:
+
+  - `math/big/arith_sparc64.s`: `addVV`, `subVV`, `mulAddVWW`,
+    `addMulVVWW`, `lshVU`, `rshVU`, replacing the forwarding wrappers in
+    the deleted `arith_sparc64.go`. Four limbs per iteration.
+  - `crypto/internal/fips140/bigmod/nat_sparc64.s`: `addMulVVW1024`,
+    `1536` and `2048`, three entry points that set a group count and
+    tail-jump into a shared core.
+  - `internal/bytealg/compare_sparc64.s`: `Compare` and
+    `runtime.cmpstring`. SPARC traps on unaligned access, so the word
+    loop runs only once both pointers are 8-aligned; if they share a
+    misalignment the leading bytes are compared one at a time until they
+    are. Being big-endian, an unsigned comparison of two differing words
+    gives the same answer as comparing their first differing byte, so
+    unlike the little-endian ports this needs no byte swap.
+
+Measured on an idle T4-1, three states: before either change, after the
+intrinsics, and after the assembly.
+
+| | before | intrinsics | assembly | total |
+|---|---|---|---|---|
+| `addVV`, per limb | 6.20ns | 3.97ns | 1.58ns | 3.9x |
+| `subVV`, per limb | 6.20ns | 3.98ns | 1.69ns | 3.7x |
+| `mulAddVWW`, per limb | 6.10ns | 4.18ns | 1.88ns | 3.2x |
+| `addMulVVWW`, per limb | 8.90ns | 6.32ns | 2.84ns | 3.1x |
+| bigmod `MontgomeryMul` | 24.5us | 19.3us | 7.11us | 3.4x |
+| bigmod `ExpBig` | 54.8ms | 39.3ms | 19.8ms | 2.8x |
+| RSA-2048 sign | 19.66ms | 15.66ms | 6.78ms | 2.9x |
+| RSA-2048 verify | 0.656ms | 0.526ms | 0.211ms | 3.1x |
+| `bytes.Compare`, 64B | 331ns | 331ns | 32.0ns | 10.4x |
+| `bytes.Compare`, 4KB | 19.6us | 19.6us | 1.29us | 15.2x |
+
+`bytes.Compare` reaches 3.1 GB/s on 4KB buffers against 197 MB/s for the
+byte-at-a-time generic version. Operands whose addresses differ mod 8
+cannot both be loaded a word at a time, so one side is aligned by hand
+and the other's words are assembled from two aligned loads and a shift;
+that runs at 2.3 GB/s. It only engages while at least 16 bytes remain,
+which is what keeps the second load from reaching past the end of the
+shorter operand.
+
+ECDSA is unchanged by all of this: P-256 and friends use `nistec`'s own
+field arithmetic rather than `bigmod`, and that code has no assembly
+here either.
+
+`go vet` checks these files: `cmd/vet`'s `asmdecl` pass had no sparc64
+entry, so its `arches` table now carries one, and every `FP` reference
+in the port's assembly is checked against the Go declaration. Pointing
+it at the runtime for the first time turned up three stale symbols in
+`asm_sparc64.s`, all inherited and none reachable: `return0` and
+`checkASM`, which no other port still has, and a `cgocallback_gofunc`
+written for the Go 1.11 callback protocol. The first two are gone and
+the third is now a correctly named `cgocallback` that traps, since this
+port has no cgo.
 
 ## Timebase
 
