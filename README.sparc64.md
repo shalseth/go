@@ -211,6 +211,17 @@ timebase — the debug log merges its per-P shards by this value, and the
 mutex profile subtracts two reads taken on different threads — so a
 per-strand counter yields impossible orderings and durations.
 
+Wall and monotonic clock reads are separate from `cputicks`: they go
+through the vDSO. The runtime looks up `__vdso_clock_gettime` at startup
+(`vdso_linux_sparc64.go`) and calls it from `nanotime` and `walltime`,
+falling back to a `ta 0x6d` syscall if the lookup fails. On the T4 that
+is worth a great deal, because a trap here is expensive: one monotonic
+read costs 142ns through the vDSO against 1056ns through the kernel, so
+the vDSO saves about 0.9us on every clock read, and `time.Now`, which
+reads both clocks, costs 260ns. It is also why `sigFetchG` needs its
+recovery path - a signal can land inside vDSO code, where the g register
+does not hold a valid g.
+
 `%stick` is driven from a system-wide reference and measured zero
 backwards steps over the same experiment. It runs slower, about 1GHz
 against 2.85GHz on this machine, which costs resolution the runtime does
