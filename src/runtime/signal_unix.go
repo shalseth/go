@@ -397,6 +397,44 @@ func preemptM(mp *m) {
 	}
 }
 
+// sparcPlausiblePtr reports whether p could name a runtime object: a heap
+// object, or something in the binary's own data or bss. It never dereferences
+// p, so it is safe to call on a register value of unknown provenance.
+//
+//go:nosplit
+func sparcPlausiblePtr(p uintptr) bool {
+	if p == 0 || p&7 != 0 {
+		return false
+	}
+	if spanOfHeap(p) != nil {
+		return true
+	}
+	md := &firstmoduledata
+	return (p >= md.data && p < md.edata) || (p >= md.bss && p < md.ebss)
+}
+
+// sparcPlausibleG reports whether the g register looks like a real g.
+//
+// On sparc64 g lives in %l6, a register-window register. The kernel spills
+// windows to [%sp+bias] and refills them later, and the flat-frame ABI moves
+// %sp within a single window while mirroring only the %i6/%i7 anchors there.
+// A refill driven from a frame whose save area does not describe the live
+// window - a debugger resuming the inferior through ptrace, for instance -
+// leaves a stale value in %l6, and sigtrampgo then faults dereferencing gp.m.
+// Checking the pointer, and the m it names, is enough to tell a real g from a
+// leftover register value.
+//
+//go:nosplit
+func sparcPlausibleG(gp *g) bool {
+	if !sparcPlausiblePtr(uintptr(unsafe.Pointer(gp))) {
+		return false
+	}
+	// gp is addressable, so reading gp.m cannot fault. A g whose m is set but
+	// unaddressable is not a g.
+	mp := gp.m
+	return mp == nil || sparcPlausiblePtr(uintptr(unsafe.Pointer(mp)))
+}
+
 // sigFetchG fetches the value of G safely when running in a signal handler.
 // On some architectures, the g value may be clobbered when running in a VDSO.
 // See issue #32912.
@@ -421,7 +459,15 @@ func sigFetchG(c *sigctxt) *g {
 			return nil
 		}
 	}
-	return getg()
+	gp := getg()
+	if GOARCH == "sparc64" && gp != nil && !sparcPlausibleG(gp) {
+		// A stale register window left something that is not a g behind;
+		// treat this like a signal on a foreign thread rather than
+		// dereferencing it. Note this deliberately runs after the recovery
+		// above, which handles a genuinely absent g.
+		return nil
+	}
+	return gp
 }
 
 // sigtrampgo is called from the signal handler function, sigtramp,
