@@ -578,119 +578,17 @@ g0:
 	MOVW	R8, ret+16(FP)
 	RET
 
-// cgocallback(void (*fn)(void*), void *frame, uintptr framesize)
-// Turn the fn into a Go func (by taking its address) and call
-// cgocallback_gofunc.
-TEXT ·cgocallback_gofunc(SB),NOSPLIT,$32-24
-	NO_LOCAL_POINTERS
+// cgocallback is where C code calls into Go. This port does not
+// support cgo - everything is built with CGO_ENABLED=0 - so there is no
+// working implementation here. What stood in its place was the
+// cgocallback_gofunc protocol from Go 1.11, which took a func value and
+// no context argument; it could not have run against the current
+// runtime, and cmd/vet flagged it once asmdecl learned about sparc64.
+// The symbol remains so that the declaration in stubs.go has a
+// definition, and traps if it is ever reached.
+TEXT ·cgocallback(SB),NOSPLIT,$0-24
+	UNDEF
 
-	// Load m and g from thread-local storage.
-	MOVB	runtime·iscgo(SB), R3
-	CMP	R3, ZR
-	BED	nocgo
-	CALL	runtime·load_g(SB)
-nocgo:
-
-	// If g is nil, Go did not create the current thread.
-	// Call needm to obtain one for temporary use.
-	// In this case, we're running on the thread stack, so there's
-	// lots of space, but the linker doesn't know. Hide the call from
-	// the linker analysis by using an indirect call.
-	CMP	g, ZR
-	BED	needm
-
-	MOVD	g_m(g), R8
-	MOVD	R8, savedm-8(SP)
-	JMP	havem
-
-needm:
-	MOVD	g, savedm-8(SP) // g is zero, so is m.
-	MOVD	$runtime·needm(SB), RT1
-	CALL	(RT1)
-
-	// Set m->sched.sp = SP, so that if a panic happens
-	// during the function we are about to execute, it will
-	// have a valid SP to run on the g0 stack.
-	// The next few lines (after the havem label)
-	// will save this SP onto the stack and then write
-	// the same SP back to m->sched.sp. That seems redundant,
-	// but if an unrecovered panic happens, unwindm will
-	// restore the g->sched.sp from the stack location
-	// and then systemstack will try to use it. If we don't set it here,
-	// that restored SP will be uninitialized (typically 0) and
-	// will not be usable.
-	MOVD	g_m(g), R8
-	MOVD	m_g0(R8), R3
-	MOVD	BSP, TMP
-	MOVD	TMP, (g_sched+gobuf_sp)(R3)
-
-havem:
-	// Now there's a valid m, and we're running on its m->g0.
-	// Save current m->g0->sched.sp on stack and then set it to SP.
-	// Save current sp in m->g0->sched.sp in preparation for
-	// switch back to m->curg stack.
-	// NOTE: unwindm knows that the saved g->sched.sp is at 8(R1) aka savedsp-16(SP).
-	MOVD	m_g0(R8), R3
-	MOVD	(g_sched+gobuf_sp)(R3), R4
-	MOVD	R4, savedsp-16(SP)
-	MOVD	BSP, TMP
-	MOVD	TMP, (g_sched+gobuf_sp)(R3)
-
-	// Switch to m->curg stack and call runtime.cgocallbackg.
-	// Because we are taking over the execution of m->curg
-	// but *not* resuming what had been running, we need to
-	// save that information (m->curg->sched) so we can restore it.
-	// We can restore m->curg->sched.sp easily, because calling
-	// runtime.cgocallbackg leaves SP unchanged upon return.
-	// To save m->curg->sched.pc, we push it onto the stack.
-	// This has the added benefit that it looks to the traceback
-	// routine like cgocallbackg is going to return to that
-	// PC (because the frame we allocate below has the same
-	// size as cgocallback_gofunc's frame declared above)
-	// so that the traceback will seamlessly trace back into
-	// the earlier calls.
-	//
-	// In the new goroutine, -16(SP) and -8(SP) are unused.
-	MOVD	m_curg(R8), g
-	CALL	runtime·save_g(SB)
-	MOVD	(g_sched+gobuf_sp)(g), R4 // prepare stack as R4
-	MOVD	(g_sched+gobuf_pc)(g), R5
-	MOVD	R5, -(FIXED_FRAME+16)(R4)
-	MOVD	$-(FIXED_FRAME+16)(R4), TMP
-	MOVD	TMP, BSP
-	CALL	runtime·cgocallbackg(SB)
-
-	// Restore g->sched (== m->curg->sched) from saved values.
-	MOVD	0(BSP), R5
-	MOVD	R5, (g_sched+gobuf_pc)(g)
-	MOVD	$(FIXED_FRAME+16)(BSP), R4
-	MOVD	R4, (g_sched+gobuf_sp)(g)
-
-	// Switch back to m->g0's stack and restore m->g0->sched.sp.
-	// (Unlike m->curg, the g0 goroutine never uses sched.pc,
-	// so we do not have to restore it.)
-	MOVD	g_m(g), R8
-	MOVD	m_g0(R8), g
-	CALL	runtime·save_g(SB)
-	MOVD	(g_sched+gobuf_sp)(g), TMP
-	MOVD	TMP, BSP
-	MOVD	savedsp-16(SP), R4
-	MOVD	R4, (g_sched+gobuf_sp)(g)
-
-	// If the m on entry was nil, we called needm above to borrow an m
-	// for the duration of the call. Since the call is over, return it with dropm.
-	MOVD	savedm-8(SP), R9
-	CMP	R9, ZR
-	BNED	droppedm
-	MOVD	$runtime·dropm(SB), RT1
-	CALL	(RT1)
-droppedm:
-
-	// Done!
-	RET
-
-// Called from cgo wrappers, this function returns g->m->curg.stack.hi.
-// Must obey the gcc calling convention.
 TEXT _cgo_topofstack(SB),NOSPLIT,$32
 	// g and TMP might be clobbered by load_g. They
 	// are callee-save in the gcc calling convention, so save them.
@@ -750,18 +648,6 @@ TEXT runtime·cputicks(SB),NOSPLIT,$0-0
 	MOVD	R1, ret+0(FP)
 	RET
 
-// memhash_varlen(p unsafe.Pointer, h seed) uintptr
-// redirects to memhash(p, h, size) using the size
-// stored in the closure.
-TEXT runtime·return0(SB), NOSPLIT, $0
-	MOVW	ZR, R8
-	RET
-
-// The top-most function running on a goroutine returns with its LR set
-// to goexit+PCQuantum (see gostartcall), and a SPARC return jumps to
-// LR+8, so control arrives at goexit+12. The three RNOPs put the CALL
-// exactly there; the first also keeps the +PCQuantum address inside
-// this function for traceback.
 TEXT runtime·goexit(SB),NOSPLIT|NOFRAME|TOPFRAME,$0-0
 	RNOP	// +0
 	RNOP	// +4: goexit+PCQuantum, the value planted in LR
@@ -775,20 +661,6 @@ TEXT runtime·addmoduledata(SB),NOSPLIT,$0-0
 	MOVD	R8, runtime·lastmoduledatap(SB)
 	RET
 
-TEXT ·checkASM(SB),NOSPLIT,$0-1
-	OR	$1, ZR, R3
-	MOVB	R3, ret+0(FP)
-	RET
-
-// gcWriteBarrier informs the GC about heap pointer writes.
-//
-// gcWriteBarrier does not follow the Go ABI. It accepts the number of
-// bytes of buffer needed in R25, and returns a pointer to the buffer
-// space in R25. It preserves every other allocatable integer register:
-// it is called from compiled code at pointer writes, where anything may
-// be live. The flush path spills them all around runtime·wbBufFlush.
-// R15, the link register, is clobbered by the CALL itself and is
-// declared clobbered by LoweredWB.
 TEXT gcWriteBarrier<>(SB),NOSPLIT,$176
 	// Save the registers clobbered by the fast path.
 	MOVD	R1, (176+0)(BSP)
