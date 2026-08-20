@@ -21,9 +21,11 @@ const (
 	// The SPARC V9 ABI stores %sp biased by 2047, so the canonical
 	// frame address is %sp+2047, as gcc also emits.
 	dwarfCFABias = 2047
-	// A frame's return address is not spilled at the bottom of the frame.
-	// Every callee's prologue publishes its caller's %i7 into the caller's
-	// register save area at [sp+120], which is also where the kernel's
-	// window spill mirrors it.
-	dwarfRAOffset = 120
+	// The return address lives in %i7 while a frame is open - the
+	// prologue copies the link register there - and each prologue
+	// publishes its own anchors at [sp+120], which from its callee's CFA
+	// is CFA+120. That second rule is what lets an unwinder get past the
+	// innermost frame.
+	dwarfRAInReg = 31 // %i7
+	dwarfRASpill = 120
 )

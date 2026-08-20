@@ -1450,6 +1450,13 @@ func appendPCDeltaCFA(arch *sys.Arch, b []byte, deltapc, cfa, bias int64) []byte
 }
 
 func (d *dwctxt) writeframes(fs loader.Sym) dwarfSecInfo {
+	// The factored offsets below are all multiples of this. An
+	// architecture whose CFA is biased needs a factor of 1: the bias
+	// itself has to be expressible, and 2047 is not a multiple of 4.
+	dataAlignmentFactor := int64(dataAlignmentFactor)
+	if thearch.Dwarfcfabias != 0 {
+		dataAlignmentFactor = -1
+	}
 	fsd := dwSym(fs)
 	fsu := d.ldr.MakeSymbolUpdater(fs)
 	fsu.SetType(sym.SDWARFSECT)
@@ -1490,12 +1497,15 @@ func (d *dwctxt) writeframes(fs loader.Sym) dwarfSecInfo {
 			fsu.AddUint8(dwarf.DW_CFA_val_offset)               // The previous value...
 			dwarf.Uleb128put(d, fsd, int64(thearch.Dwarfregsp)) // ...of the platform's SP register...
 			dwarf.Uleb128put(d, fsd, int64(0))                  // ...is CFA+0.
+		} else {
+			fsu.AddUint8(dwarf.DW_CFA_val_offset_sf)
+			dwarf.Uleb128put(d, fsd, int64(thearch.Dwarfregsp))
+			dwarf.Sleb128put(d, fsd, -thearch.Dwarfcfabias/dataAlignmentFactor)
 		}
-		// With a bias the previous SP register is CFA-bias, which
-		// DW_CFA_val_offset cannot express: its offset is factored by
-		// dataAlignmentFactor and 2047 is not a multiple of it. The CFA
-		// rule already implies the value, and gcc emits no rule here
-		// either, so leave it out.
+		// ...is CFA minus the bias. Saying nothing here is not an
+		// option: an unwinder then assumes SP is the CFA and adds the
+		// bias again at every level, so each frame's CFA comes out
+		// bias-too-high and the walk drifts off the stack.
 	} else {
 		dwarf.Uleb128put(d, fsd, int64(d.arch.PtrSize)) // ...plus the word size (because the call instruction implicitly adds one word to the frame).
 
@@ -1559,11 +1569,28 @@ func (d *dwctxt) writeframes(fs loader.Sym) dwarfSecInfo {
 				// that stores the return address to the stack frame is not the
 				// same one that allocates the frame.
 				if pcsp.Value > 0 {
-					// The return address is preserved at (CFA-frame_size)
-					// after a stack frame has been allocated.
-					deltaBuf = append(deltaBuf, dwarf.DW_CFA_offset_extended_sf)
-					deltaBuf = dwarf.AppendUleb128(deltaBuf, uint64(thearch.Dwarfreglr))
-					deltaBuf = dwarf.AppendSleb128(deltaBuf, (-spdelta+thearch.Dwarfraoffset)/dataAlignmentFactor)
+					if thearch.Dwarfrainreg != 0 {
+						// The return address is in a register for as long
+						// as the frame is open, and the caller's copy of
+						// that register is spilled at a fixed offset from
+						// this frame's CFA. The second rule is what lets
+						// an unwinder continue past the innermost frame:
+						// without it the register still holds this
+						// frame's return address when the caller's is
+						// wanted.
+						deltaBuf = append(deltaBuf, dwarf.DW_CFA_register)
+						deltaBuf = dwarf.AppendUleb128(deltaBuf, uint64(thearch.Dwarfreglr))
+						deltaBuf = dwarf.AppendUleb128(deltaBuf, uint64(thearch.Dwarfrainreg))
+						deltaBuf = append(deltaBuf, dwarf.DW_CFA_offset_extended_sf)
+						deltaBuf = dwarf.AppendUleb128(deltaBuf, uint64(thearch.Dwarfrainreg))
+						deltaBuf = dwarf.AppendSleb128(deltaBuf, thearch.Dwarfraspill/dataAlignmentFactor)
+					} else {
+						// The return address is preserved at (CFA-frame_size)
+						// after a stack frame has been allocated.
+						deltaBuf = append(deltaBuf, dwarf.DW_CFA_offset_extended_sf)
+						deltaBuf = dwarf.AppendUleb128(deltaBuf, uint64(thearch.Dwarfreglr))
+						deltaBuf = dwarf.AppendSleb128(deltaBuf, -spdelta/dataAlignmentFactor)
+					}
 				} else {
 					// The return address is restored into the link register
 					// when a stack frame has been de-allocated.
