@@ -54,9 +54,8 @@ ssh target 'GOROOT_BOOTSTRAP=$HOME/go-linux-sparc64-bootstrap go/src/make.bash'
 ```
 
 The gc compiler is one of the heaviest Go workloads there is, so a
-native `go build` doubles as a stress test of the port; several of the
-subtlest runtime bugs on this branch were only ever reproducible that
-way.
+native `go build` doubles as a stress test of the port. Some runtime
+bugs surface only under that kind of load.
 
 ## What works
 
@@ -92,94 +91,111 @@ way.
   `TestGoobjFileNumber`, across `cmd/objdump` and `cmd/pprof`.
   Collecting and reading profiles is unaffected; only disassembly is.
 
-* A sparc64 architecture definition for `math/big`'s
-  `internal/asmgen`, which generates the `arith_$GOARCH.s` files for the
-  other architectures. `arith_sparc64.s` is hand-written instead,
-  because the generator's model wants a single subtract-with-borrow
-  instruction and SPARC has none for 64-bit operands (see
-  "Performance"). The generator's test only checks the architectures it
-  knows, so a hand-written file is not flagged, but it does not track
-  changes to the generator either.
-* Use of the rest of the on-core crypto instructions. SHA-256 is done -
-  see "Performance" - but the others are not. The kernel reports the
-  whole set in `/proc/cpuinfo` on a T4:
-
-  ```
-  aes, des, kasumi, camellia, md5, sha1, sha256, sha512,
-  mpmul, montmul, montsqr, crc32c, popc
-  ```
-
-  `montmul` and `montsqr` are the Montgomery multiply and square that
-  `crypto/internal/fips140/bigmod` does in software; `aes` is the
-  equivalent of AES-NI; `crc32c` is what `hash/crc32` wants for the
-  Castagnoli polynomial; `md5`, `sha1` and `sha512` are single
-  instructions like `sha256`. Going by what SHA-256 turned out to be
-  worth, and by what OpenSSL gets from the same instructions, AES-GCM
-  should be worth 10-20x, CRC32C 10x, and Montgomery multiply another 3x
-  on top of the assembly under "Performance".
-
-  The groundwork is done: the assembler encodes this part of the opcode
-  space, `internal/cpu` reads `AT_HWCAP`, and `SPARC64.HasCrypto` gates
-  the paths. What remains per algorithm is its opcode and the assembly
-  around it. OpenSSL's `aest4-sparcv9.pl` and `sparct4-mont.pl` are
-  working references for the sequences.
-
 ## Performance
 
-Two changes closed most of the gap against the other 64-bit ports.
+### Carry chains
 
-The first was intrinsifying `bits.Add64` and `bits.Sub64`. VIS3's
-`ADDXC` copies the 64-bit carry out of `xcc` into a register, so
-`Add64carry` lowers to four instructions - `ADDCC`, `ADDXC`, `ADDCC`,
-`ADDXC` - where the pure-Go body needed two adds plus five logical ops
-to recover the carry bit. `Sub64borrow` is the same shape with `SUBCC`.
-(`bits.Mul64` was already intrinsified, through `MULDU` to `MULD` and
-`UMULXHI`.)
+VIS3's `ADDXC` copies the 64-bit carry out of `xcc` into a register, so
+`bits.Add64` is four instructions - `ADDCC`, `ADDXC`, `ADDCC`, `ADDXC` -
+rather than the two adds plus five logical operations the pure-Go body
+needs to recover the carry bit. `bits.Sub64` is the same shape with
+`SUBCC`, and `bits.Mul64` is `MULD` with `UMULXHI`.
 
-The second was assembly for the vector routines, which the intrinsics
-made worth writing: `ADDXCcc` both uses and sets the carry, so a chain
-runs one instruction per limb with the carry never leaving `xcc`.
-Nothing between the adds may disturb it, which rules out the usual
-loop-counter compare; the register branches `BRZ` and `BRNZ` leave the
-condition codes alone and are what the loops use instead. There is no
-64-bit subtract-with-borrow - VIS3 added `ADDXC` and `ADDXCcc` but no
-subtract counterpart - so borrow chains run as add chains over the
-complement: `x - y - b` is `x + ^y + (1-b)`, and the carry out is one
-minus the borrow out. That costs one `XNOR` per limb.
+`ADDXCcc` both uses and sets the carry, so a chain in assembly runs one
+instruction per limb with the carry never leaving the condition codes.
+Nothing between the adds may disturb `xcc`, which rules out the usual
+loop-counter compare; `BRZ` and `BRNZ` branch on a register and leave
+the codes alone, so the loops use those. There is no 64-bit
+subtract-with-borrow - VIS3 added `ADDXC` and `ADDXCcc` but no subtract
+counterpart - so borrow chains run as add chains over the complement:
+`x - y - b` is `x + ^y + (1-b)`, and the carry out is one minus the
+borrow out, at one `XNOR` per limb.
 
-Three files came out of it:
+Two files use this:
 
-  - `math/big/arith_sparc64.s`: `addVV`, `subVV`, `mulAddVWW`,
-    `addMulVVWW`, `lshVU`, `rshVU`, replacing the forwarding wrappers in
-    the deleted `arith_sparc64.go`. Four limbs per iteration.
-  - `crypto/internal/fips140/bigmod/nat_sparc64.s`: `addMulVVW1024`,
-    `1536` and `2048`, three entry points that set a group count and
-    tail-jump into a shared core.
-  - `internal/bytealg/indexbyte_sparc64.s` and `count_sparc64.s`:
-    `IndexByte`, `IndexByteString`, `Count` and `CountString`, scanning
-    eight bytes at a time. Xor the word with the byte broadcast across
-    all eight lanes and a match becomes a zero byte; the usual
-    `(v - 0x01..01) &^ v & 0x80..80` then reports whether any lane is
-    zero. That test is exact as a yes/no answer but not per lane - the
-    subtraction borrows between lanes - so `IndexByte` finds the lane by
-    rescanning those eight bytes, which costs a few instructions once
-    per call. `Count` cannot do that, since it reads the mask itself, so
-    it builds an exact mask the other way: masking off each lane's high
-    bit and adding `0x7f` cannot carry out of the lane. Summing the
-    lanes needs no `POPC` either - shifting the markers down and
-    multiplying by `0x01..01` accumulates them into the top byte.
-  - `internal/bytealg/compare_sparc64.s`: `Compare` and
-    `runtime.cmpstring`. SPARC traps on unaligned access, so the word
-    loop runs only once both pointers are 8-aligned; if they share a
-    misalignment the leading bytes are compared one at a time until they
-    are. Being big-endian, an unsigned comparison of two differing words
-    gives the same answer as comparing their first differing byte, so
-    unlike the little-endian ports this needs no byte swap.
+  - `math/big/arith_sparc64.s` holds `addVV`, `subVV`, `mulAddVWW`,
+    `addMulVVWW`, `lshVU` and `rshVU`, four limbs per iteration. The
+    shifts run descending and ascending respectively so that `z` and `x`
+    may alias.
+  - `crypto/internal/fips140/bigmod/nat_sparc64.s` holds
+    `addMulVVW1024`, `1536` and `2048` as three entry points that set a
+    group count and tail-jump into a shared core. `UMULXHI` and `MULD`
+    give the two halves of each product; the four multiplies of a group
+    are independent and issue together, overlapping the serial carry
+    chain that follows them.
 
-Measured on an idle T4-1, three states: before either change, after the
-intrinsics, and after the assembly.
+`math/big`'s `internal/asmgen`, which generates `arith_$GOARCH.s` for
+the other architectures, has no sparc64 definition: its model wants a
+single subtract-with-borrow instruction. `arith_sparc64.s` is
+hand-written, and the generator's test only checks the architectures it
+knows, so the file is neither flagged nor kept in step with the
+generator.
 
-| | before | intrinsics | assembly | total |
+### String and byte scanning
+
+SPARC traps on unaligned access, so words are only ever loaded from
+8-aligned addresses. Being big-endian pays off twice over: an unsigned
+comparison of two differing words gives the same answer as comparing
+their first differing byte, and the first match in a word is its most
+significant marked lane. Neither needs the byte swap the little-endian
+ports perform, which matters because SPARC has no byte-swap
+instruction.
+
+  - `internal/bytealg/compare_sparc64.s` holds `Compare` and
+    `runtime.cmpstring`, sharing one body. Operands that share a
+    misalignment are byte-compared up to alignment; operands whose
+    addresses differ mod 8 have one side aligned by hand while the
+    other's words are assembled from two aligned loads and a shift. That
+    path runs only while 16 bytes remain, so the second load cannot
+    reach past the end of the shorter operand.
+  - `internal/bytealg/indexbyte_sparc64.s` and `count_sparc64.s` hold
+    `IndexByte`, `IndexByteString`, `Count` and `CountString`. Xor a
+    word with the byte broadcast across all eight lanes and a match
+    becomes a zero byte, which `(v - 0x01..01) &^ v & 0x80..80` detects.
+    That test is exact as a yes/no answer but not per lane, since the
+    subtraction borrows between lanes, so `IndexByte` finds the lane by
+    rescanning those eight bytes - a few instructions once per call, and
+    no need for `LZD`. `Count` reads the mask itself, so it builds an
+    exact one the other way: masking off each lane's high bit and adding
+    `0x7f` cannot carry out of the lane. Summing the lanes needs no
+    `POPC` either, since shifting the markers down and multiplying by
+    `0x01..01` accumulates them into the top byte.
+
+`bytealg.Index` is not implemented, so `bytes.Index` and `strings.Index`
+use their own loop over `IndexByte` and `Equal`. A real one earns its
+keep only with a vector prefilter, which this port cannot emit.
+
+### SHA-256
+
+`crypto/internal/fips140/sha256/sha256block_sparc64.s` uses the T4's
+`sha256` instruction, which hashes a whole 512-bit block per issue. It
+takes no operands: the eight state words come from `%f0-%f7`, the block
+from `%f8-%f23`, and the result is written back over the state. So the
+assembly loads the state once, loads each block over the same eight
+double registers, and stores the state at the end. SHA-256 defines its
+block as big-endian words, which is how a load already lands them, so
+this too byte-swaps nothing.
+
+The instruction reads its block with `ldd`, which traps on an unaligned
+address, so misaligned input is copied a block at a time through an
+aligned buffer. That buffer is declared as words: a `[64]byte` local
+carries no alignment guarantee.
+
+The path is gated on `SPARC64.HasCrypto`, which `internal/cpu` derives
+from `AT_HWCAP`, and `GODEBUG=cpu.crypto=off` selects the generic
+implementation instead.
+
+### Measurements
+
+Measured on an idle T4-1.
+
+Carry-chain arithmetic gains from both the intrinsics and the assembly.
+The first column is what the generic Go code compiles to without the
+`Add64` and `Sub64` intrinsics, as on a compiler that lacks them; the
+second is the generic path in this toolchain, selected with `purego` and
+`math_big_pure_go`; the third is the assembly.
+
+| | no intrinsics | generic | assembly | |
 |---|---|---|---|---|
 | `addVV`, per limb | 6.20ns | 3.97ns | 1.58ns | 3.9x |
 | `subVV`, per limb | 6.20ns | 3.98ns | 1.69ns | 3.7x |
@@ -189,68 +205,65 @@ intrinsics, and after the assembly.
 | bigmod `ExpBig` | 54.8ms | 39.3ms | 19.8ms | 2.8x |
 | RSA-2048 sign | 19.66ms | 15.66ms | 6.78ms | 2.9x |
 | RSA-2048 verify | 0.656ms | 0.526ms | 0.211ms | 3.1x |
-| `bytes.Compare`, 64B | 331ns | 331ns | 32.0ns | 10.4x |
-| `bytes.Compare`, 4KB | 19.6us | 19.6us | 1.29us | 15.2x |
-| `bytes.IndexByte`, 4KB | 14.0us | 14.0us | 1.52us | 9.2x |
-| `bytes.Count`, 4KB | 6.24us | 6.24us | 1.69us | 3.7x |
+
+Scanning and hashing depend only on the assembly, and on the hardware
+instruction for SHA-256, which `GODEBUG=cpu.crypto=off` turns off.
+
+| | generic | assembly | |
+|---|---|---|---|
+| `bytes.Compare`, 64B | 331ns | 32.0ns | 10.4x |
+| `bytes.Compare`, 4KB | 19.6us | 1.29us | 15.2x |
+| `bytes.IndexByte`, 4KB | 14.0us | 1.52us | 9.2x |
+| `bytes.Count`, 4KB | 6.24us | 1.69us | 3.7x |
+| `sha256`, 1KB | 17.9 MB/s | 566 MB/s | 32x |
+| `sha256`, 8KB | 19.2 MB/s | 846 MB/s | 44x |
 
 `bytes.Compare` reaches 3.1 GB/s on 4KB buffers against 197 MB/s for the
-byte-at-a-time generic version. Operands whose addresses differ mod 8
-cannot both be loaded a word at a time, so one side is aligned by hand
-and the other's words are assembled from two aligned loads and a shift;
-that runs at 2.3 GB/s. It only engages while at least 16 bytes remain,
-which is what keeps the second load from reaching past the end of the
-shorter operand.
+byte-at-a-time generic version, and 2.3 GB/s when the two operands'
+addresses differ mod 8. `bytes.IndexByte` reaches 2.8 GB/s. SHA-256 runs
+at 3.2 cycles per byte against roughly 150 for the Go code, and the
+block loop alone measures 898 MB/s.
 
-`crypto/sha256` uses the T4's `sha256` instruction, which hashes a whole
-512-bit block per issue. It takes no operands at all: the eight state
-words come from `%f0-%f7`, the block from `%f8-%f23`, and the result is
-written back over the state. So `sha256block_sparc64.s` loads the state
-once, loads each block over the same eight double registers, and stores
-the state at the end. Big-endian pays off a third time - SHA-256 defines
-its block as big-endian words, which is how a load already lands them,
-so unlike the little-endian implementations this one byte-swaps nothing.
-
-| | software | hardware | |
-|---|---|---|---|
-| `sha256`, 8KB | 19.2 MB/s | 846 MB/s | 44x |
-| `sha256`, 1KB | 17.9 MB/s | 566 MB/s | 32x |
-| block loop alone | - | 898 MB/s | - |
-
-That is 3.2 cycles per byte against roughly 150 for the Go code. Two
-details: the instruction reads its block with `ldd`, which traps on an
-unaligned address, so misaligned input is copied a block at a time
-through an aligned buffer - declared as words, since a `[64]byte` local
-carries no alignment guarantee. And `GODEBUG=cpu.crypto=off` returns to
-the generic implementation, which is how the two rows above were
-measured on the same binary.
-
-Substring search gains less than `IndexByte` alone suggests.
-`bytes.Index` scans with `IndexByte` and confirms with `Equal`, so the
-speedup depends on how often the needle's first byte appears in the
-haystack: searching a 5KB block of HTTP headers, a needle that is absent
-runs 3.9x faster, `Content-Length` 2.0x, and `\r\n\r\n` - whose first
+Substring search gains less than `IndexByte` alone suggests, because
+`bytes.Index` scans with `IndexByte` and confirms with `Equal`: over a
+5KB block of HTTP headers, a needle that is absent runs 3.9x faster than
+the generic version, `Content-Length` 2.0x, and `\r\n\r\n` - whose first
 byte occurs 160 times in that block - 1.5x, because the confirmations
-dominate. The `bytes` package's own `BenchmarkIndex` shows no change at
-all: it searches an all-zero buffer for a needle whose leading bytes are
-also zero, so the first-byte test never fails and `IndexByte` is never
-reached. `bytealg.Index` itself stays unimplemented here - it is worth
-writing only with a vector prefilter, which this port has no way to
-emit.
+dominate. The `bytes` package's own `BenchmarkIndex` shows no difference
+at all: it searches an all-zero buffer for a needle whose leading bytes
+are also zero, so the first-byte test never fails and `IndexByte` is
+never reached.
 
-ECDSA is unchanged by all of this: P-256 and friends use `nistec`'s own
-field arithmetic rather than `bigmod`, and that code has no assembly
-here either.
+ECDSA has no assembly here. P-256 and friends use `nistec`'s own field
+arithmetic rather than `bigmod`, and that code is generic Go.
 
-`go vet` checks these files: `cmd/vet`'s `asmdecl` pass had no sparc64
-entry, so its `arches` table now carries one, and every `FP` reference
-in the port's assembly is checked against the Go declaration. Pointing
-it at the runtime for the first time turned up three stale symbols in
-`asm_sparc64.s`, all inherited and none reachable: `return0` and
-`checkASM`, which no other port still has, and a `cgocallback_gofunc`
-written for the Go 1.11 callback protocol. The first two are gone and
-the third is now a correctly named `cgocallback` that traps, since this
-port has no cgo.
+### Hardware left on the table
+
+The T4 reports a good deal more than SHA-256:
+
+```
+aes, des, kasumi, camellia, md5, sha1, sha256, sha512,
+mpmul, montmul, montsqr, crc32c, popc
+```
+
+`montmul` and `montsqr` are the Montgomery multiply and square that
+`bigmod` does in software; `aes` is the equivalent of AES-NI; `crc32c`
+is what `hash/crc32` wants for the Castagnoli polynomial; `md5`, `sha1`
+and `sha512` are single instructions like `sha256`. Going by what
+SHA-256 measures above, and by what OpenSSL gets from the same
+instructions, AES-GCM is worth 10-20x, CRC32C 10x, and Montgomery
+multiply another 3x on top of the assembly above.
+
+Each one needs its opcode in the assembler and the assembly around it;
+the encoding and the `AT_HWCAP` gating are already in place. OpenSSL's
+`aest4-sparcv9.pl` and `sparct4-mont.pl` are working references for the
+sequences.
+
+### Assembly checking
+
+`cmd/vet`'s `asmdecl` pass carries a sparc64 entry, so `go vet` checks
+every `FP` reference in the port's assembly against the Go declaration
+it belongs to.
 
 ## Timebase
 
@@ -290,17 +303,17 @@ flat, and two "in" registers act as per-frame anchors:
 A function's prologue stores its caller's pair at `[sp+112]` and
 `[sp+120]` — the same offsets the hardware uses for `%i6`/`%i7` in a
 window save area — so the values the kernel spills there on a trap
-always agree with the ones the unwinder reads. Several of the subtler
-bugs fixed on this branch come from moments where that agreement is
-briefly untrue: the prologue between pushing the frame and publishing
+always agree with the ones the unwinder reads. The agreement is briefly untrue in three
+places, and each is either ordered so that the invariant holds or marked
+non-preemptible: the prologue between pushing the frame and publishing
 the return address, the epilogue between reloading the caller's anchors
 and raising the stack pointer, and any signal handler that opens a
-second register window. Those regions are now either ordered so the
-invariant holds or marked non-preemptible.
+second register window. Code that runs in those windows and expects to
+unwind is the classic way to break this port.
 
 ### Return addresses
 
-The single fact that has produced the most bugs on this branch: a SPARC
+The most consequential difference from the other architectures: a SPARC
 `CALL` writes **the address of the CALL instruction itself** into `%o7`,
 and the callee returns with `JMPL %o7+8`, stepping over both the call
 and its delay slot. A raw `%o7` is therefore *not* a return address; it
