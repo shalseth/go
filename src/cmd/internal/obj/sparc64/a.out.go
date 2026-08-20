@@ -496,6 +496,12 @@ const (
 	AADDXC   // VIS3: add with the carry out of xcc
 	AADDXCCC // VIS3: add with the carry out of xcc, setting the codes
 
+	// T4 on-core crypto. Operands come from fixed floating-point
+	// registers rather than from the instruction, so these take none.
+	// The family shares op3 0x36 with VIS3 and is selected by opf:
+	// MD5 is 0x140, SHA1 0x141, SHA256 0x142 and SHA512 0x143.
+	ASHA256 // SHA-256 round block: state in %f0-%f7, data in %f8-%f23
+
 	// VIS3 register moves between the float and integer files. SPARC V9
 	// without VIS3 has to round-trip through memory for these, so the
 	// port requires a T3 or later.

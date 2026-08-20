@@ -215,6 +215,7 @@ var optab = map[Optab]Opval{
 	Optab{AUMULXHI, ClassReg, ClassReg, ClassNone, ClassReg}: {51, 4, 0},
 	Optab{AADDXC, ClassReg, ClassReg, ClassNone, ClassReg}:   {51, 4, 0},
 	Optab{AADDXCCC, ClassReg, ClassReg, ClassNone, ClassReg}: {51, 4, 0},
+	Optab{ASHA256, ClassNone, ClassNone, ClassNone, ClassNone}: {62, 4, 0},
 
 	Optab{AMOVDTOX, ClassDReg, ClassNone, ClassNone, ClassReg}:  {54, 4, 0},
 	Optab{AMOVSTOUW, ClassFReg, ClassNone, ClassNone, ClassReg}: {54, 4, 0},
@@ -475,6 +476,14 @@ func d30(disp30 int) uint32 {
 
 func rrr(rs1, imm_asi, rs2, rd int16) uint32 {
 	return uint32(uint32(rd)&31<<25 | uint32(rs1)&31<<14 | uint32(imm_asi)&255<<5 | uint32(rs2)&31)
+}
+
+// vis3 encodes the three-register form shared by VIS3 and the on-core
+// crypto instructions, whose opf field is nine bits wide. rrr cannot be
+// used for these: its middle field is the eight-bit ASI, so an opf of
+// 0x100 or more loses its top bit.
+func vis3(rs1, opf, rs2, rd int16) uint32 {
+	return uint32(rd)&31<<25 | uint32(rs1)&31<<14 | uint32(opf)&511<<5 | uint32(rs2)&31
 }
 
 func rsr(rs1 int16, simm13 int64, rd int16) uint32 {
@@ -1617,6 +1626,12 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	case 54:
 		*o1 = opcode(p.As) | uint32(p.To.Reg&31)<<25 | uint32(p.From.Reg&31)
 
+	// SHA256
+	case 62:
+		// The crypto instructions read fixed floating-point registers,
+		// so every register field is zero and only opf varies.
+		*o1 = op3(2, 0x36) | vis3(0, 0x142, 0, 0)
+
 	// UMULXHI/ADDXC/ADDXCCC Rs1, Rs2, Rd
 	case 51:
 		// VIS3 three-register form: op3 is 0x36 and the opf field
@@ -1632,7 +1647,7 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 		default:
 			return nil, fmt.Errorf("unknown VIS3 three-register opcode in %v", p)
 		}
-		*o1 = op3(2, 0x36) | rrr(p.Reg, opf, p.From.Reg, p.To.Reg)
+		*o1 = op3(2, 0x36) | vis3(p.Reg, opf, p.From.Reg, p.To.Reg)
 
 	// MOVE	FCCn, $simm11, Rd
 	case 52:
