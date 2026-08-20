@@ -1797,7 +1797,7 @@ var cgoEnabled = map[string]bool{
 	"linux/mips64le":  true,
 	"linux/riscv64":   true,
 	"linux/s390x":     true,
-	"linux/sparc64":   false, // no cgo support in this port
+	"linux/sparc64":   true,
 	"android/386":     true,
 	"android/amd64":   true,
 	"android/arm":     true,

@@ -10,13 +10,13 @@ import (
 	"cmd/link/internal/ld"
 	"cmd/link/internal/loader"
 	"cmd/link/internal/sym"
+	"debug/elf"
 	"log"
 )
 
-// External linking, dynamic linking and cgo are not supported on
-// linux/sparc64 yet. The hooks below fail loudly rather than emitting
-// silently wrong output; internal linking of a static binary is the
-// only supported mode.
+// Dynamic linking is not supported on linux/sparc64 yet: adddynrel and
+// elfsetupplt fail loudly rather than emitting silently wrong output.
+// External linking of a static binary is wired up below.
 
 func gentext(ctxt *ld.Link, ldr *loader.Loader) {}
 
@@ -26,8 +26,53 @@ func adddynrel(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, s loade
 }
 
 func elfreloc1(ctxt *ld.Link, out *ld.OutBuf, ldr *loader.Loader, s loader.Sym, r loader.ExtReloc, ri int, sectoff int64) bool {
-	// External linking would need the R_SPARC_* encodings here.
-	return false
+	// One Elf64_Rela entry.
+	write := func(rtyp elf.R_SPARC, offset int64, sym int32, addend int64) {
+		out.Write64(uint64(offset))
+		out.Write64(uint64(rtyp) | uint64(sym)<<32)
+		out.Write64(uint64(addend))
+	}
+
+	elfsym := ld.ElfSymForReloc(ctxt, r.Xsym)
+	switch r.Type {
+	default:
+		return false
+
+	case objabi.R_ADDR, objabi.R_DWARFSECREF:
+		switch r.Size {
+		case 4:
+			write(elf.R_SPARC_32, sectoff, elfsym, r.Xadd)
+		case 8:
+			write(elf.R_SPARC_64, sectoff, elfsym, r.Xadd)
+		default:
+			return false
+		}
+
+	case objabi.R_CALLSPARC64:
+		write(elf.R_SPARC_WDISP30, sectoff, elfsym, r.Xadd)
+
+	// The HI and LO relocations each cover a SETHI and the instruction
+	// that follows it, so each becomes two ELF relocations, one per
+	// instruction word. HH22 and HM10 take bits 63..42 and 41..32 of
+	// the address; LM22 and LO10 take bits 31..10 and 9..0.
+	case objabi.R_ADDRSPARC64HI:
+		write(elf.R_SPARC_HH22, sectoff, elfsym, r.Xadd)
+		write(elf.R_SPARC_HM10, sectoff+4, elfsym, r.Xadd)
+
+	case objabi.R_ADDRSPARC64LO:
+		write(elf.R_SPARC_LM22, sectoff, elfsym, r.Xadd)
+		write(elf.R_SPARC_LO10, sectoff+4, elfsym, r.Xadd)
+
+	// Local exec, covering the sethi and the xor that follows it. The
+	// sequence the assembler emits - sethi, xor, add %g7 - is the one
+	// the ABI defines for these relocations, so the host linker can
+	// fill it in as it stands.
+	case objabi.R_SPARC64_TLS_LE:
+		write(elf.R_SPARC_TLS_LE_HIX22, sectoff, elfsym, r.Xadd)
+		write(elf.R_SPARC_TLS_LE_LOX10, sectoff+4, elfsym, r.Xadd)
+	}
+
+	return true
 }
 
 func elfsetupplt(ctxt *ld.Link, ldr *loader.Loader, plt, gotplt *loader.SymbolBuilder, dynamic loader.Sym) {
@@ -39,9 +84,16 @@ func machoreloc1(*sys.Arch, *ld.OutBuf, *loader.Loader, loader.Sym, loader.ExtRe
 
 func archreloc(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, r loader.Reloc, s loader.Sym, val int64) (o int64, nExtReloc int, ok bool) {
 	if target.IsExternal() {
-		// Nothing is wired up for external linking yet; report the
-		// relocation as unhandled so the linker complains rather than
-		// writing a wrong value.
+		// The host linker computes the values; the instruction fields
+		// stay as the assembler left them, with the addend carried in
+		// the ELF relocation.
+		switch r.Type() {
+		case objabi.R_CALLSPARC64:
+			return val, 1, true
+		case objabi.R_ADDRSPARC64HI, objabi.R_ADDRSPARC64LO, objabi.R_SPARC64_TLS_LE:
+			// Two ELF relocations each; see elfreloc1.
+			return val, 2, true
+		}
 		return val, 0, false
 	}
 
@@ -96,5 +148,11 @@ func archrelocvariant(*ld.Target, *loader.Loader, loader.Reloc, sym.RelocVariant
 }
 
 func extreloc(target *ld.Target, ldr *loader.Loader, r loader.Reloc, s loader.Sym) (loader.ExtReloc, bool) {
+	switch r.Type() {
+	case objabi.R_CALLSPARC64, objabi.R_SPARC64_TLS_LE:
+		return ld.ExtrelocSimple(ldr, r), true
+	case objabi.R_ADDRSPARC64HI, objabi.R_ADDRSPARC64LO:
+		return ld.ExtrelocViaOuterSym(ldr, r, s), true
+	}
 	return loader.ExtReloc{}, false
 }

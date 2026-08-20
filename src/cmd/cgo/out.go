@@ -365,6 +365,13 @@ func dynimport(obj string) {
 		}
 		sym := elfImportedSymbols(f)
 		for _, s := range sym {
+			if s.Name == "" {
+				// SPARC declares its use of the global registers
+				// %g2, %g3, %g6 and %g7 with STT_SPARC_REGISTER
+				// entries in the dynamic symbol table, which carry
+				// no name. There is nothing to import.
+				continue
+			}
 			targ := s.Name
 			if s.Version != "" {
 				targ += "#" + s.Version
