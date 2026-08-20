@@ -127,6 +127,16 @@ var PPC64 struct {
 	_         CacheLinePad
 }
 
+var SPARC64 struct {
+	_ CacheLinePad
+	// HasCrypto covers the whole on-core crypto unit, which arrived
+	// together on the T4: AES, DES, Camellia, MD5, SHA-1, SHA-256,
+	// SHA-512, MPMUL, MONTMUL, MONTSQR and CRC32C. The kernel reports
+	// them as one AT_HWCAP bit, so they are one flag here too.
+	HasCrypto bool
+	_         CacheLinePad
+}
+
 var S390X struct {
 	_         CacheLinePad
 	HasZARCH  bool // z architecture mode is active [mandatory]

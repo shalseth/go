@@ -10,4 +10,17 @@ package cpu
 // under-padding reintroduces the false sharing this exists to prevent.
 const CacheLinePadSize = 64
 
-func doinit() {}
+// HWCap is set by the runtime from the AT_HWCAP entry of the auxiliary
+// vector; see runtime/os_linux_sparc64.go.
+var HWCap uint
+
+// From the kernel's arch/sparc/include/uapi/asm/elf.h. A T4 reports
+// 0x0747fbdf, which is every capability up to and including this one.
+const hwcap_SPARC_CRYPTO = 0x04000000
+
+func doinit() {
+	options = []option{
+		{Name: "crypto", Feature: &SPARC64.HasCrypto},
+	}
+	SPARC64.HasCrypto = HWCap&hwcap_SPARC_CRYPTO != 0
+}

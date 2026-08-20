@@ -6,12 +6,21 @@
 
 package runtime
 
+import "internal/cpu"
+
 // stackBias is the constant SPARC V9 subtracts from %sp and %fp in the
 // 64-bit ABI: the real stack top is %sp+stackBias. It must agree with
 // sparc64.StackBias in cmd/internal/obj.
 const stackBias = 2047
 
 func osArchInit() {}
+
+func archauxv(tag, val uintptr) {
+	switch tag {
+	case _AT_HWCAP:
+		cpu.HWCap = uint(val)
+	}
+}
 
 const (
 	_SS_DISABLE = 2
