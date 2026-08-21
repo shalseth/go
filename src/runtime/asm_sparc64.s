@@ -90,9 +90,18 @@ DATA	runtime·mainPC+0(SB)/8,$runtime·main<ABIInternal>(SB)
 GLOBL	runtime·mainPC(SB),RODATA,$8
 
 // mstart is the ABI0 entry point for a new m; the work is in mstart0.
-TEXT runtime·mstart(SB),NOSPLIT|TOPFRAME|NOFRAME,$0
+// mstart must keep a frame: its RET is reached, not dead code. When cgo is
+// in use every m runs on a pthread created by _cgo_sys_thread_start, so g0's
+// stack is the OS thread's and mexit takes its osStack path - it returns,
+// unwinding mstart0 back into here. Frameless, the CALL above would have
+// overwritten LR with its own address and the RET would jump to itself,
+// spinning the thread forever instead of letting it exit; the pthread's TSD
+// destructors would then never run. With a frame, the prologue parks the
+// return address in the frame's OLR slot and the epilogue restores it, so
+// the RET lands back in crosscall1 and the thread unwinds into C and exits.
+TEXT runtime·mstart(SB),NOSPLIT|TOPFRAME,$0
 	CALL	runtime·mstart0(SB)
-	RET	// not reached
+	RET	// reached on a cgo thread's exit; returns into crosscall1
 
 TEXT runtime·breakpoint(SB),NOSPLIT|NOFRAME,$0-0
 	TA	$0x81
