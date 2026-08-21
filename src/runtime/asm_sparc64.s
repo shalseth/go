@@ -692,9 +692,18 @@ havem:
 	MOVD	m_g0(R2), R3
 	MOVD	(g_sched+gobuf_sp)(R3), R4
 	MOVD	R4, savedsp-16(SP)
-	MOVD	BSP, R4
-	SUB	$352, R4
-	MOVD	R4, (g_sched+gobuf_sp)(R3)
+	MOVD	BSP, R11
+	SUB	$352, R11
+
+	// unwindm restores m->g0->sched.sp from the m.g0 stack if the
+	// callback panics, reading it at MinFrameSize above the value
+	// installed here - the contract described at the top of
+	// cgocall.go. Leave it there as well as in this frame: the frame
+	// copy serves the ordinary return below, and the panic unwinds
+	// through the copy on the stack.
+	MOVD	R4, (176)(R11)
+
+	MOVD	R11, (g_sched+gobuf_sp)(R3)
 
 	// Move to m->curg and its stack.
 	MOVD	m_curg(R2), g
