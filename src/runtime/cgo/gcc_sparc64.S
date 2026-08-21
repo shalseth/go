@@ -86,5 +86,40 @@ crosscall1:
 .size crosscall1, .-crosscall1
 
 #ifdef __ELF__
+/*
+ * void crosscall2(void (*fn)(void), void *a, int n, void *ctxt)
+ *
+ * Opens a register window before handing control to the Go side, which
+ * is entered flat as crosscall2_flat.
+ *
+ * This is not bookkeeping for the C ABI's benefit - crosscall2_flat
+ * saves by hand everything C expects to survive. It is about which
+ * window's %sp the kernel uses when it spills the register file. Go
+ * code runs flat and walks the stack pointer off the C stack and onto a
+ * goroutine stack, and a goroutine stack moves when a callback grows
+ * it. A window that is not current while that happens gets refilled
+ * from an address that no longer holds it, and the C frame underneath
+ * silently loses registers it was holding across the call.
+ *
+ * Opening a window here keeps every C window's %sp on the C stack,
+ * where nothing moves, and leaves the window Go walks the stack in
+ * current for as long as it does so.
+ */
+.globl crosscall2
+.type crosscall2, #function
+crosscall2:
+	save	%sp, -176, %sp
+
+	mov	%i0, %o0
+	mov	%i1, %o1
+	mov	%i2, %o2
+	mov	%i3, %o3
+	call	crosscall2_flat
+	 nop
+
+	return	%i7 + 8
+	 nop
+.size crosscall2, .-crosscall2
+
 .section .note.GNU-stack,"",%progbits
 #endif
