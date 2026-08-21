@@ -589,21 +589,34 @@ g0:
 	// six arguments or fewer never writes - cgo's are one-argument.
 	ADD	$-208, RSP
 	MOVD	(g_stack+stack_hi)(R5), R11
-	SUB	R10, R11
+	MOVD	R11, R12
+	SUB	R10, R11		// distance from the top to our stack pointer
+	SUB	RFP, R12		// and to our caller's frame pointer
 	MOVD	R5, (176+0)(BSP)	// old g
-	MOVD	R11, (176+8)(BSP)	// depth into the old g stack
+	MOVD	R11, (176+8)(BSP)	// stack-pointer depth
 	MOVD	R21, (176+16)(BSP)	// our own return address
+	MOVD	R12, (176+24)(BSP)	// frame-pointer depth
 	CALL	(R3)
 	MOVD	R8, R9
 
 	// Restore g, stack pointer.
 	// R8 is errno, so don't touch it
 	MOVD	(176+0)(BSP), R19
-	MOVD	(176+8)(BSP), R20
-	MOVD	(176+16)(BSP), R21
 	MOVD	R19, g
 	CALL	runtime·save_g(SB)
+	MOVD	(176+8)(BSP), R20
+	MOVD	(176+16)(BSP), R21
+	MOVD	(176+24)(BSP), R12
+
+	// Rebuild both anchors from the top of the stack as it is now. The
+	// stack pointer alone is not enough: this ABI addresses locals
+	// through the frame pointer, so a caller resumed with a frame
+	// pointer from a stack a callback has since moved reads and writes
+	// its own locals in freed memory.
 	MOVD    (g_stack+stack_hi)(g), R5
+	MOVD	R5, R11
+	SUB	R12, R11
+	MOVD	R11, RFP
 	SUB     R20, R5
 	MOVD	R5, BSP
 
