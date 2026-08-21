@@ -97,7 +97,15 @@ func (c *sigctxt) preparePanic(sig uint32, gp *g) {
 	}
 
 	// In case we are panicking from external C code.
-	c.set_g1(uint64(uintptr(unsafe.Pointer(gp))))
+	//
+	// g lives in %l6, which is not part of the signal context: the
+	// kernel reloads it, with the rest of the window, from the image at
+	// the new stack pointer. A fault taken in C code leaves C's value
+	// in that slot, so sigpanic would run with a garbage g. Plant the
+	// goroutine there directly. When the fault was in Go code the
+	// copied image already holds this same value, so the store is
+	// simply a no-op.
+	*(*uint64)(unsafe.Pointer(uintptr(sp) + 6*goarch.PtrSize)) = uint64(uintptr(unsafe.Pointer(gp)))
 	c.set_pc(uint64(abi.FuncPCABIInternal(sigpanic)))
 }
 

@@ -595,6 +595,15 @@ TEXT runtime·sigtramp(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
 	MOVW	R8, (176+0)(BSP)
 	MOVD	R9, (176+8)(BSP)
 	MOVD	R10, (176+16)(BSP)
+
+	// Recover g from thread-local storage before entering Go. g lives
+	// in %l6, and the interrupted code may have been C, which is free
+	// to use that register for anything: sigtrampgo would then find no
+	// g, take the signal for one arriving on a non-Go thread, and
+	// re-raise it. load_g is a no-op when the program has no cgo, so
+	// this only costs the builds that need it.
+	CALL	runtime·load_g(SB)
+
 	MOVD	$runtime·sigtrampgo(SB), R11
 	CALL	(R11)
 
