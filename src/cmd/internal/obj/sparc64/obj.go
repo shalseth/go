@@ -1,6 +1,9 @@
 // Copyright 2015 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+// Portions of this file were revived from the 2016 linux/solaris-sparc64
+// tree (minux/go.sparc64 @ 9b8610d), from the original gc SPARC64 port
+// effort by Aram Hăvărneanu and others. See README.sparc64.md.
 
 package sparc64
 

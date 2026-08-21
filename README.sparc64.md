@@ -12,6 +12,26 @@ missing piece: there is no sparc64 disassembler, so `cmd/objdump` and
 an OpenTelemetry collector with roughly two and a half thousand packages
 — builds, runs, scrapes metrics and shuts down cleanly on the T4.
 
+## Provenance
+
+This port does not start from nothing. The assembler backend
+(`cmd/internal/obj/sparc64`) and the core runtime assembly
+(`runtime/asm_sparc64.s`, `runtime/asm_sparc64.h`, `runtime/tls_sparc64.s`)
+were revived from the 2016 linux/solaris-sparc64 tree,
+`minux/go.sparc64 @ 9b8610d`, and rebased onto the current
+`cmd/internal/obj` API. The instruction encodings are unchanged from that
+work.
+
+That code comes from the original gc SPARC64 port effort, and this port
+would have been considerably harder to begin without it. Particular
+thanks to **Aram Hăvărneanu**, whose SPARC64 work it descends from, and
+to **Shenghou Ma**, in whose tree it was found.
+
+Everything else here is new: the compiler backend and SSA lowering rules,
+the linker support, the flat-frame ABI and the register-window discipline
+that goes with it, the signal, vDSO and syscall layers, and the cgo
+boundary.
+
 ## Hardware requirements
 
 VIS3 is the baseline: SPARC T3 or later (T3, T4, T5, S7, M5-M8), or
