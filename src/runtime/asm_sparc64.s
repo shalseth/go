@@ -13,6 +13,15 @@ GLOBL dbgbuf(SB), $8
 TEXT runtime·rt0_go(SB),NOSPLIT|TOPFRAME,$0
 	// BSP = stack; R9 = argc; R8 = argv
 
+	// Push whatever windows the loader and libc startup left resident
+	// out to their own frames, while %i6 still names the frame it
+	// belongs to. From here on Go runs flat and rewrites %i6 as a frame
+	// anchor, so any window still resident above this one would be
+	// spilled through a pointer into a goroutine stack. crosscall1 and
+	// crosscall2 do the same where a thread enters Go from C; this is
+	// the initial thread's turn.
+	FLUSHW
+
 	SUB	$(FIXED_FRAME+16), BSP
 	MOVD	$(FIXED_FRAME+0)(BSP), RT1
 	MOVW	R9, (RT1) // argc
@@ -629,15 +638,6 @@ oncurrentstack:
 
 	// The C window: I0 = arg, I1 = fn, I3 = g0.
 	MOVD	I3, g
-
-	// Push every window above this one out to the frame it belongs to,
-	// now, while each of their stack pointers still names that frame.
-	// C is about to fill the register file; a window the hardware has
-	// to make room for later is spilled and refilled through whatever
-	// %i6 holds at the time, and Go prologues keep rewriting %i6. Doing
-	// it here means the images on the stack are the right ones, so a
-	// refill on the way out restores what was actually saved.
-	FLUSHW
 
 	// Describe this frame the way every other frame in this ABI is
 	// described, so an unwinder that starts here walks back into the Go
