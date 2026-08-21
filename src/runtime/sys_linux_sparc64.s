@@ -327,7 +327,6 @@ TEXT runtime·walltime(SB),NOSPLIT,$64-12
 walltime_noswitch:
 	SUB	$224, R1
 	AND	$~15, R1
-	MOVD	R1, BSP
 
 	MOVD	ZR, R18
 	MOVD	m_gsignal(R17), R19
@@ -338,28 +337,37 @@ walltime_noswitch:
 	MOVD	(g_stack+stack_lo)(R19), R18
 	MOVD	g, (R18)
 walltime_nosaveg:
-	// The vDSO is C code and may clobber any register. R16 (our SP),
-	// R17 (m) and R18 (the gsignal slot) are all live across the call,
-	// so park them on the stack we are calling on and reload them on
-	// return: the frame they were saved in at entry is not addressable
-	// until BSP is back, and BSP comes from R16.
-	MOVD	R16, (192+0)(BSP)
-	MOVD	R17, (192+8)(BSP)
-	MOVD	R18, (192+16)(BSP)
-	MOVD	$CLOCK_REALTIME, R8
-	MOVD	$176(BSP), R9		// timespec, clear of the window save area
-	CALL	(R2)
+	// Call the vDSO in a register window of its own.
+	//
+	// It is C code, and %i6 is both this ABI's frame anchor and the
+	// hardware's stack pointer for the window above - they are the same
+	// register. Called in this window, with the anchor naming a
+	// goroutine frame and the stack pointer walked onto the g0 stack,
+	// any window the kernel spills while the vDSO runs is written
+	// through that anchor, into live goroutine memory. The kernel does
+	// exactly that on the way out of a trap, for every window it had to
+	// buffer, through the stack pointer that window was carrying.
+	//
+	// Opening a window gives the vDSO one whose %i6 is this window's
+	// stack pointer, and leaves this window's own stack pointer alone,
+	// so nothing needs parking in memory across the call: the hardware
+	// keeps this window for us.
+	MOVD	R2, O3			// the vDSO entry point
+	SAVE	$-2047, R1, RSP
+	MOVD	$CLOCK_REALTIME, O0
+	MOVD	$176(BSP), O1		// timespec, clear of the window save area
+	MOVD	I3, R16
+	CALL	(R16)
+	MOVD	176(BSP), I0		// sec, into the window below
+	MOVD	(176+8)(BSP), I1	// nsec
+	RESTORE	ZR, ZR, ZR
+	MOVD	R9, R10			// nsec, before R9 is overwritten
+	MOVD	R8, R9			// sec
 
-	MOVD	(192+8)(BSP), R17
-	MOVD	(192+16)(BSP), R18
 	CMP	ZR, R18
 	BED	walltime_noclearg
 	MOVD	ZR, (R18)
 walltime_noclearg:
-	MOVD	176(BSP), R9
-	MOVD	(176+8)(BSP), R10
-	MOVD	(192+0)(BSP), R16
-	MOVD	R16, BSP
 	JMP	walltime_finish
 
 walltime_fallback:
@@ -420,7 +428,6 @@ TEXT runtime·nanotime1(SB),NOSPLIT,$64-8
 nanotime_noswitch:
 	SUB	$224, R1
 	AND	$~15, R1
-	MOVD	R1, BSP
 
 	MOVD	ZR, R18
 	MOVD	m_gsignal(R17), R19
@@ -431,28 +438,37 @@ nanotime_noswitch:
 	MOVD	(g_stack+stack_lo)(R19), R18
 	MOVD	g, (R18)
 nanotime_nosaveg:
-	// The vDSO is C code and may clobber any register. R16 (our SP),
-	// R17 (m) and R18 (the gsignal slot) are all live across the call,
-	// so park them on the stack we are calling on and reload them on
-	// return: the frame they were saved in at entry is not addressable
-	// until BSP is back, and BSP comes from R16.
-	MOVD	R16, (192+0)(BSP)
-	MOVD	R17, (192+8)(BSP)
-	MOVD	R18, (192+16)(BSP)
-	MOVD	$CLOCK_MONOTONIC, R8
-	MOVD	$176(BSP), R9
-	CALL	(R2)
+	// Call the vDSO in a register window of its own.
+	//
+	// It is C code, and %i6 is both this ABI's frame anchor and the
+	// hardware's stack pointer for the window above - they are the same
+	// register. Called in this window, with the anchor naming a
+	// goroutine frame and the stack pointer walked onto the g0 stack,
+	// any window the kernel spills while the vDSO runs is written
+	// through that anchor, into live goroutine memory. The kernel does
+	// exactly that on the way out of a trap, for every window it had to
+	// buffer, through the stack pointer that window was carrying.
+	//
+	// Opening a window gives the vDSO one whose %i6 is this window's
+	// stack pointer, and leaves this window's own stack pointer alone,
+	// so nothing needs parking in memory across the call: the hardware
+	// keeps this window for us.
+	MOVD	R2, O3			// the vDSO entry point
+	SAVE	$-2047, R1, RSP
+	MOVD	$CLOCK_MONOTONIC, O0
+	MOVD	$176(BSP), O1		// timespec, clear of the window save area
+	MOVD	I3, R16
+	CALL	(R16)
+	MOVD	176(BSP), I0		// sec, into the window below
+	MOVD	(176+8)(BSP), I1	// nsec
+	RESTORE	ZR, ZR, ZR
+	MOVD	R9, R10			// nsec, before R9 is overwritten
+	MOVD	R8, R9			// sec
 
-	MOVD	(192+8)(BSP), R17
-	MOVD	(192+16)(BSP), R18
 	CMP	ZR, R18
 	BED	nanotime_noclearg
 	MOVD	ZR, (R18)
 nanotime_noclearg:
-	MOVD	176(BSP), R9
-	MOVD	(176+8)(BSP), R10
-	MOVD	(192+0)(BSP), R16
-	MOVD	R16, BSP
 	JMP	nanotime_finish
 
 nanotime_fallback:

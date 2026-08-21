@@ -610,10 +610,15 @@ TEXT ·asmcgocall(SB),NOSPLIT|NOFRAME,$0-20
 	CMP	R28, g
 	BED	oncurrentstack
 	CALL	gosave<>(SB)
-	MOVD	(g_sched+gobuf_sp)(R28), R18
-	MOVD	R18, BSP
+	// g first, then the stack pointer. A signal taken between the two
+	// finds the pair inconsistent either way, but this is the order the
+	// other ports use and the order the way back out unwinds in: g and
+	// the g the handler loads from thread-local storage agree before
+	// the stack pointer moves off the goroutine stack.
 	MOVD	R28, g
 	CALL	runtime·save_g(SB)
+	MOVD	(g_sched+gobuf_sp)(R28), R18
+	MOVD	R18, BSP
 
 oncurrentstack:
 	MOVD	BSP, R13
