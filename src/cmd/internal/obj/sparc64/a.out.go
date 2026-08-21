@@ -502,6 +502,13 @@ const (
 	// MD5 is 0x140, SHA1 0x141, SHA256 0x142 and SHA512 0x143.
 	ASHA256 // SHA-256 round block: state in %f0-%f7, data in %f8-%f23
 
+	// Flush the register windows: every window but the current one is
+	// written to the frame it belongs to. Go code never executes SAVE,
+	// so it owns no windows of its own, but C on the other side of a
+	// cgo boundary does, and the kernel may be holding those windows
+	// rather than the stacks they belong to.
+	AFLUSHW
+
 	// VIS3 register moves between the float and integer files. SPARC V9
 	// without VIS3 has to round-trip through memory for these, so the
 	// port requires a T3 or later.

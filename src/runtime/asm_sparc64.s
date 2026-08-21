@@ -375,6 +375,14 @@ TEXT runtime·morestack(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	TMP, (m_morebuf+gobuf_sp)(R8)	// f's caller's BSP
 	MOVD	g, (m_morebuf+gobuf_g)(R8)
 
+	// Push any register window the kernel is holding out to the stack
+	// frame it belongs to, while that stack is still mapped. A buffered
+	// window is written back through the stack pointer it was buffered
+	// with, and newstack is about to copy this goroutine's stack and
+	// free the old one: a window still owed to the old stack is lost,
+	// and it takes g and whatever else the window held with it.
+	FLUSHW
+
 	// Call newstack on m->g0's stack.
 	MOVD	m_g0(R8), g
 	CALL	runtime·save_g(SB)

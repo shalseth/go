@@ -216,6 +216,7 @@ var optab = map[Optab]Opval{
 	Optab{AADDXC, ClassReg, ClassReg, ClassNone, ClassReg}:   {51, 4, 0},
 	Optab{AADDXCCC, ClassReg, ClassReg, ClassNone, ClassReg}: {51, 4, 0},
 	Optab{ASHA256, ClassNone, ClassNone, ClassNone, ClassNone}: {62, 4, 0},
+	Optab{AFLUSHW, ClassNone, ClassNone, ClassNone, ClassNone}: {63, 4, 0},
 
 	Optab{AMOVDTOX, ClassDReg, ClassNone, ClassNone, ClassReg}:  {54, 4, 0},
 	Optab{AMOVSTOUW, ClassFReg, ClassNone, ClassNone, ClassReg}: {54, 4, 0},
@@ -1631,6 +1632,11 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 		// The crypto instructions read fixed floating-point registers,
 		// so every register field is zero and only opf varies.
 		*o1 = op3(2, 0x36) | vis3(0, 0x142, 0, 0)
+
+	// FLUSHW
+	case 63:
+		// Every field is zero: op3 alone names the instruction.
+		*o1 = op3(2, 0x2b)
 
 	// UMULXHI/ADDXC/ADDXCCC Rs1, Rs2, Rd
 	case 51:

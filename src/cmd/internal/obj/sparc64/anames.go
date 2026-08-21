@@ -134,6 +134,7 @@ var Anames = []string{
 	"ADDXC",
 	"ADDXCCC",
 	"SHA256",
+	"FLUSHW",
 	"MOVDTOX",
 	"MOVSTOUW",
 	"MOVXTOD",
