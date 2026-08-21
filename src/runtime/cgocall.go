@@ -340,25 +340,13 @@ func cgocallbackg(fn, frame unsafe.Pointer, ctxt uintptr) {
 	// need to pair with the entersyscall() call made by cgocall, we must
 	// save syscall* and let reentersyscall restore them.
 	//
-	// The two stack pointers are kept as depths below the top of the
-	// stack rather than as addresses. The stack is free to move while
-	// the callback runs, and a depth survives that by construction: the
-	// copy preserves the distance from the top. Holding an address
-	// instead would leave the value correct only as far as the
-	// adjustment pass reaches this frame with the right stack map, which
-	// on sparc64 it does not do reliably across the C frames a nested
-	// callback leaves in the middle of the stack.
-	//
-	// This is the same reason asmcgocall records a depth rather than a
-	// stack pointer across its call into C.
-	var savedspDepth, savedbpDepth uintptr
-	if gp.syscallsp != 0 {
-		savedspDepth = gp.stack.hi - gp.syscallsp
-	}
-	if gp.syscallbp != 0 {
-		savedbpDepth = gp.stack.hi - gp.syscallbp
-	}
+	// Note: savedsp and savedbp MUST be held in locals as an unsafe.Pointer.
+	// When we call into Go, the stack is free to be moved. If these locals
+	// aren't visible in the stack maps, they won't get updated properly,
+	// and will end up being stale when restored by reentersyscall.
+	savedsp := unsafe.Pointer(gp.syscallsp)
 	savedpc := gp.syscallpc
+	savedbp := unsafe.Pointer(gp.syscallbp)
 	exitsyscall() // coming out of cgo call
 	gp.m.incgo = false
 	if gp.m.isextra {
@@ -392,14 +380,7 @@ func cgocallbackg(fn, frame unsafe.Pointer, ctxt uintptr) {
 	osPreemptExtEnter(gp.m)
 
 	// going back to cgo call
-	var savedsp, savedbp uintptr
-	if savedspDepth != 0 {
-		savedsp = gp.stack.hi - savedspDepth
-	}
-	if savedbpDepth != 0 {
-		savedbp = gp.stack.hi - savedbpDepth
-	}
-	reentersyscall(savedpc, savedsp, savedbp)
+	reentersyscall(savedpc, uintptr(savedsp), uintptr(savedbp))
 
 	gp.m.winsyscall = winsyscall
 
