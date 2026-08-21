@@ -578,19 +578,30 @@ TEXT ·asmcgocall(SB),NOSPLIT|NOFRAME,$0-20
 
 	// Now on a scheduling stack (a pthread-created stack).
 g0:
-	MOVD	R5, R19	// save old g
-	MOVD	(g_stack+stack_hi)(R5), R5
-	SUB	R10, R5
-	MOVD	R5, R20	// save depth in old g stack (can't just save SP, as stack might be copied during a callback)
+	// Park what has to outlive the C call on the stack being called on,
+	// rather than in registers. fn may call back into Go, and that Go
+	// code can reach asmcgocall again; this ABI keeps no callee-saved
+	// registers, so a nested call clobbers all three of these. The
+	// depth is kept instead of the stack pointer itself because a
+	// callback may grow the goroutine's stack, which moves it.
+	//
+	// The slots sit above the argument-save area, where a C callee with
+	// six arguments or fewer never writes - cgo's are one-argument.
+	ADD	$-208, RSP
+	MOVD	(g_stack+stack_hi)(R5), R11
+	SUB	R10, R11
+	MOVD	R5, (176+0)(BSP)	// old g
+	MOVD	R11, (176+8)(BSP)	// depth into the old g stack
+	MOVD	R21, (176+16)(BSP)	// our own return address
 	CALL	(R3)
 	MOVD	R8, R9
 
 	// Restore g, stack pointer.
 	// R8 is errno, so don't touch it
+	MOVD	(176+0)(BSP), R19
+	MOVD	(176+8)(BSP), R20
+	MOVD	(176+16)(BSP), R21
 	MOVD	R19, g
-	MOVD    (g_stack+stack_hi)(g), R5
-	SUB     R20, R5
-	MOVD    24(R5), R2
 	CALL	runtime·save_g(SB)
 	MOVD    (g_stack+stack_hi)(g), R5
 	SUB     R20, R5
