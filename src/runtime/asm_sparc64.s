@@ -520,8 +520,22 @@ TEXT runtime·procyieldAsm(SB),NOSPLIT,$0-0
 // 1. grab stored LR for caller
 // 2. sub 4 bytes to get back to BL deferreturn
 // 3. BR to fn
+// gosave<> parks the goroutine that is about to leave for C. Its only
+// caller is asmcgocall, and the parked PC it records is asmcgocall's own
+// return address, which asmcgocall keeps in R21 - not a PC inside
+// asmcgocall itself.
+//
+// The distinction matters because asmcgocall writes SP, and the unwinder
+// refuses to walk through a function that does. A callback that grows the
+// goroutine's stack has to walk exactly here: copystack unwinds the whole
+// stack, crosses the C boundary through the anchors cgocallback plants,
+// and would arrive inside asmcgocall. Parking one frame out lands it in
+// cgocall instead, which is an ordinary framed function. Since asmcgocall
+// carries no frame of its own, nothing is lost by skipping it: the stack
+// pointer recorded here is already the frame cgocall is standing on.
 TEXT gosave<>(SB),NOSPLIT|NOFRAME,$0
-	MOVD	LR, (g_sched+gobuf_pc)(g)
+	ADD	$8, R21, TMP2
+	MOVD	TMP2, (g_sched+gobuf_pc)(g)
 	MOVD	BSP, TMP
 	MOVD	TMP, (g_sched+gobuf_sp)(g)
 	MOVD	$0, (g_sched+gobuf_lr)(g)
@@ -621,20 +635,33 @@ needm:
 	CALL	(R3)			// indirect, to hide from the nosplit check
 
 	// Give m->g0->sched.sp a usable value, so that a panic inside the
-	// callback has somewhere to unwind to.
+	// callback has somewhere to unwind to. It points one frame below
+	// this one for the reason spelled out at havem.
 	MOVD	g_m(g), R2
 	MOVD	m_g0(R2), R3
 	MOVD	BSP, R4
+	SUB	$352, R4
 	MOVD	R4, (g_sched+gobuf_sp)(R3)
 	MOVD	RFP, (g_sched+gobuf_bp)(R3)
 
 havem:
 	// Save m->g0->sched.sp and point it at the C stack we are on, so
 	// that the switch back has something to return to.
+	//
+	// It points a frame's worth below this one rather than at it. A
+	// stack pointer handed to the runtime is a caller's stack pointer,
+	// and in this ABI a callee writes into its caller's frame: the
+	// caller's frame pointer and return address go to 112 and 120,
+	// and outgoing arguments start at 176. Anything that runs on the
+	// g0 stack while the callback is in flight - newstack when the
+	// goroutine grows its stack, systemstack, the scheduler - would
+	// otherwise write through this frame's own reserved slots and
+	// locals, losing the address this function has to return to.
 	MOVD	m_g0(R2), R3
 	MOVD	(g_sched+gobuf_sp)(R3), R4
 	MOVD	R4, savedsp-16(SP)
 	MOVD	BSP, R4
+	SUB	$352, R4
 	MOVD	R4, (g_sched+gobuf_sp)(R3)
 
 	// Move to m->curg and its stack.
@@ -661,9 +688,12 @@ havem:
 
 	// Open a frame on the goroutine stack: the ABI minimum, which
 	// covers the window save area and the reserved slots, plus the
-	// three arguments for cgocallbackg.
+	// three arguments for cgocallbackg and a slot holding this
+	// frame's own stack pointer for the return trip.
 	SUB	$208, R4
+	MOVD	BSP, R20
 	MOVD	R4, BSP
+	MOVD	R20, (176+24)(BSP)
 
 	MOVD	R9, RFP
 	MOVD	R5, OLR
@@ -682,27 +712,46 @@ havem:
 	ADD	$208, R4
 	MOVD	R4, (g_sched+gobuf_sp)(g)
 
-	// Back to m->g0 and its stack.
+	// Back to m->g0 and this frame's stack pointer, which comes from
+	// the slot parked above rather than from m->g0->sched.sp:
+	// systemstack repoints that at itself whenever it runs, and a
+	// callback that grows the goroutine's stack is certain to run it.
 	MOVD	g_m(g), R2
 	MOVD	m_g0(R2), g
 	CALL	runtime·save_g(SB)
-	MOVD	(g_sched+gobuf_sp)(g), R4
+	MOVD	(176+24)(BSP), R4
 	MOVD	R4, BSP
+
+	// The anchors planted above were RFP and OLR, which are not spare
+	// registers: they are this frame's own frame pointer and return
+	// address, and cgocallbackg dutifully restored them on the way
+	// out. Both have to come back before anything downstream uses
+	// them - the local slots below and the epilogue are addressed
+	// through RFP, and the epilogue returns through OLR.
+	//
+	// RFP is the raw frame pointer, one frame above the stack pointer
+	// just restored: the ABI minimum plus this frame's declared
+	// locals. OLR is where the prologue spilled it.
+	SUB	$2047, R4, R9
+	ADD	$(176+32), R9
+	MOVD	R9, RFP
+	MOVD	(120)(BSP), OLR
+
 	MOVD	savedsp-16(SP), R4
 	MOVD	R4, (g_sched+gobuf_sp)(g)
 
 	// If there was an m on entry, it was ours to keep; otherwise the
 	// borrowed one goes back, unless a pthread key holds it for the
 	// next call from this thread.
-	MOVD	savedm-8(SP), R6
-	CMP	ZR, R6
+	MOVD	savedm-8(SP), R8
+	CMP	ZR, R8
 	BNED	droppedm
 
-	MOVD	_cgo_pthread_key_created(SB), R6
-	CMP	ZR, R6
+	MOVD	_cgo_pthread_key_created(SB), R8
+	CMP	ZR, R8
 	BED	dropm
-	MOVD	(R6), R6
-	CMP	ZR, R6
+	MOVD	(R8), R8
+	CMP	ZR, R8
 	BNED	droppedm
 
 dropm:
@@ -713,21 +762,61 @@ droppedm:
 	RET
 
 // Called from the C code cgo generates, so it obeys the C ABI: the
-// result goes in %o0, and the registers C expects to survive a call
-// have to survive. load_g clobbers g and TMP, and the prologue takes
-// care of RFP and OLR; %g1 is volatile in the C ABI, so it can hold the
-// answer on the way out.
-TEXT _cgo_topofstack(SB),NOSPLIT,$32
-	MOVD	TMP, savedTMP-8(SP)
-	MOVD	g, saveG-16(SP)
+// result goes in %o0, and every register C expects to survive a call
+// has to survive.
+//
+// That is more than it looks. No register window is opened here - this
+// port's Go code runs flat - so the local and in registers still belong
+// to the C caller while Go code runs on top of them, and the Go code
+// below is free to use them. gcc keeps values in %l0-%l7 and %i0-%i5
+// across a call precisely because the window is meant to preserve them,
+// so all fourteen are saved by hand, as in crosscall1 and crosscall2.
+// The prologue takes care of RFP, OLR and LR, and %g1-%g5 are volatile
+// in the C ABI.
+//
+// The stakes are concrete: asmcgocall parks the goroutine's g in %l3
+// across its call into C, so clobbering that register loses g for the
+// rest of the program.
+#define TOPSAVED (176 + 24)
+
+TEXT _cgo_topofstack(SB),NOSPLIT,$144
+	NO_LOCAL_POINTERS
+
+	MOVD	R16, (TOPSAVED+0)(BSP)	// %l0
+	MOVD	R17, (TOPSAVED+8)(BSP)
+	MOVD	R18, (TOPSAVED+16)(BSP)
+	MOVD	R19, (TOPSAVED+24)(BSP)
+	MOVD	R20, (TOPSAVED+32)(BSP)
+	MOVD	R21, (TOPSAVED+40)(BSP)
+	MOVD	g, (TOPSAVED+48)(BSP)	// %l6
+	MOVD	R23, (TOPSAVED+56)(BSP)	// %l7
+	MOVD	R24, (TOPSAVED+64)(BSP)	// %i0
+	MOVD	R25, (TOPSAVED+72)(BSP)
+	MOVD	R26, (TOPSAVED+80)(BSP)	// %i2, which load_g clobbers
+	MOVD	R27, (TOPSAVED+88)(BSP)
+	MOVD	R28, (TOPSAVED+96)(BSP)
+	MOVD	R29, (TOPSAVED+104)(BSP)
 
 	CALL	runtime·load_g(SB)
 	MOVD	g_m(g), R1
 	MOVD	m_curg(R1), R1
 	MOVD	(g_stack+stack_hi)(R1), R1
 
-	MOVD	saveG-16(SP), g
-	MOVD	savedTMP-8(SP), TMP
+	MOVD	(TOPSAVED+0)(BSP), R16
+	MOVD	(TOPSAVED+8)(BSP), R17
+	MOVD	(TOPSAVED+16)(BSP), R18
+	MOVD	(TOPSAVED+24)(BSP), R19
+	MOVD	(TOPSAVED+32)(BSP), R20
+	MOVD	(TOPSAVED+40)(BSP), R21
+	MOVD	(TOPSAVED+48)(BSP), g
+	MOVD	(TOPSAVED+56)(BSP), R23
+	MOVD	(TOPSAVED+64)(BSP), R24
+	MOVD	(TOPSAVED+72)(BSP), R25
+	MOVD	(TOPSAVED+80)(BSP), R26
+	MOVD	(TOPSAVED+88)(BSP), R27
+	MOVD	(TOPSAVED+96)(BSP), R28
+	MOVD	(TOPSAVED+104)(BSP), R29
+
 	MOVD	R1, R8			// %o0: the C return register
 	RET
 

@@ -325,7 +325,7 @@ TEXT runtime·walltime(SB),NOSPLIT,$64-12
 	MOVD	m_g0(R17), R5
 	MOVD	(g_sched+gobuf_sp)(R5), R1
 walltime_noswitch:
-	SUB	$192, R1
+	SUB	$224, R1
 	AND	$~15, R1
 	MOVD	R1, BSP
 
@@ -338,16 +338,27 @@ walltime_noswitch:
 	MOVD	(g_stack+stack_lo)(R19), R18
 	MOVD	g, (R18)
 walltime_nosaveg:
+	// The vDSO is C code and may clobber any register. R16 (our SP),
+	// R17 (m) and R18 (the gsignal slot) are all live across the call,
+	// so park them on the stack we are calling on and reload them on
+	// return: the frame they were saved in at entry is not addressable
+	// until BSP is back, and BSP comes from R16.
+	MOVD	R16, (192+0)(BSP)
+	MOVD	R17, (192+8)(BSP)
+	MOVD	R18, (192+16)(BSP)
 	MOVD	$CLOCK_REALTIME, R8
 	MOVD	$176(BSP), R9		// timespec, clear of the window save area
 	CALL	(R2)
 
+	MOVD	(192+8)(BSP), R17
+	MOVD	(192+16)(BSP), R18
 	CMP	ZR, R18
 	BED	walltime_noclearg
 	MOVD	ZR, (R18)
 walltime_noclearg:
 	MOVD	176(BSP), R9
 	MOVD	(176+8)(BSP), R10
+	MOVD	(192+0)(BSP), R16
 	MOVD	R16, BSP
 	JMP	walltime_finish
 
@@ -407,7 +418,7 @@ TEXT runtime·nanotime1(SB),NOSPLIT,$64-8
 	MOVD	m_g0(R17), R5
 	MOVD	(g_sched+gobuf_sp)(R5), R1
 nanotime_noswitch:
-	SUB	$192, R1
+	SUB	$224, R1
 	AND	$~15, R1
 	MOVD	R1, BSP
 
@@ -420,16 +431,27 @@ nanotime_noswitch:
 	MOVD	(g_stack+stack_lo)(R19), R18
 	MOVD	g, (R18)
 nanotime_nosaveg:
+	// The vDSO is C code and may clobber any register. R16 (our SP),
+	// R17 (m) and R18 (the gsignal slot) are all live across the call,
+	// so park them on the stack we are calling on and reload them on
+	// return: the frame they were saved in at entry is not addressable
+	// until BSP is back, and BSP comes from R16.
+	MOVD	R16, (192+0)(BSP)
+	MOVD	R17, (192+8)(BSP)
+	MOVD	R18, (192+16)(BSP)
 	MOVD	$CLOCK_MONOTONIC, R8
 	MOVD	$176(BSP), R9
 	CALL	(R2)
 
+	MOVD	(192+8)(BSP), R17
+	MOVD	(192+16)(BSP), R18
 	CMP	ZR, R18
 	BED	nanotime_noclearg
 	MOVD	ZR, (R18)
 nanotime_noclearg:
 	MOVD	176(BSP), R9
 	MOVD	(176+8)(BSP), R10
+	MOVD	(192+0)(BSP), R16
 	MOVD	R16, BSP
 	JMP	nanotime_finish
 
