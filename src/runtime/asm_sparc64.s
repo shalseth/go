@@ -567,6 +567,7 @@ TEXT ·asmcgocall(SB),NOSPLIT|NOFRAME,$0-20
 	MOVD	LR, R21			// gosave<> below clobbers LR
 	MOVD	fn+0(FP), R19
 	MOVD	arg+8(FP), R20
+	MOVD	g, R24			// the g we came in on
 
 	// How deep our stack pointer and frame anchor sit below the top of
 	// the stack we came in on. A callback can grow this goroutine's
@@ -574,68 +575,79 @@ TEXT ·asmcgocall(SB),NOSPLIT|NOFRAME,$0-20
 	// stack as it is on the way back rather than simply kept: this ABI
 	// addresses locals through the frame pointer, and a caller resumed
 	// with a frame pointer into a stack that has moved reads and writes
-	// its locals in freed memory.
+	// its own locals in freed memory.
+	//
+	// All of this is kept in this window's own registers. They are the
+	// one place the C call cannot reach: the hardware preserves a
+	// window across a call made from it, and spills it to its own
+	// frame. A stack slot here is not safe - anything that ends up with
+	// a stack pointer near this frame writes through it.
 	MOVD	(g_stack+stack_hi)(g), R16
 	MOVD	R16, R17
 	MOVD	BSP, R18
 	SUB	R18, R16		// depth to the stack pointer
 	SUB	RFP, R17		// depth to the frame anchor
 
-	// Find the stack to call C on: m->g0's, unless we are on it already
-	// (creating an OS thread comes in that way).
-	MOVD	g_m(g), R28
-	MOVD	m_g0(R28), R28
+	// Move onto m->g0's stack, unless we are on it already (creating an
+	// OS thread comes in that way). This window's stack pointer has to
+	// end up on a stack that cannot move: a callback can grow the
+	// goroutine stack, and a window spilled to a stack that is then
+	// freed gets refilled from memory that no longer holds it.
+	MOVD	g_m(g), R9
+	MOVD	m_g0(R9), R28		// g0, kept where the O-registers below do not alias it
 	CMP	R28, g
 	BED	oncurrentstack
 	CALL	gosave<>(SB)
-	MOVD	(g_sched+gobuf_sp)(R28), R13
-	JMP	haveframe
+	MOVD	(g_sched+gobuf_sp)(R28), R18
+	MOVD	R18, BSP
+	MOVD	R28, g
+	CALL	runtime·save_g(SB)
 
 oncurrentstack:
 	MOVD	BSP, R13
-
-haveframe:
 	SUB	$208, R13		// the frame to call C on
 
-	// Hand control to C in a register window of its own, rather than
-	// walking this window's stack pointer over onto the g0 stack.
+	// Hand control to C in a register window of its own.
 	//
 	// %i6 is this ABI's frame anchor, but it is also the hardware's
-	// stack pointer for the window above this one, and %i7 that
-	// window's return address - the two are the same registers. While C
-	// runs the register file fills up, and every window the hardware
-	// spills is written through the stack pointer it finds in the
-	// window below it. Walked onto the g0 stack, this window's %i6
-	// still names a goroutine frame, so the window above gets spilled
-	// into live goroutine memory - over the very anchor slots a frame
-	// keeps at [sp+bias+112/120] - and the frame it lands on returns
-	// through whatever the spill left there.
+	// stack pointer for the window above - they are the same registers -
+	// and a window is spilled and refilled through it. Called in this
+	// window, C fills the register file underneath a window whose %i6
+	// names a goroutine frame while its own stack pointer has been
+	// walked onto the g0 stack; the window above then gets spilled into
+	// live goroutine memory, over the anchor slots a frame keeps at
+	// [sp+bias+112/120], and the frame it lands on returns through
+	// whatever the spill left there.
 	//
-	// Opening a window instead leaves this window's stack pointer where
-	// its own anchors are, so a spill of it writes the values already
-	// there, and gives the C call a window whose %i6 is a real caller's
-	// stack pointer. Everything this window holds - g, the anchors, the
-	// depths above - the hardware keeps for us across the call.
+	// Opening a window gives C one whose %i6 is this window's stack
+	// pointer - a g0 frame, on a stack that never moves - and leaves
+	// this window's stack pointer alone for as long as C runs.
 	MOVD	R20, O0			// arg, C's first argument
 	MOVD	R19, O1			// fn
 	MOVD	R28, O3			// g0
-	MOVD	R21, O4			// our own return address
 	SAVE	$-2047, R13, RSP
 
-	// The C window: I0 = arg, I1 = fn, I3 = g0, I4 = return address.
+	// The C window: I0 = arg, I1 = fn, I3 = g0.
 	MOVD	I3, g
-	CALL	runtime·save_g(SB)
 
-	// Describe this window's frame the way every other frame in this
-	// ABI is described, so an unwinder that starts here - a profiling
-	// signal taken in C, a stack scan of the goroutine underneath -
-	// walks back into the Go frames instead of reading whatever the
-	// slots happened to hold. %i6 is already the stack pointer of the
-	// window below, which in this ABI is exactly the caller's frame
-	// anchor; %i7 is not a Go return address, so plant ours over it.
-	MOVD	I4, OLR
+	// Push every window above this one out to the frame it belongs to,
+	// now, while each of their stack pointers still names that frame.
+	// C is about to fill the register file; a window the hardware has
+	// to make room for later is spilled and refilled through whatever
+	// %i6 holds at the time, and Go prologues keep rewriting %i6. Doing
+	// it here means the images on the stack are the right ones, so a
+	// refill on the way out restores what was actually saved.
+	FLUSHW
+
+	// Describe this frame the way every other frame in this ABI is
+	// described, so an unwinder that starts here walks back into the Go
+	// frames rather than reading whatever the slots held, and so a
+	// refill of this window finds the right %i6. Only the slots are
+	// written: %i7 is the window below's link register, and a C callee
+	// that returns with "ret" would jump through it.
 	MOVD	RFP, (112)(BSP)
 	MOVD	OLR, (120)(BSP)
+
 	MOVD	I0, O0
 	MOVD	I0, FIXED_FRAME(BSP)	// the C ABI's argument save slot
 	MOVD	I1, R16
@@ -643,7 +655,10 @@ haveframe:
 	MOVD	O0, I0			// errno, into the Go window's %o0
 	RESTORE	ZR, ZR, ZR
 
-	// Back in the Go window. Only the stack can have moved under us.
+	// Back in the Go window, still on the g0 stack and still carrying
+	// g0. Put the goroutine back and rebuild both anchors from the top
+	// of its stack as it is now - a callback may have moved it.
+	MOVD	R24, g
 	CALL	runtime·save_g(SB)
 	MOVD	(g_stack+stack_hi)(g), R18
 	MOVD	R18, R19
