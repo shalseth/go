@@ -30,6 +30,10 @@
 crosscall1:
 	add	%sp, -(176 + 176), %sp
 
+	/* Same reason as crosscall2 below: Go is about to use %i6, which is
+	   the stack pointer of the window beneath this one. */
+	flushw
+
 	stx	%l0, [%sp + SAVED + 0]
 	stx	%l1, [%sp + SAVED + 8]
 	stx	%l2, [%sp + SAVED + 16]
@@ -109,6 +113,23 @@ crosscall1:
 .type crosscall2, #function
 crosscall2:
 	save	%sp, -176, %sp
+
+	/*
+	 * Push the C windows out to the frames they belong to before Go
+	 * code touches %i6.
+	 *
+	 * %i6 in one window is the same physical register as %o6 - the
+	 * stack pointer - of the window beneath it. Go runs flat and uses
+	 * %i6 as its frame pointer, so every Go prologue entered from here
+	 * repoints the stack pointer of the C window underneath at the Go
+	 * stack. Spill that window afterwards and it lands on a goroutine
+	 * stack, on top of live Go frames.
+	 *
+	 * After this the C windows are in memory, at their own frames, so
+	 * nothing needs spilling while Go runs; the fills on the way out
+	 * read those frames, because the epilogues restore %i6 first.
+	 */
+	flushw
 
 	mov	%i0, %o0
 	mov	%i1, %o1
