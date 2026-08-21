@@ -578,20 +578,146 @@ g0:
 	MOVW	R8, ret+16(FP)
 	RET
 
-// cgocallback is where C code calls into Go. This port does not
-// support cgo - everything is built with CGO_ENABLED=0 - so there is no
-// working implementation here. What stood in its place was the
-// cgocallback_gofunc protocol from Go 1.11, which took a func value and
-// no context argument; it could not have run against the current
-// runtime, and cmd/vet flagged it once asmdecl learned about sparc64.
-// The symbol remains so that the declaration in stubs.go has a
-// definition, and traps if it is ever reached.
-TEXT ·cgocallback(SB),NOSPLIT,$0-24
-	UNDEF
+// cgocallback is where C code calls into Go: crosscall2 arrives here
+// with the callback's function, its argument frame and a context.
+//
+// The work is to find or borrow an m, switch from the C stack we are
+// standing on to the goroutine stack that m owns, run cgocallbackg
+// there, and put everything back. gobuf.sp holds an unbiased address
+// here, which is why it moves through BSP rather than RSP.
+//
+// Unlike the other ports this does not plant the parked PC below the
+// goroutine's stack pointer to make a traceback continue seamlessly
+// into the Go frames beneath the C ones. A traceback taken inside a
+// callback therefore stops at the boundary instead of spanning it.
+//
+// func cgocallback(fn, frame unsafe.Pointer, ctxt uintptr)
+TEXT ·cgocallback(SB),NOSPLIT,$32-24
+	NO_LOCAL_POINTERS
 
+	// A nil fn means: do not call anything, just drop the m. frame
+	// carries the g to restore. This is how a dying thread releases
+	// what it borrowed.
+	MOVD	fn+0(FP), R1
+	CMP	ZR, R1
+	BNED	loadg
+	MOVD	frame+8(FP), g
+	JMP	dropm
+
+loadg:
+	// Recover g from thread-local storage. A nil g means Go never
+	// created this thread, so borrow an m for the duration.
+	CALL	runtime·load_g(SB)
+	CMP	ZR, g
+	BED	needm
+
+	MOVD	g_m(g), R2
+	MOVD	R2, savedm-8(SP)
+	JMP	havem
+
+needm:
+	MOVD	g, savedm-8(SP)		// g is zero, and so is m
+	MOVD	$runtime·needAndBindM(SB), R3
+	CALL	(R3)			// indirect, to hide from the nosplit check
+
+	// Give m->g0->sched.sp a usable value, so that a panic inside the
+	// callback has somewhere to unwind to.
+	MOVD	g_m(g), R2
+	MOVD	m_g0(R2), R3
+	MOVD	BSP, R4
+	MOVD	R4, (g_sched+gobuf_sp)(R3)
+	MOVD	RFP, (g_sched+gobuf_bp)(R3)
+
+havem:
+	// Save m->g0->sched.sp and point it at the C stack we are on, so
+	// that the switch back has something to return to.
+	MOVD	m_g0(R2), R3
+	MOVD	(g_sched+gobuf_sp)(R3), R4
+	MOVD	R4, savedsp-16(SP)
+	MOVD	BSP, R4
+	MOVD	R4, (g_sched+gobuf_sp)(R3)
+
+	// Move to m->curg and its stack.
+	MOVD	m_curg(R2), g
+	CALL	runtime·save_g(SB)
+	MOVD	(g_sched+gobuf_sp)(g), R4	// parked sp, unbiased
+	MOVD	(g_sched+gobuf_pc)(g), R5	// where the goroutine resumes
+	MOVD	(g_sched+gobuf_bp)(g), R8	// its frame anchor
+
+	// Gather the arguments before the stack moves out from under them.
+	MOVD	fn+0(FP), R16
+	MOVD	frame+8(FP), R17
+	MOVD	ctxt+16(FP), R18
+
+	// The anchors this frame will advertise: the caller's stack pointer
+	// in raw form, and a return address into the parked code. R6 and R7
+	// are %g6 and %g7 - the kernel's thread-info register and the
+	// thread pointer - so scratch comes from elsewhere. gobuf.pc
+	// is an exact resume address, while an OLR holds the address of the
+	// CALL, which every reader turns back into a resume address by
+	// adding 8 - so it goes in eight bytes lower.
+	SUB	$2047, R4, R9
+	SUB	$8, R5
+
+	// Open a frame on the goroutine stack: the ABI minimum, which
+	// covers the window save area and the reserved slots, plus the
+	// three arguments for cgocallbackg.
+	SUB	$208, R4
+	MOVD	R4, BSP
+
+	MOVD	R9, RFP
+	MOVD	R5, OLR
+	MOVD	RFP, (112)(BSP)
+	MOVD	OLR, (120)(BSP)
+
+	MOVD	R16, (176+0)(BSP)
+	MOVD	R17, (176+8)(BSP)
+	MOVD	R18, (176+16)(BSP)
+	MOVD	$runtime·cgocallbackg(SB), R19
+	CALL	(R19)			// indirect: we are on another stack now
+
+	// Restore the goroutine's parked stack pointer. cgocallbackg
+	// leaves BSP where it found it, so undoing the frame is enough.
+	MOVD	BSP, R4
+	ADD	$208, R4
+	MOVD	R4, (g_sched+gobuf_sp)(g)
+
+	// Back to m->g0 and its stack.
+	MOVD	g_m(g), R2
+	MOVD	m_g0(R2), g
+	CALL	runtime·save_g(SB)
+	MOVD	(g_sched+gobuf_sp)(g), R4
+	MOVD	R4, BSP
+	MOVD	savedsp-16(SP), R4
+	MOVD	R4, (g_sched+gobuf_sp)(g)
+
+	// If there was an m on entry, it was ours to keep; otherwise the
+	// borrowed one goes back, unless a pthread key holds it for the
+	// next call from this thread.
+	MOVD	savedm-8(SP), R6
+	CMP	ZR, R6
+	BNED	droppedm
+
+	MOVD	_cgo_pthread_key_created(SB), R6
+	CMP	ZR, R6
+	BED	dropm
+	MOVD	(R6), R6
+	CMP	ZR, R6
+	BNED	droppedm
+
+dropm:
+	MOVD	$runtime·dropm(SB), R3
+	CALL	(R3)
+
+droppedm:
+	RET
+
+// Called from the C code cgo generates, so it obeys the C ABI: the
+// result goes in %o0, and the registers C expects to survive a call
+// have to survive. load_g clobbers g and TMP, and the prologue takes
+// care of RFP and OLR; %g1 is volatile in the C ABI, so it can hold the
+// answer on the way out.
 TEXT _cgo_topofstack(SB),NOSPLIT,$32
-	// g and TMP might be clobbered by load_g. They
-	// are callee-save in the gcc calling convention, so save them.
 	MOVD	TMP, savedTMP-8(SP)
 	MOVD	g, saveG-16(SP)
 
@@ -602,6 +728,7 @@ TEXT _cgo_topofstack(SB),NOSPLIT,$32
 
 	MOVD	saveG-16(SP), g
 	MOVD	savedTMP-8(SP), TMP
+	MOVD	R1, R8			// %o0: the C return register
 	RET
 
 // void setg(G*); set g. for use by needm.

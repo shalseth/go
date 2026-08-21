@@ -8,45 +8,80 @@
  * void crosscall1(void (*fn)(void), void (*setg_gcc)(void *g), void *g)
  *
  * Calling into the gc toolchain, where every register is caller-save.
- * On SPARC the register window does most of that work: save gives this
- * frame its own local and in registers for the Go code to trash, and
- * restore brings the caller's back.
  *
- * Two registers need explicit care. Window in-registers are physically
- * the caller's out-registers, so %i6 and %i7 - the caller's stack
- * pointer and this frame's return address - would be lost when the Go
- * port overwrites them as its own frame anchors. Both go to memory for
- * the duration. fn goes with them, since nothing may be assumed about
- * what survives a call into Go.
+ * The obvious way to do this on SPARC is a save/restore pair, letting
+ * the register window preserve the caller's locals. That is not used
+ * here: this port's Go code runs flat, one window for the whole
+ * program, and it treats %i6 and %i7 as frame anchors it may overwrite.
+ * Mixing the two conventions at this boundary is hard to reason about,
+ * so the frame is flat here too and every register the C ABI expects to
+ * survive a call is saved by hand, as the ports without register
+ * windows do.
  *
- * The frame is the ABI minimum of 176 bytes, a 128-byte window save
- * area and 48 bytes of argument slots, plus 32 for those locals. %sp is
- * biased by 2047.
+ * %sp is biased by 2047; the frame keeps the ABI's 176-byte minimum -
+ * a 128-byte window save area the kernel may spill into, and 48 bytes
+ * of argument slots - and adds room for the saved registers.
  */
 #define BIAS 2047
-#define LOCALS (BIAS + 176)
+#define SAVED (BIAS + 176)
 
 .globl crosscall1
 .type crosscall1, #function
 crosscall1:
-	save	%sp, -(176 + 32), %sp
+	add	%sp, -(176 + 176), %sp
 
-	stx	%i7, [%sp + LOCALS + 0]		/* our return address */
-	stx	%i6, [%sp + LOCALS + 8]		/* the caller's stack pointer */
-	stx	%i0, [%sp + LOCALS + 16]	/* fn */
+	stx	%l0, [%sp + SAVED + 0]
+	stx	%l1, [%sp + SAVED + 8]
+	stx	%l2, [%sp + SAVED + 16]
+	stx	%l3, [%sp + SAVED + 24]
+	stx	%l4, [%sp + SAVED + 32]
+	stx	%l5, [%sp + SAVED + 40]
+	stx	%l6, [%sp + SAVED + 48]
+	stx	%l7, [%sp + SAVED + 56]
+	stx	%i0, [%sp + SAVED + 64]
+	stx	%i1, [%sp + SAVED + 72]
+	stx	%i2, [%sp + SAVED + 80]
+	stx	%i3, [%sp + SAVED + 88]
+	stx	%i4, [%sp + SAVED + 96]
+	stx	%i5, [%sp + SAVED + 104]
+	stx	%i6, [%sp + SAVED + 112]
+	stx	%i7, [%sp + SAVED + 120]
+	stx	%o7, [%sp + SAVED + 128]
 
-	mov	%i2, %o0			/* g */
-	call	%i1				/* setg_gcc(g) */
+	/* fn and setg_gcc outlive calls into Go, so they go to memory. */
+	stx	%o0, [%sp + SAVED + 136]
+	stx	%o1, [%sp + SAVED + 144]
+
+	mov	%o2, %o0			/* g */
+	ldx	[%sp + SAVED + 144], %g1
+	call	%g1				/* setg_gcc(g) */
 	 nop
 
-	ldx	[%sp + LOCALS + 16], %g1
+	ldx	[%sp + SAVED + 136], %g1
 	call	%g1				/* fn() */
 	 nop
 
-	ldx	[%sp + LOCALS + 0], %i7
-	ldx	[%sp + LOCALS + 8], %i6
-	ret
-	 restore
+	ldx	[%sp + SAVED + 0], %l0
+	ldx	[%sp + SAVED + 8], %l1
+	ldx	[%sp + SAVED + 16], %l2
+	ldx	[%sp + SAVED + 24], %l3
+	ldx	[%sp + SAVED + 32], %l4
+	ldx	[%sp + SAVED + 40], %l5
+	ldx	[%sp + SAVED + 48], %l6
+	ldx	[%sp + SAVED + 56], %l7
+	ldx	[%sp + SAVED + 64], %i0
+	ldx	[%sp + SAVED + 72], %i1
+	ldx	[%sp + SAVED + 80], %i2
+	ldx	[%sp + SAVED + 88], %i3
+	ldx	[%sp + SAVED + 96], %i4
+	ldx	[%sp + SAVED + 104], %i5
+	ldx	[%sp + SAVED + 112], %i6
+	ldx	[%sp + SAVED + 120], %i7
+	ldx	[%sp + SAVED + 128], %o7
+
+	add	%sp, (176 + 176), %sp
+	retl
+	 nop
 
 .size crosscall1, .-crosscall1
 
