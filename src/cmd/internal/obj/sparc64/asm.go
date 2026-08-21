@@ -74,6 +74,7 @@ var optab = map[Optab]Opval{
 	Optab{ASLLD, ClassReg, ClassReg, ClassNone, ClassReg}:  {1, 4, 0},
 	Optab{ASLLW, ClassReg, ClassReg, ClassNone, ClassReg}:  {1, 4, 0},
 	Optab{ASAVE, ClassReg, ClassReg, ClassNone, ClassReg}:  {1, 4, 0},
+	Optab{ARESTORE, ClassReg, ClassReg, ClassNone, ClassReg}: {1, 4, 0},
 
 	Optab{AFADDD, ClassDReg, ClassNone, ClassNone, ClassDReg}:  {1, 4, 0},
 	Optab{AFADDD, ClassDReg, ClassDReg, ClassNone, ClassDReg}:  {1, 4, 0},

@@ -564,70 +564,93 @@ TEXT gosave<>(SB),NOSPLIT|NOFRAME,$0
 // aligned appropriately for the gcc ABI.
 // See cgocall.go for more details.
 TEXT ·asmcgocall(SB),NOSPLIT|NOFRAME,$0-20
-	MOVD	LR, R21	// save LR
-	MOVD	fn+0(FP), R3
-	MOVD	arg+8(FP), O0
-	MOVD	O0, FIXED_FRAME(BSP)
+	MOVD	LR, R21			// gosave<> below clobbers LR
+	MOVD	fn+0(FP), R19
+	MOVD	arg+8(FP), R20
 
-	MOVD	BSP, R10		// save original stack pointer
-	MOVD	g, R5
+	// How deep our stack pointer and frame anchor sit below the top of
+	// the stack we came in on. A callback can grow this goroutine's
+	// stack, which moves it, so both are rebuilt from the top of the
+	// stack as it is on the way back rather than simply kept: this ABI
+	// addresses locals through the frame pointer, and a caller resumed
+	// with a frame pointer into a stack that has moved reads and writes
+	// its locals in freed memory.
+	MOVD	(g_stack+stack_hi)(g), R16
+	MOVD	R16, R17
+	MOVD	BSP, R18
+	SUB	R18, R16		// depth to the stack pointer
+	SUB	RFP, R17		// depth to the frame anchor
 
-	// Figure out if we need to switch to m->g0 stack.
-	// We get called to create new OS threads too, and those
-	// come in on the m->g0 stack already.
-	MOVD	g_m(g), R9
-	MOVD	m_g0(R9), R9
-	CMP	R9, g
-	BED	g0
+	// Find the stack to call C on: m->g0's, unless we are on it already
+	// (creating an OS thread comes in that way).
+	MOVD	g_m(g), R28
+	MOVD	m_g0(R28), R28
+	CMP	R28, g
+	BED	oncurrentstack
 	CALL	gosave<>(SB)
-	MOVD	R9, g
-	CALL	runtime·save_g(SB)
-	MOVD	(g_sched+gobuf_sp)(g), TMP
-	MOVD	TMP, BSP
+	MOVD	(g_sched+gobuf_sp)(R28), R13
+	JMP	haveframe
 
-	// Now on a scheduling stack (a pthread-created stack).
-g0:
-	// Park what has to outlive the C call on the stack being called on,
-	// rather than in registers. fn may call back into Go, and that Go
-	// code can reach asmcgocall again; this ABI keeps no callee-saved
-	// registers, so a nested call clobbers all three of these. The
-	// depth is kept instead of the stack pointer itself because a
-	// callback may grow the goroutine's stack, which moves it.
+oncurrentstack:
+	MOVD	BSP, R13
+
+haveframe:
+	SUB	$208, R13		// the frame to call C on
+
+	// Hand control to C in a register window of its own, rather than
+	// walking this window's stack pointer over onto the g0 stack.
 	//
-	// The slots sit above the argument-save area, where a C callee with
-	// six arguments or fewer never writes - cgo's are one-argument.
-	ADD	$-208, RSP
-	MOVD	(g_stack+stack_hi)(R5), R11
-	MOVD	R11, R12
-	SUB	R10, R11		// distance from the top to our stack pointer
-	SUB	RFP, R12		// and to our caller's frame pointer
-	MOVD	R5, (176+0)(BSP)	// old g
-	MOVD	R11, (176+8)(BSP)	// stack-pointer depth
-	MOVD	R21, (176+16)(BSP)	// our own return address
-	MOVD	R12, (176+24)(BSP)	// frame-pointer depth
-	CALL	(R3)
-	MOVD	R8, R9
+	// %i6 is this ABI's frame anchor, but it is also the hardware's
+	// stack pointer for the window above this one, and %i7 that
+	// window's return address - the two are the same registers. While C
+	// runs the register file fills up, and every window the hardware
+	// spills is written through the stack pointer it finds in the
+	// window below it. Walked onto the g0 stack, this window's %i6
+	// still names a goroutine frame, so the window above gets spilled
+	// into live goroutine memory - over the very anchor slots a frame
+	// keeps at [sp+bias+112/120] - and the frame it lands on returns
+	// through whatever the spill left there.
+	//
+	// Opening a window instead leaves this window's stack pointer where
+	// its own anchors are, so a spill of it writes the values already
+	// there, and gives the C call a window whose %i6 is a real caller's
+	// stack pointer. Everything this window holds - g, the anchors, the
+	// depths above - the hardware keeps for us across the call.
+	MOVD	R20, O0			// arg, C's first argument
+	MOVD	R19, O1			// fn
+	MOVD	R28, O3			// g0
+	MOVD	R21, O4			// our own return address
+	SAVE	$-2047, R13, RSP
 
-	// Restore g, stack pointer.
-	// R8 is errno, so don't touch it
-	MOVD	(176+0)(BSP), R19
-	MOVD	R19, g
+	// The C window: I0 = arg, I1 = fn, I3 = g0, I4 = return address.
+	MOVD	I3, g
 	CALL	runtime·save_g(SB)
-	MOVD	(176+8)(BSP), R20
-	MOVD	(176+16)(BSP), R21
-	MOVD	(176+24)(BSP), R12
 
-	// Rebuild both anchors from the top of the stack as it is now. The
-	// stack pointer alone is not enough: this ABI addresses locals
-	// through the frame pointer, so a caller resumed with a frame
-	// pointer from a stack a callback has since moved reads and writes
-	// its own locals in freed memory.
-	MOVD    (g_stack+stack_hi)(g), R5
-	MOVD	R5, R11
-	SUB	R12, R11
-	MOVD	R11, RFP
-	SUB     R20, R5
-	MOVD	R5, BSP
+	// Describe this window's frame the way every other frame in this
+	// ABI is described, so an unwinder that starts here - a profiling
+	// signal taken in C, a stack scan of the goroutine underneath -
+	// walks back into the Go frames instead of reading whatever the
+	// slots happened to hold. %i6 is already the stack pointer of the
+	// window below, which in this ABI is exactly the caller's frame
+	// anchor; %i7 is not a Go return address, so plant ours over it.
+	MOVD	I4, OLR
+	MOVD	RFP, (112)(BSP)
+	MOVD	OLR, (120)(BSP)
+	MOVD	I0, O0
+	MOVD	I0, FIXED_FRAME(BSP)	// the C ABI's argument save slot
+	MOVD	I1, R16
+	CALL	(R16)
+	MOVD	O0, I0			// errno, into the Go window's %o0
+	RESTORE	ZR, ZR, ZR
+
+	// Back in the Go window. Only the stack can have moved under us.
+	CALL	runtime·save_g(SB)
+	MOVD	(g_stack+stack_hi)(g), R18
+	MOVD	R18, R19
+	SUB	R17, R19
+	MOVD	R19, RFP
+	SUB	R16, R18
+	MOVD	R18, BSP
 
 	MOVD	R21, LR
 	MOVW	R8, ret+16(FP)
