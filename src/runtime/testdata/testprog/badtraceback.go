@@ -43,9 +43,9 @@ func badLR2(arg int) {
 	}
 	if runtime.GOARCH == "sparc64" {
 		// Arguments start at the 176-byte minimum frame and the return
-		// address anchor sits at sp+120, where the hardware would spill
-		// %i7 for this window.
-		lrOff = 176 - 120
+		// address chain slot sits at sp+136 (AnchorLR), clear of the
+		// window save area the hardware spills %i7 into.
+		lrOff = 176 - 136
 	}
 	lrPtr := (*uintptr)(unsafe.Pointer(uintptr(unsafe.Pointer(&arg)) - lrOff))
 	badPC := uintptr(0xbad)
