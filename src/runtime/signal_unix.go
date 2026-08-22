@@ -442,7 +442,7 @@ func sparcPlausibleG(gp *g) bool {
 //go:nosplit
 func sigFetchG(c *sigctxt) *g {
 	switch GOARCH {
-	case "arm", "arm64", "loong64", "ppc64", "ppc64le", "riscv64", "s390x", "sparc64":
+	case "arm", "arm64", "loong64", "ppc64", "ppc64le", "riscv64", "s390x":
 		if !iscgo && inVDSOPage(c.sigpc()) {
 			// When using cgo, we save the g on TLS and load it from there
 			// in sigtramp. Just use that.
@@ -458,16 +458,31 @@ func sigFetchG(c *sigctxt) *g {
 			}
 			return nil
 		}
-	}
-	gp := getg()
-	if GOARCH == "sparc64" && gp != nil && !sparcPlausibleG(gp) {
-		// A stale register window left something that is not a g behind;
-		// treat this like a signal on a foreign thread rather than
-		// dereferencing it. Note this deliberately runs after the recovery
-		// above, which handles a genuinely absent g.
+	case "sparc64":
+		// g lives in %l6, a register that is local to one register
+		// window. The vDSO wrappers open a window for the call, and a
+		// signal can land anywhere in that region: inside the vDSO's
+		// own code, or on the wrapper's few instructions where the new
+		// window does not hold g yet - or holds whatever stale value
+		// the recycled window carried, which can look exactly like an
+		// old g. The wrapper parks g at the base of the gsignal stack
+		// for the duration, so when the register is not a live g,
+		// recover it from there; the handler is already running on
+		// that stack.
+		gp := getg()
+		if gp != nil && sparcPlausibleG(gp) && gp.m != nil {
+			return gp
+		}
+		sp := sys.GetCallerSP()
+		s := spanOf(sp)
+		if s != nil && s.state.get() == mSpanManual && s.base() < sp && sp < s.limit {
+			if gp := *(**g)(unsafe.Pointer(s.base())); gp != nil && sparcPlausibleG(gp) {
+				return gp
+			}
+		}
 		return nil
 	}
-	return gp
+	return getg()
 }
 
 // sigtrampgo is called from the signal handler function, sigtramp,
