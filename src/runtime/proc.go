@@ -1934,7 +1934,7 @@ func mstart1() {
 	if goarch.IsSparc64 != 0 {
 		sp := sys.GetCallerSP()
 		gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 40))
-		gp.sched.olr = *(*uintptr)(unsafe.Pointer(sp + 120))
+		gp.sched.olr = *(*uintptr)(unsafe.Pointer(sp + 136))
 	}
 
 	asminit()
@@ -4621,7 +4621,7 @@ func save(pc, sp, bp uintptr) {
 		// and OLR at sp+40 and sp+120 when it called into the
 		// runtime.
 		gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 40))
-		gp.sched.olr = *(*uintptr)(unsafe.Pointer(sp + 120))
+		gp.sched.olr = *(*uintptr)(unsafe.Pointer(sp + 136))
 	}
 	// We need to ensure ctxt is zero, but can't have a write
 	// barrier here. However, it should always already be zero.

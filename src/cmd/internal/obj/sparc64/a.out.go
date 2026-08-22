@@ -271,6 +271,18 @@ const (
 	// harmless.
 	AnchorFP = 5 * 8 // the %l5 slot
 
+	// AnchorLR is where a frame keeps its return address for the chain
+	// readers: the epilogue, the unwinder and the scheduler. It cannot
+	// be the %i7 image slot at sp+bias+120: during signal handling the
+	// live %i7 holds the interrupted frame's return address, not the
+	// handler frame's, so a trap taken mid-handler spills that stale
+	// value over the slot and a later restore sends the handler's
+	// return to wherever the interrupted frame was going. The slot at
+	// +120 still gets the return address written (it is what the
+	// hardware expects to find there in the common case), but nothing
+	// reads it back. pushCall owns +128, so the chain slot is +136.
+	AnchorLR = 136
+
 	// WindowSaveAreaSize is the 16-extended-word region every frame
 	// must reserve at %sp+StackBias for the register window. This is
 	// not optional: a window-overflow trap, a signal, or an explicit

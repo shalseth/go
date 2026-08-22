@@ -1429,7 +1429,7 @@ func recovery(gp *g) {
 		// called (deferproc, at the least), so they are valid here:
 		// bp gets the frame's RFP and lr its own return address.
 		gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 40))
-		gp.sched.lr = *(*uintptr)(unsafe.Pointer(sp + 120))
+		gp.sched.lr = *(*uintptr)(unsafe.Pointer(sp + 136))
 		gp.sched.olr = gp.sched.lr
 	}
 	gogo(&gp.sched)

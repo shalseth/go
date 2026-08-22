@@ -437,7 +437,7 @@ func (u *unwinder) resolveInternal(innermost, isSyscall bool) {
 		var lrPtr uintptr
 		if goarch.ArchFamily == goarch.SPARC64 {
 			// A framed function stores its own return address at
-			// sp+120 in its prologue, so that slot is authoritative
+			// sp+136 in its prologue, so that slot is authoritative
 			// for any frame that has one.
 			//
 			// The link register is authoritative only for a frame
@@ -454,7 +454,7 @@ func (u *unwinder) resolveInternal(innermost, isSyscall bool) {
 			// sits directly on its caller's region, where the slot is
 			// valid.
 			if innermost && frame.sp < frame.fp || frame.lr == 0 {
-				lrPtr = frame.sp + 120
+				lrPtr = frame.sp + 136
 				frame.lr = *(*uintptr)(unsafe.Pointer(lrPtr))
 				if frame.lr != 0 {
 					// The slot holds a raw %o7: the address of the

@@ -252,7 +252,7 @@ switch:
 	// exactly on the caller's frame; the saved lr is our return
 	// address into that caller.
 	MOVD	$runtime·systemstack_switch(SB), R8
-	ADD	$16, R8
+	ADD	$20, R8
 	MOVD	R8, (g_sched+gobuf_pc)(g)
 	MOVD	BSP, TMP
 	MOVD	TMP, (g_sched+gobuf_sp)(g)
@@ -679,6 +679,7 @@ oncurrentstack:
 	// that returns with "ret" would jump through it.
 	MOVD	R30, (40)(BSP)		// %i6: the Go window's stack pointer
 	MOVD	OLR, (120)(BSP)
+	MOVD	OLR, (136)(BSP)
 
 	MOVD	I0, O0
 	MOVD	I0, FIXED_FRAME(BSP)	// the C ABI's argument save slot
@@ -829,13 +830,14 @@ havem:
 	MOVD	R4, BSP
 	MOVD	R9, (40)(BSP)		// caller: the parked frame
 	MOVD	R5, (120)(BSP)		// return address: the parked PC
+	MOVD	R5, (136)(BSP)
 
 	// This frame becomes the callback frame's caller, and the callback
 	// frame returns into systemstack_switch. The offset steps past the
 	// prologue, less the eight bytes every reader adds back to an OLR.
 	SUB	$2047, R4, R9
 	MOVD	$runtime·systemstack_switch(SB), R5
-	ADD	$(16-8), R5
+	ADD	$(20-8), R5
 
 	// Open a frame on the goroutine stack: the ABI minimum, which
 	// covers the window save area and the reserved slots, plus the
@@ -849,6 +851,7 @@ havem:
 	MOVD	R5, OLR
 	MOVD	RFP, (40)(BSP)
 	MOVD	OLR, (120)(BSP)
+	MOVD	OLR, (136)(BSP)
 
 	MOVD	R16, (176+0)(BSP)
 	MOVD	R17, (176+8)(BSP)
@@ -886,7 +889,7 @@ havem:
 	SUB	$2047, R4, R9
 	ADD	$(176+32), R9
 	MOVD	R9, RFP
-	MOVD	(120)(BSP), OLR
+	MOVD	(136)(BSP), OLR
 
 	MOVD	savedsp-16(SP), R4
 	MOVD	R4, (g_sched+gobuf_sp)(g)

@@ -504,6 +504,14 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 				p.To.Reg = REG_RSP
 				p.To.Offset = int64(120 + StackBias)
 
+				p = obj.Appendp(p, newprog)
+				p.As = AMOVD
+				p.From.Type = obj.TYPE_REG
+				p.From.Reg = REG_R31
+				p.To.Type = obj.TYPE_MEM
+				p.To.Reg = REG_RSP
+				p.To.Offset = int64(AnchorLR + StackBias)
+
 				p = cursym.Func().SpillRegisterArgs(p, newprog)
 
 				const hookFrame = MinStackFrameSize + 16
@@ -590,6 +598,15 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.To.Reg = REG_RSP
 			p.To.Offset = int64(120 + StackBias)
 
+			// And at AnchorLR, where the chain readers look.
+			p = obj.Appendp(p, newprog)
+			p.As = AMOVD
+			p.From.Type = obj.TYPE_REG
+			p.From.Reg = REG_R31
+			p.To.Type = obj.TYPE_MEM
+			p.To.Reg = REG_RSP
+			p.To.Offset = int64(AnchorLR + StackBias)
+
 			if !cursym.Func().Text.From.Sym.NoSplit() {
 				p = stacksplit(ctxt, cursym, newprog, p, int64(frameSize)+MinStackFrameSize, storeAnchors)
 			}
@@ -661,6 +678,15 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.To.Reg = REG_RSP
 			p.To.Offset = int64(120 + StackBias)
 
+			// And at AnchorLR, where the chain readers look.
+			p = obj.Appendp(p, newprog)
+			p.As = AMOVD
+			p.From.Type = obj.TYPE_REG
+			p.From.Reg = REG_R31
+			p.To.Type = obj.TYPE_MEM
+			p.To.Reg = REG_RSP
+			p.To.Offset = int64(AnchorLR + StackBias)
+
 			// MOVD RFP, (AnchorFP+bias)(RSP) - the slot the hardware
 			// spills RFP to. See AnchorFP.
 			p = obj.Appendp(p, newprog)
@@ -725,12 +751,12 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			q1.To.Type = obj.TYPE_REG
 			q1.To.Reg = REG_LR
 
-			// MOVD (120+StackBias)(RFP), R31
+			// MOVD (AnchorLR+StackBias)(RFP), R31
 			q1 = obj.Appendp(q1, newprog)
 			q1.As = AMOVD
 			q1.From.Type = obj.TYPE_MEM
 			q1.From.Reg = REG_RFP
-			q1.From.Offset = 120 + StackBias
+			q1.From.Offset = AnchorLR + StackBias
 			q1.To.Type = obj.TYPE_REG
 			q1.To.Reg = REG_R31
 

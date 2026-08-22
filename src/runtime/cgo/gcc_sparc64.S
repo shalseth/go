@@ -156,6 +156,7 @@ crosscall2:
 	   keep live %l5 equal to its published spill slot. */
 	stx	%i6, [%sp + BIAS + 40]
 	stx	%i7, [%sp + BIAS + 120]
+	stx	%i7, [%sp + BIAS + 136]
 	mov	%i6, %l5
 
 	/* %i6 must NOT be parked here, unlike crosscall1: this window came

@@ -44,6 +44,7 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	// must simply never exist.
 	MOVD	RFP, (40)(BSP)
 	MOVD	OLR, (120)(BSP)
+	MOVD	OLR, (136)(BSP)
 	SUB	$512, BSP
 	ADD	$512, RSP, RFP
 	MOVD	LR, OLR
