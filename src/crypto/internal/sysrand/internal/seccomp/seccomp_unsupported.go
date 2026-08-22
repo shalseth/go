@@ -8,6 +8,9 @@ package seccomp
 
 import "errors"
 
+// ErrUnsupported reports that this system cannot install a seccomp filter.
+var ErrUnsupported = errors.New("seccomp filters are not supported on this system")
+
 func DisableGetrandom() error {
-	return errors.New("disabling getrandom is not supported on this system")
+	return ErrUnsupported
 }

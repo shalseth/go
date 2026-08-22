@@ -8,6 +8,7 @@ package sysrand_test
 
 import (
 	"bytes"
+	"errors"
 	"crypto/internal/sysrand/internal/seccomp"
 	"internal/syscall/unix"
 	"internal/testenv"
@@ -37,6 +38,7 @@ func TestNoGetrandom(t *testing.T) {
 	testenv.MustHaveExec(t) // testenv.Command can't skip from a goroutine
 
 	done := make(chan struct{})
+	unsupported := make(chan struct{}, 1)
 	go func() {
 		defer close(done)
 		// Call LockOSThread in a new goroutine, where we will apply the seccomp
@@ -45,6 +47,14 @@ func TestNoGetrandom(t *testing.T) {
 		runtime.LockOSThread()
 
 		if err := seccomp.DisableGetrandom(); err != nil {
+			// Linux only offers seccomp filters on architectures that
+			// select HAVE_ARCH_SECCOMP_FILTER; sparc does not. Report it
+			// back so the test goroutine can skip - t.Skip cannot be
+			// called from here.
+			if errors.Is(err, seccomp.ErrUnsupported) {
+				unsupported <- struct{}{}
+				return
+			}
 			t.Errorf("failed to disable getrandom: %v", err)
 			return
 		}
@@ -66,4 +76,9 @@ func TestNoGetrandom(t *testing.T) {
 		}
 	}()
 	<-done
+	select {
+	case <-unsupported:
+		t.Skip("kernel does not support seccomp filters")
+	default:
+	}
 }

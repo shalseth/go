@@ -64,20 +64,38 @@ int disable_getrandom() {
         .filter = filter,
     };
     if (syscall(SYS_seccomp, SECCOMP_SET_MODE_FILTER, 0, &prog)) {
-        return 2;
+        return -errno;
     }
     return 0;
 }
 */
 import "C"
-import "fmt"
+
+import (
+	"errors"
+	"fmt"
+	"syscall"
+)
+
+// ErrUnsupported reports that this kernel cannot install a seccomp filter.
+// Linux only offers filters on architectures that select
+// HAVE_ARCH_SECCOMP_FILTER, which sparc does not.
+var ErrUnsupported = errors.New("seccomp filters are not supported on this system")
 
 // DisableGetrandom makes future calls to getrandom(2) fail with ENOSYS. It
 // applies only to the current thread and to any programs executed from it.
 // Callers should use [runtime.LockOSThread] in a dedicated goroutine.
 func DisableGetrandom() error {
-	if errno := C.disable_getrandom(); errno != 0 {
-		return fmt.Errorf("failed to disable getrandom: %v", errno)
+	switch rc := C.disable_getrandom(); {
+	case rc == 0:
+		return nil
+	case rc < 0:
+		errno := syscall.Errno(-rc)
+		if errno == syscall.ENOSYS || errno == syscall.EINVAL {
+			return fmt.Errorf("%w: seccomp: %v", ErrUnsupported, errno)
+		}
+		return fmt.Errorf("failed to disable getrandom: seccomp: %v", errno)
+	default:
+		return fmt.Errorf("failed to disable getrandom: %v", rc)
 	}
-	return nil
 }
