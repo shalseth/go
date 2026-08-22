@@ -475,3 +475,9 @@
 (Add64carry ...) => (ADDCARRY ...)
 (Sub64borrow ...) => (SUBBORROW ...)
 (TailCallInter ...) => (CALLtail ...)
+
+// count trailing zeros: popc(^x & (x-1)). The T4 implements POPC in
+// hardware. For 32 bits a guard bit caps the zero case at 32.
+(Ctz(64|32|16|8)NonZero ...) => (Ctz64 ...)
+(Ctz64 x) => (POPC (ANDN <typ.Int64> (SUBconst <typ.Int64> [1] x) x))
+(Ctz32 x) => (Ctz64 (OR <typ.Int64> x (MOVDconst [1<<32])))

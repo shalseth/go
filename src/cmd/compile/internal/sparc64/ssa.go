@@ -395,7 +395,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpSPARC64NEG,
+	case ssa.OpSPARC64NEG, ssa.OpSPARC64POPC,
 		ssa.OpSPARC64MOVB, ssa.OpSPARC64MOVUB,
 		ssa.OpSPARC64MOVH, ssa.OpSPARC64MOVUH,
 		ssa.OpSPARC64MOVW, ssa.OpSPARC64MOVUW, ssa.OpSPARC64MOVD,

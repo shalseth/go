@@ -136,6 +136,22 @@ func rewriteValueSPARC64(v *Value) bool {
 		return rewriteValueSPARC64_OpConstBool(v)
 	case OpConstNil:
 		return rewriteValueSPARC64_OpConstNil(v)
+	case OpCtz16NonZero:
+		v.Op = OpCtz64
+		return true
+	case OpCtz32:
+		return rewriteValueSPARC64_OpCtz32(v)
+	case OpCtz32NonZero:
+		v.Op = OpCtz64
+		return true
+	case OpCtz64:
+		return rewriteValueSPARC64_OpCtz64(v)
+	case OpCtz64NonZero:
+		v.Op = OpCtz64
+		return true
+	case OpCtz8NonZero:
+		v.Op = OpCtz64
+		return true
 	case OpCvt32Fto32:
 		return rewriteValueSPARC64_OpCvt32Fto32(v)
 	case OpCvt32Fto64:
@@ -824,6 +840,41 @@ func rewriteValueSPARC64_OpConstNil(v *Value) bool {
 	for {
 		v.reset(OpSPARC64MOVDconst)
 		v.AuxInt = int64ToAuxInt(0)
+		return true
+	}
+}
+func rewriteValueSPARC64_OpCtz32(v *Value) bool {
+	v_0 := v.Args[0]
+	b := v.Block
+	typ := &b.Func.Config.Types
+	// match: (Ctz32 x)
+	// result: (Ctz64 (OR <typ.Int64> x (MOVDconst [1<<32])))
+	for {
+		x := v_0
+		v.reset(OpCtz64)
+		v0 := b.NewValue0(v.Pos, OpSPARC64OR, typ.Int64)
+		v1 := b.NewValue0(v.Pos, OpSPARC64MOVDconst, typ.UInt64)
+		v1.AuxInt = int64ToAuxInt(1 << 32)
+		v0.AddArg2(x, v1)
+		v.AddArg(v0)
+		return true
+	}
+}
+func rewriteValueSPARC64_OpCtz64(v *Value) bool {
+	v_0 := v.Args[0]
+	b := v.Block
+	typ := &b.Func.Config.Types
+	// match: (Ctz64 x)
+	// result: (POPC (ANDN <typ.Int64> (SUBconst <typ.Int64> [1] x) x))
+	for {
+		x := v_0
+		v.reset(OpSPARC64POPC)
+		v0 := b.NewValue0(v.Pos, OpSPARC64ANDN, typ.Int64)
+		v1 := b.NewValue0(v.Pos, OpSPARC64SUBconst, typ.Int64)
+		v1.AuxInt = int64ToAuxInt(1)
+		v1.AddArg(x)
+		v0.AddArg2(v1, x)
+		v.AddArg(v0)
 		return true
 	}
 }

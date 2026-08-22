@@ -84,6 +84,7 @@ var optab = map[Optab]Opval{
 	Optab{AFSMULD, ClassFReg, ClassFReg, ClassNone, ClassDReg}: {1, 4, 0},
 
 	Optab{AMOVD, ClassReg, ClassNone, ClassNone, ClassReg}: {2, 4, 0},
+	Optab{APOPC, ClassReg, ClassNone, ClassNone, ClassReg}: {2, 4, 0},
 
 	Optab{AADD, ClassConst13, ClassNone, ClassNone, ClassReg}:  {3, 4, 0},
 	Optab{AAND, ClassConst13, ClassNone, ClassNone, ClassReg}:  {3, 4, 0},
@@ -682,6 +683,9 @@ func opalu(a obj.As) uint32 {
 	case ASRAD:
 		return op3(2, 0x27) | 1<<12
 
+	case APOPC:
+		// POPC: population count, rs1 must be %g0.
+		return op3(2, 0x2E)
 	case ASAVE:
 		return op3(2, 0x3C)
 	case ARESTORE:

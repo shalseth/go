@@ -179,6 +179,7 @@ func init() {
 		{name: "ADDconst", argLength: 1, reg: gp11sp, asm: "ADD", aux: "Int64"}, // arg0 + auxInt
 		{name: "SUB", argLength: 2, reg: gp21, asm: "SUB"},                      // arg0 - arg1
 		{name: "SUBconst", argLength: 1, reg: gp11, asm: "SUB", aux: "Int64"},    // arg0 - auxInt
+		{name: "POPC", argLength: 1, reg: gp11, asm: "POPC"},                    // count of one bits in arg0
 		{name: "MULD", argLength: 2, reg: gp21, asm: "MULD", commutative: true},  // arg0 * arg1
 		{name: "SDIVD", argLength: 2, reg: gp21, asm: "SDIVD"},                   // arg0 / arg1, signed
 		// VIS3. The T4 implements it; older SPARC V9 parts do not.

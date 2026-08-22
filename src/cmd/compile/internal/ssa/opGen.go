@@ -6164,6 +6164,7 @@ const (
 	OpSPARC64ADDconst
 	OpSPARC64SUB
 	OpSPARC64SUBconst
+	OpSPARC64POPC
 	OpSPARC64MULD
 	OpSPARC64SDIVD
 	OpSPARC64UMULXHI
@@ -101910,6 +101911,19 @@ var opcodeTable = [...]opInfo{
 		auxType: auxInt64,
 		argLen:  1,
 		asm:     sparc64.ASUB,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+			},
+			outputs: []outputInfo{
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
+			},
+		},
+	},
+	{
+		name:   "POPC",
+		argLen: 1,
+		asm:    sparc64.APOPC,
 		reg: regInfo{
 			inputs: []inputInfo{
 				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g

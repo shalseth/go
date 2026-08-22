@@ -533,6 +533,7 @@ const (
 	// cgo boundary does, and the kernel may be holding those windows
 	// rather than the stacks they belong to.
 	AFLUSHW
+	APOPC
 
 	// VIS3 register moves between the float and integer files. SPARC V9
 	// without VIS3 has to round-trip through memory for these, so the
