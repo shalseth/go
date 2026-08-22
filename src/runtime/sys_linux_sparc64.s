@@ -353,7 +353,9 @@ walltime_nosaveg:
 	// so nothing needs parking in memory across the call: the hardware
 	// keeps this window for us.
 	MOVD	R2, O3			// the vDSO entry point
-	SAVE	$-2047, R1, RSP
+	MOVD	g, O4			// g rides into the window: %l6 is
+	SAVE	$-2047, R1, RSP		// window-local, and a signal taken
+	MOVD	I4, g			// here must find the real g in it
 	MOVD	$CLOCK_REALTIME, O0
 	MOVD	$176(BSP), O1		// timespec, clear of the window save area
 	MOVD	I3, R16
@@ -454,7 +456,9 @@ nanotime_nosaveg:
 	// so nothing needs parking in memory across the call: the hardware
 	// keeps this window for us.
 	MOVD	R2, O3			// the vDSO entry point
-	SAVE	$-2047, R1, RSP
+	MOVD	g, O4			// g rides into the window: %l6 is
+	SAVE	$-2047, R1, RSP		// window-local, and a signal taken
+	MOVD	I4, g			// here must find the real g in it
 	MOVD	$CLOCK_MONOTONIC, O0
 	MOVD	$176(BSP), O1		// timespec, clear of the window save area
 	MOVD	I3, R16
