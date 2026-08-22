@@ -454,6 +454,37 @@ const (
 	// relative to the thread pointer held in %g7.
 	R_SPARC64_TLS_LE
 
+	// R_SPARC64ELFHI22 resolves the high 22 bits (31..10) of a 32-bit
+	// absolute address into a single SETHI, the way an ELF R_SPARC_HI22
+	// read from a host object expects. Only produced for relocations
+	// ingested from host ELF files during internal linking.
+	R_SPARC64ELFHI22
+
+	// R_SPARC64ELFLO10 resolves the low 10 bits of an absolute address
+	// into one instruction's immediate field (ELF R_SPARC_LO10).
+	R_SPARC64ELFLO10
+
+	// R_SPARC64ELFPC22 and R_SPARC64ELFPC10 resolve the high 22 and low
+	// 10 bits of a place-relative offset (ELF R_SPARC_PC22/PC10), used
+	// by host objects to locate the GOT.
+	R_SPARC64ELFPC22
+	R_SPARC64ELFPC10
+
+	// R_SPARC64GDOPHIX22 and R_SPARC64GDOPLOX10 resolve the GOT-relative
+	// offset of a symbol (or of its GOT slot, when the symbol is
+	// dynamic) into a SETHI/XOR pair, following the psABI's
+	// R_SPARC_GOTDATA_OP_HIX22/LOX10 code model.
+	R_SPARC64GDOPHIX22
+	R_SPARC64GDOPLOX10
+
+	// R_SPARC64GDOP2ADD rewrites a GOTDATA_OP-annotated "ldx
+	// [got+off], rd" into "add got, off, rd": the symbol is local, so
+	// the GOT-relative offset is the value itself and no load is
+	// needed. R_SPARC64GDOPNOP leaves the load alone (dynamic symbol,
+	// real GOT slot).
+	R_SPARC64GDOP2ADD
+	R_SPARC64GDOPNOP
+
 	// R_WEAK marks the relocation as a weak reference.
 	// A weak relocation does not make the symbol it refers to reachable,
 	// and is only honored by the linker if the symbol is in some other way

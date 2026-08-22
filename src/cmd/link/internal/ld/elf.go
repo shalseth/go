@@ -1515,9 +1515,11 @@ func (ctxt *Link) doelf() {
 		}
 
 		plt := ldr.CreateSymForUpdate(".plt", 0)
-		if ctxt.IsPPC64() {
+		if ctxt.IsPPC64() || ctxt.Arch.Family == sys.SPARC64 {
 			// In the ppc64 ABI, .plt is a data section
-			// written by the dynamic linker.
+			// written by the dynamic linker. On sparc64 the PLT
+			// entries are code the dynamic linker binds by patching,
+			// so they live in the (executable) data segment there.
 			plt.SetType(sym.SELFSECT)
 		} else {
 			plt.SetType(sym.SELFRXSECT)
@@ -1572,7 +1574,9 @@ func (ctxt *Link) doelf() {
 			Elfwritedynent(ctxt.Arch, dynamic, elf.DT_RUNPATH, uint64(dynstr.Addstring(rpath.val)))
 		}
 
-		if ctxt.IsPPC64() {
+		if ctxt.IsPPC64() || ctxt.Arch.Family == sys.SPARC64 {
+			// On these, DT_PLTGOT names the PLT itself: the sparc64
+			// dynamic linker binds slots by patching PLT code.
 			elfWriteDynEntSym(ctxt, dynamic, elf.DT_PLTGOT, plt.Sym())
 		} else {
 			elfWriteDynEntSym(ctxt, dynamic, elf.DT_PLTGOT, gotplt.Sym())

@@ -63,6 +63,8 @@ func RelocName(arch *sys.Arch, r objabi.RelocType) string {
 			return elf.R_390(nr).String()
 		case sys.RISCV64:
 			return elf.R_RISCV(nr).String()
+		case sys.SPARC64:
+			return elf.R_SPARC(nr).String()
 		default:
 			panic("unreachable")
 		}

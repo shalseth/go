@@ -130,6 +130,12 @@ crosscall1:
  * where nothing moves, and leaves the window Go walks the stack in
  * current for as long as it does so.
  */
+/* crosscall2_flat lives in the Go-side assembly (asm_sparc64.s). Declare
+   it weak: cmd/go probes whether these objects can link internally by
+   linking them alone with the host toolchain, and a strong undefined
+   reference fails that probe. Real links bind the strong definition. */
+.weak crosscall2_flat
+
 .globl crosscall2
 .type crosscall2, #function
 crosscall2:

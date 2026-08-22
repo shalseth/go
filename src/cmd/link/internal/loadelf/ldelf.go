@@ -381,6 +381,11 @@ func Load(l *loader.Loader, arch *sys.Arch, localSymVersion int, f *bio.Reader, 
 		if mach != elf.EM_S390 || class != elf.ELFCLASS64 {
 			return errorf("elf object but not s390x")
 		}
+
+	case sys.SPARC64:
+		if e != binary.BigEndian || mach != elf.EM_SPARCV9 || class != elf.ELFCLASS64 {
+			return errorf("elf object but not sparc64")
+		}
 	}
 
 	// load section list into memory.
@@ -1014,6 +1019,7 @@ func relSize(arch *sys.Arch, pn string, elftype uint32) (uint8, uint8, error) {
 		PPC64   = uint32(sys.PPC64)
 		RISCV64 = uint32(sys.RISCV64)
 		S390X   = uint32(sys.S390X)
+		SPARC64 = uint32(sys.SPARC64)
 	)
 
 	switch uint32(arch.Family) | elftype<<16 {
@@ -1086,6 +1092,42 @@ func relSize(arch *sys.Arch, pn string, elftype uint32) (uint8, uint8, error) {
 		LOONG64 | uint32(elf.R_LARCH_SUB64)<<16,
 		LOONG64 | uint32(elf.R_LARCH_64_PCREL)<<16,
 		LOONG64 | uint32(elf.R_LARCH_CALL36)<<16:
+		return 8, 8, nil
+
+	case SPARC64 | uint32(elf.R_SPARC_8)<<16:
+		return 1, 1, nil
+
+	case SPARC64 | uint32(elf.R_SPARC_16)<<16,
+		SPARC64 | uint32(elf.R_SPARC_UA16)<<16:
+		return 2, 2, nil
+
+	case SPARC64 | uint32(elf.R_SPARC_32)<<16,
+		SPARC64 | uint32(elf.R_SPARC_UA32)<<16,
+		SPARC64 | uint32(elf.R_SPARC_DISP32)<<16,
+		SPARC64 | uint32(elf.R_SPARC_WDISP30)<<16,
+		SPARC64 | uint32(elf.R_SPARC_WPLT30)<<16,
+		SPARC64 | uint32(elf.R_SPARC_WDISP22)<<16,
+		SPARC64 | uint32(elf.R_SPARC_WDISP19)<<16,
+		SPARC64 | uint32(elf.R_SPARC_HI22)<<16,
+		SPARC64 | uint32(elf.R_SPARC_LO10)<<16,
+		SPARC64 | uint32(elf.R_SPARC_OLO10)<<16,
+		SPARC64 | uint32(elf.R_SPARC_HH22)<<16,
+		SPARC64 | uint32(elf.R_SPARC_HM10)<<16,
+		SPARC64 | uint32(elf.R_SPARC_LM22)<<16,
+		SPARC64 | uint32(elf.R_SPARC_13)<<16,
+		SPARC64 | uint32(elf.R_SPARC_PC22)<<16,
+		SPARC64 | uint32(elf.R_SPARC_PC10)<<16,
+		// debug/elf predates the GOTDATA relocations; TIS values.
+		SPARC64 | 80<<16, // R_SPARC_GOTDATA_HIX22
+		SPARC64 | 81<<16, // R_SPARC_GOTDATA_LOX10
+		SPARC64 | 82<<16, // R_SPARC_GOTDATA_OP_HIX22
+		SPARC64 | 83<<16, // R_SPARC_GOTDATA_OP_LOX10
+		SPARC64 | 84<<16: // R_SPARC_GOTDATA_OP
+		return 4, 4, nil
+
+	case SPARC64 | uint32(elf.R_SPARC_64)<<16,
+		SPARC64 | uint32(elf.R_SPARC_UA64)<<16,
+		SPARC64 | uint32(elf.R_SPARC_DISP64)<<16:
 		return 8, 8, nil
 
 	case S390X | uint32(elf.R_390_8)<<16:

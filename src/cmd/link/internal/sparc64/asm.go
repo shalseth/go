@@ -21,7 +21,115 @@ import (
 func gentext(ctxt *ld.Link, ldr *loader.Loader) {}
 
 func adddynrel(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, s loader.Sym, r loader.Reloc, rIdx int) bool {
-	ldr.Errorf(s, "adddynrel: dynamic linking is not supported on linux/sparc64")
+	targ := r.Sym()
+
+	switch rt := r.Type(); rt {
+	default:
+		if rt >= objabi.ElfRelocOffset {
+			ldr.Errorf(s, "unexpected relocation type %d (%s)", r.Type(), sym.RelocName(target.Arch, r.Type()))
+			return false
+		}
+
+	// Relocations read from host ELF objects (internal linking of cgo
+	// code). Convert each to the internal relocation that applies the
+	// same bits; the actual patching happens in archreloc.
+	case objabi.ElfRelocOffset + objabi.RelocType(elf.R_SPARC_64),
+		objabi.ElfRelocOffset + objabi.RelocType(elf.R_SPARC_UA64):
+		su := ldr.MakeSymbolUpdater(s)
+		su.SetRelocType(rIdx, objabi.R_ADDR)
+		return true
+
+	case objabi.ElfRelocOffset + objabi.RelocType(elf.R_SPARC_32),
+		objabi.ElfRelocOffset + objabi.RelocType(elf.R_SPARC_UA32):
+		su := ldr.MakeSymbolUpdater(s)
+		su.SetRelocType(rIdx, objabi.R_ADDR)
+		su.SetRelocSiz(rIdx, 4)
+		return true
+
+	case objabi.ElfRelocOffset + objabi.RelocType(elf.R_SPARC_DISP32):
+		su := ldr.MakeSymbolUpdater(s)
+		su.SetRelocType(rIdx, objabi.R_PCREL)
+		su.SetRelocSiz(rIdx, 4)
+		return true
+
+	case objabi.ElfRelocOffset + objabi.RelocType(elf.R_SPARC_WDISP30),
+		objabi.ElfRelocOffset + objabi.RelocType(elf.R_SPARC_WPLT30):
+		// A call. To a symbol in this binary it resolves directly; to
+		// a dynamic import it goes through a PLT entry.
+		su := ldr.MakeSymbolUpdater(s)
+		su.SetRelocType(rIdx, objabi.R_CALLSPARC64)
+		if ldr.SymType(targ) == sym.SDYNIMPORT {
+			addpltsym(target, ldr, syms, targ)
+			su.SetRelocSym(rIdx, syms.PLT)
+			su.SetRelocAdd(rIdx, r.Add()+int64(ldr.SymPlt(targ)))
+		}
+		return true
+
+	case objabi.ElfRelocOffset + objabi.RelocType(elf.R_SPARC_PC22):
+		su := ldr.MakeSymbolUpdater(s)
+		su.SetRelocType(rIdx, objabi.R_SPARC64ELFPC22)
+		return true
+
+	case objabi.ElfRelocOffset + objabi.RelocType(elf.R_SPARC_PC10):
+		su := ldr.MakeSymbolUpdater(s)
+		su.SetRelocType(rIdx, objabi.R_SPARC64ELFPC10)
+		return true
+
+	// The GOTDATA_OP model: a SETHI/XOR pair forms a GOT-relative
+	// offset and an annotated ldx adds it to the GOT base. For a symbol
+	// in this binary the linker resolves the offset to the symbol
+	// itself and turns the load into an add; for a dynamic import it
+	// allocates a real GOT slot and keeps the load.
+	case objabi.ElfRelocOffset + 80, // R_SPARC_GOTDATA_HIX22
+		objabi.ElfRelocOffset + 82: // R_SPARC_GOTDATA_OP_HIX22
+		su := ldr.MakeSymbolUpdater(s)
+		su.SetRelocType(rIdx, objabi.R_SPARC64GDOPHIX22)
+		if ldr.SymType(targ) == sym.SDYNIMPORT {
+			addgotsym(target, ldr, syms, targ)
+			su.SetRelocSym(rIdx, syms.GOT)
+			su.SetRelocAdd(rIdx, r.Add()+int64(ldr.SymGot(targ)))
+		}
+		return true
+
+	case objabi.ElfRelocOffset + 81, // R_SPARC_GOTDATA_LOX10
+		objabi.ElfRelocOffset + 83: // R_SPARC_GOTDATA_OP_LOX10
+		su := ldr.MakeSymbolUpdater(s)
+		su.SetRelocType(rIdx, objabi.R_SPARC64GDOPLOX10)
+		if ldr.SymType(targ) == sym.SDYNIMPORT {
+			addgotsym(target, ldr, syms, targ)
+			su.SetRelocSym(rIdx, syms.GOT)
+			su.SetRelocAdd(rIdx, r.Add()+int64(ldr.SymGot(targ)))
+		}
+		return true
+
+	case objabi.ElfRelocOffset + 84: // R_SPARC_GOTDATA_OP
+		su := ldr.MakeSymbolUpdater(s)
+		if ldr.SymType(targ) == sym.SDYNIMPORT {
+			su.SetRelocType(rIdx, objabi.R_SPARC64GDOPNOP)
+			// The load stays exactly as it is; point the relocation
+			// away from the dynamic symbol so the generic checks do
+			// not demand dynamic-linking treatment for it.
+			su.SetRelocSym(rIdx, syms.GOT)
+			su.SetRelocAdd(rIdx, 0)
+		} else {
+			su.SetRelocType(rIdx, objabi.R_SPARC64GDOP2ADD)
+		}
+		return true
+
+	case objabi.ElfRelocOffset + objabi.RelocType(elf.R_SPARC_HI22):
+		su := ldr.MakeSymbolUpdater(s)
+		su.SetRelocType(rIdx, objabi.R_SPARC64ELFHI22)
+		return true
+
+	case objabi.ElfRelocOffset + objabi.RelocType(elf.R_SPARC_LO10):
+		su := ldr.MakeSymbolUpdater(s)
+		su.SetRelocType(rIdx, objabi.R_SPARC64ELFLO10)
+		return true
+	}
+
+	// Reject the rest (GOT and TLS machinery, which the internal linker
+	// does not provide on this port).
+	ldr.Errorf(s, "adddynrel: unsupported dynamic relocation for symbol %s (type %d)", ldr.SymName(targ), r.Type())
 	return false
 }
 
@@ -76,6 +184,61 @@ func elfreloc1(ctxt *ld.Link, out *ld.OutBuf, ldr *loader.Loader, s loader.Sym, 
 }
 
 func elfsetupplt(ctxt *ld.Link, ldr *loader.Loader, plt, gotplt *loader.SymbolBuilder, dynamic loader.Sym) {
+	if plt.Size() == 0 {
+		// The psABI reserves the first four 32-byte entries; the
+		// dynamic linker writes its resolver trampoline into them at
+		// startup.
+		for i := 0; i < 32; i++ {
+			plt.AddUint32(ctxt.Arch, 0)
+		}
+	}
+}
+
+// addpltsym gives s a PLT entry in the psABI's format: a SETHI whose
+// immediate is the entry's own byte offset within .plt (the resolver
+// derives the relocation index from it) and a branch to the reserved
+// second entry. The dynamic linker binds the slot by patching the entry's
+// code, so the R_SPARC_JMP_SLOT relocation's offset is the entry itself.
+func addpltsym(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, s loader.Sym) {
+	if ldr.SymPlt(s) >= 0 {
+		return
+	}
+	ld.Adddynsym(ldr, target, syms, s)
+
+	plt := ldr.MakeSymbolUpdater(syms.PLT)
+	rela := ldr.MakeSymbolUpdater(syms.RelaPLT)
+	off := plt.Size()
+
+	plt.AddUint32(target.Arch, 0x03000000|uint32(off))                    // sethi %hi(off<<10), %g1
+	plt.AddUint32(target.Arch, 0x30680000|uint32((0x20-off-4)>>2)&0x7ffff) // ba,a %xcc, .plt+0x20
+	for i := 0; i < 6; i++ {
+		plt.AddUint32(target.Arch, 0x01000000) // nop
+	}
+
+	rela.AddAddrPlus(target.Arch, plt.Sym(), off)
+	rela.AddUint64(target.Arch, elf.R_INFO(uint32(ldr.SymDynid(s)), uint32(elf.R_SPARC_JMP_SLOT)))
+	rela.AddUint64(target.Arch, 0)
+
+	ldr.SetPlt(s, int32(off))
+}
+
+// addgotsym gives s a GOT slot filled in by the dynamic linker.
+func addgotsym(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, s loader.Sym) {
+	if ldr.SymGot(s) >= 0 {
+		return
+	}
+	ld.Adddynsym(ldr, target, syms, s)
+
+	got := ldr.MakeSymbolUpdater(syms.GOT)
+	rela := ldr.MakeSymbolUpdater(syms.Rela)
+	off := got.Size()
+	got.AddUint64(target.Arch, 0)
+
+	rela.AddAddrPlus(target.Arch, got.Sym(), off)
+	rela.AddUint64(target.Arch, elf.R_INFO(uint32(ldr.SymDynid(s)), uint32(elf.R_SPARC_GLOB_DAT)))
+	rela.AddUint64(target.Arch, 0)
+
+	ldr.SetGot(s, int32(off))
 }
 
 func machoreloc1(*sys.Arch, *ld.OutBuf, *loader.Loader, loader.Sym, loader.ExtReloc, int64) bool {
@@ -113,6 +276,49 @@ func archreloc(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, r loade
 			ldr.Errorf(s, "unaligned call target, distance = %d", t)
 		}
 		return val | (t>>2)&0x3fffffff, noExtReloc, isOk
+
+	case objabi.R_SPARC64ELFPC22, objabi.R_SPARC64ELFPC10:
+		// Place-relative pieces (host R_SPARC_PC22/PC10).
+		t := ldr.SymValue(rs) + r.Add() - (ldr.SymValue(s) + int64(r.Off()))
+		if r.Type() == objabi.R_SPARC64ELFPC22 {
+			return val&^0x3fffff | (t>>10)&0x3fffff, noExtReloc, isOk
+		}
+		return val&^0x3ff | t&0x3ff, noExtReloc, isOk
+
+	case objabi.R_SPARC64GDOPHIX22, objabi.R_SPARC64GDOPLOX10:
+		// GOT-relative value in the psABI's SETHI/XOR form, which
+		// handles negative offsets: HIX22 = (v>>10)^(v>>31), LOX10 =
+		// (v&0x3ff)|((v>>31)&0x1c00), with arithmetic shifts.
+		v := ldr.SymValue(rs) + r.Add() - ldr.SymValue(syms.GOT)
+		if r.Type() == objabi.R_SPARC64GDOPHIX22 {
+			return val&^0x3fffff | ((v>>10)^(v>>31))&0x3fffff, noExtReloc, isOk
+		}
+		return val&^0x1fff | (v&0x3ff | (v>>31)&0x1c00), noExtReloc, isOk
+
+	case objabi.R_SPARC64GDOP2ADD:
+		// The annotated "ldx [got+off], rd" becomes "add got, off, rd":
+		// same rd, rs1 and rs2, opcode swapped for the arithmetic op.
+		rd := val >> 25 & 0x1f
+		rs1 := val >> 14 & 0x1f
+		rs2 := val & 0x1f
+		return 2<<30 | rd<<25 | 0<<19 | rs1<<14 | rs2, noExtReloc, isOk
+
+	case objabi.R_SPARC64GDOPNOP:
+		// The symbol is dynamic; the load from its real GOT slot stays.
+		return val, noExtReloc, isOk
+
+	case objabi.R_SPARC64ELFHI22:
+		// A host object's R_SPARC_HI22: the top 22 bits of a 32-bit
+		// absolute address into this one SETHI.
+		t := ldr.SymValue(rs) + r.Add()
+		if uint64(t) != uint64(uint32(t)) {
+			ldr.Errorf(s, "R_SPARC_HI22 target out of 32-bit range: %#x", t)
+		}
+		return val&^0x3fffff | (t>>10)&0x3fffff, noExtReloc, isOk
+
+	case objabi.R_SPARC64ELFLO10:
+		t := ldr.SymValue(rs) + r.Add()
+		return val&^0x3ff | t&0x3ff, noExtReloc, isOk
 
 	case objabi.R_ADDRSPARC64HI, objabi.R_ADDRSPARC64LO:
 		// These relocate a SETHI/OR pair, so the value spans two
