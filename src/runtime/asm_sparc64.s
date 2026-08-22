@@ -13,7 +13,12 @@
 DATA dbgbuf(SB)/8, $"\n\n"
 GLOBL dbgbuf(SB), $8
 
-TEXT runtime·rt0_go(SB),NOSPLIT|TOPFRAME,$0
+// rt0_go must be NOFRAME: it is entered on the kernel's execve frame,
+// where argc sits at sp+bias+128 and argv follows - there is no
+// argument save area. A compiled prologue would heal its "caller's"
+// anchors right on top of argv[0]. It has no caller, manages its own
+// stack below the kernel frame, and never returns.
+TEXT runtime·rt0_go(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
 	// BSP = stack; R9 = argc; R8 = argv
 
 	// Push whatever windows the loader and libc startup left resident
