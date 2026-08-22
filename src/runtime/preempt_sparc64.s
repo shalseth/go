@@ -20,7 +20,7 @@
 // assembler temporary live are marked non-preemptible.
 //
 // Frame: the 176-byte SPARC minimum, the 20 allocatable integer
-// registers (R1-R5, R8-R13, R16-R21, R24, R25, R29), the reserved
+// registers (R1-R5, R8-R13, R16-R20, R24, R25, R29), the reserved
 // temporaries TMP2/RT1/RT2 (live across instruction sequences that are
 // not individually marked unsafe, like the Zero/Move loops), and the
 // 15 allocatable float registers (Y1-Y15 = D2..D30).
@@ -42,7 +42,7 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	// prologues have the same window but are healed by their birth
 	// stores; this frame's record is the copied window, so the window
 	// must simply never exist.
-	MOVD	RFP, (112)(BSP)
+	MOVD	RFP, (40)(BSP)
 	MOVD	OLR, (120)(BSP)
 	SUB	$512, BSP
 	ADD	$512, RSP, RFP
@@ -64,7 +64,6 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	R18, (176+104)(BSP)
 	MOVD	R19, (176+112)(BSP)
 	MOVD	R20, (176+120)(BSP)
-	MOVD	R21, (176+128)(BSP)
 	MOVD	R24, (176+136)(BSP)
 	MOVD	R25, (176+144)(BSP)
 	MOVD	R29, (176+152)(BSP)
@@ -113,7 +112,6 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	MOVD	(176+152)(BSP), R29
 	MOVD	(176+144)(BSP), R25
 	MOVD	(176+136)(BSP), R24
-	MOVD	(176+128)(BSP), R21
 	MOVD	(176+120)(BSP), R20
 	MOVD	(176+112)(BSP), R19
 	MOVD	(176+104)(BSP), R18
@@ -150,6 +148,6 @@ TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	ADD	$8, OLR, TMP		// resumePC
 	MOVD	(128+2047)(RFP), LR	// interrupted LR (spilled by pushCall at +128)
 	MOVD	(120+2047)(RFP), OLR	// interrupted OLR
-	MOVD	(112+2047)(RFP), RFP	// interrupted RFP (RFP dies last)
+	MOVD	(40+2047)(RFP), RFP	// interrupted RFP (RFP dies last)
 	ADD	$(512+176), RSP		// pop our frame and the pushCall area
 	JMPL	TMP, ZR

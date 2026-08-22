@@ -25,6 +25,16 @@ TEXT runtime·rt0_go(SB),NOSPLIT|TOPFRAME,$0
 	// the initial thread's turn.
 	FLUSHW
 
+	// Park %i6 on the initial thread's window scratch. The kernel
+	// dereferences the live %i6 - clone reads a stack frame through it,
+	// and window spills write through it - and execve leaves it zero.
+	// The scratch's own %i6 image points back at the scratch, so a
+	// phantom window filled from it and spilled again stays inside it.
+	MOVD	$runtime·m0WindowScratch(SB), R1
+	SUB	$2047, R1		// %i6 convention: biased
+	MOVD	R1, R30
+	MOVD	R1, (112+2047)(R30)	// the scratch's own %i6 image
+
 	SUB	$(FIXED_FRAME+16), BSP
 	MOVD	$(FIXED_FRAME+0)(BSP), RT1
 	MOVW	R9, (RT1) // argc
@@ -551,7 +561,7 @@ TEXT runtime·procyieldAsm(SB),NOSPLIT,$0-0
 // 3. BR to fn
 // gosave<> parks the goroutine that is about to leave for C. Its only
 // caller is asmcgocall, and the parked PC it records is asmcgocall's own
-// return address, which asmcgocall keeps in R21 - not a PC inside
+// return address, which asmcgocall keeps in R25 - not a PC inside
 // asmcgocall itself.
 //
 // The distinction matters because asmcgocall writes SP, and the unwinder
@@ -563,7 +573,7 @@ TEXT runtime·procyieldAsm(SB),NOSPLIT,$0-0
 // carries no frame of its own, nothing is lost by skipping it: the stack
 // pointer recorded here is already the frame cgocall is standing on.
 TEXT gosave<>(SB),NOSPLIT|NOFRAME,$0
-	ADD	$8, R21, TMP2
+	ADD	$8, R25, TMP2
 	MOVD	TMP2, (g_sched+gobuf_pc)(g)
 	MOVD	BSP, TMP
 	MOVD	TMP, (g_sched+gobuf_sp)(g)
@@ -576,7 +586,7 @@ TEXT gosave<>(SB),NOSPLIT|NOFRAME,$0
 // aligned appropriately for the gcc ABI.
 // See cgocall.go for more details.
 TEXT ·asmcgocall(SB),NOSPLIT|NOFRAME,$0-20
-	MOVD	LR, R21			// gosave<> below clobbers LR
+	MOVD	LR, R25			// gosave<> below clobbers LR
 	MOVD	fn+0(FP), R19
 	MOVD	arg+8(FP), R20
 	MOVD	g, R24			// the g we came in on
@@ -667,7 +677,7 @@ oncurrentstack:
 	// refill of this window finds the right %i6. Only the slots are
 	// written: %i7 is the window below's link register, and a C callee
 	// that returns with "ret" would jump through it.
-	MOVD	RFP, (112)(BSP)
+	MOVD	R30, (40)(BSP)		// %i6: the Go window's stack pointer
 	MOVD	OLR, (120)(BSP)
 
 	MOVD	I0, O0
@@ -689,7 +699,7 @@ oncurrentstack:
 	SUB	R16, R18
 	MOVD	R18, BSP
 
-	MOVD	R21, LR
+	MOVD	R25, LR
 	MOVW	R8, ret+16(FP)
 	RET
 
@@ -817,7 +827,7 @@ havem:
 	// has to land on the parked stack pointer.
 	SUB	$176, R4
 	MOVD	R4, BSP
-	MOVD	R9, (112)(BSP)		// caller: the parked frame
+	MOVD	R9, (40)(BSP)		// caller: the parked frame
 	MOVD	R5, (120)(BSP)		// return address: the parked PC
 
 	// This frame becomes the callback frame's caller, and the callback
@@ -837,7 +847,7 @@ havem:
 
 	MOVD	R9, RFP
 	MOVD	R5, OLR
-	MOVD	RFP, (112)(BSP)
+	MOVD	RFP, (40)(BSP)
 	MOVD	OLR, (120)(BSP)
 
 	MOVD	R16, (176+0)(BSP)
@@ -1158,3 +1168,11 @@ TEXT runtime·panicBounds(SB),NOSPLIT,$144-0
 // amd64 this is a plain return.
 TEXT runtime·publicationBarrier(SB),NOSPLIT|NOFRAME,$0-0
 	RET
+
+// m0WindowScratch is where the initial thread's %i6 points for the life of
+// the program: valid memory the kernel may read a stack frame from (clone
+// does) and where a spilled register window lands harmlessly. Go-created
+// threads use the frame the kernel builds at the top of their stack, and
+// threads entering from C use a reserved region in crosscall1/crosscall2's
+// frame.
+GLOBL	runtime·m0WindowScratch(SB), NOPTR, $256

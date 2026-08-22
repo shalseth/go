@@ -192,7 +192,16 @@ const (
 	REG_RT1  = REG_R27 // %i3
 	REG_RT2  = REG_R28 // %i4
 	REG_CTXT = REG_R29 // %i5, closure context pointer
-	REG_RFP  = REG_R30 // %i6, frame pointer (biased)
+	REG_RFP  = REG_R21 // %l5, frame pointer (biased)
+
+	// %i6 (R30) is deliberately left alone. It is the hardware's stack
+	// pointer for the window above this one: whatever a window holds
+	// there decides where the hardware writes that window out when it
+	// needs the registers, and the 128 bytes it writes land on the
+	// backing store of whatever was interrupted at that address. Every
+	// window the C side hands to Go arrives with a C stack pointer in
+	// %i6; leaving it untouched keeps every such write on a C stack,
+	// where it is harmless. It must never be used as a general register.
 	REG_OLR  = REG_R31 // %i7
 	REG_FTMP = REG_F0
 	REG_DTMP = REG_D0
@@ -245,6 +254,22 @@ const (
 	// kernel assumes this when delivering signals and C code assumes
 	// it at the cgo boundary.
 	StackBias = 0x7ff
+
+	// AnchorFP is the window save area slot a frame keeps its frame
+	// anchor in: the one the hardware spills RFP itself to, so that a
+	// spill of this window writes exactly the value the slot already
+	// holds and a trap can never damage it.
+	//
+	// It tracks whichever register RFP is. RFP cannot be %i6: that
+	// register is the hardware's stack pointer for the window above, so
+	// a frame pointer every prologue rewrites decides where the hardware
+	// spills a window that has nothing to do with this frame - and the
+	// 128 bytes it lands on are the backing store for whatever registers
+	// were interrupted there. With RFP in %l5, %i6 keeps the caller
+	// stack pointer the C side left in it, which is what the hardware
+	// expects, and such a spill lands on the C stack where it is
+	// harmless.
+	AnchorFP = 5 * 8 // the %l5 slot
 
 	// WindowSaveAreaSize is the 16-extended-word region every frame
 	// must reserve at %sp+StackBias for the register window. This is

@@ -746,6 +746,16 @@ TEXT runtime·clone(SB),NOSPLIT|NOFRAME,$0
 	MOVD	$0, R10			// parent tid
 	MOVD	$0, R11			// child tid
 	MOVD	$0, R12			// tls
+
+	// The kernel walks the caller's frame chain in clone: the trap
+	// spills the live %i6 into [%sp+bias+112], and copy_thread's
+	// clone_stackframe then reads that slot and copies (fp - sp) bytes
+	// of parent frame to the child stack. So across this one syscall,
+	// %i6 must be a real chain link a sane distance above %sp - the
+	// caller's frame anchor is exactly that. The thread's parked %i6
+	// (its window scratch) comes back on every parent-side exit.
+	MOVD	R30, R19
+	MOVD	RFP, R30
 	SYS(SYS_clone)
 	BCSW	cloneerr
 
@@ -753,14 +763,25 @@ TEXT runtime·clone(SB),NOSPLIT|NOFRAME,$0
 	// here, with %o1 zero in the parent and nonzero in the child.
 	CMP	ZR, R9
 	BNED	child
+	MOVD	R19, R30
 	MOVW	R8, ret+40(FP)
 	RET
 cloneerr:
+	MOVD	R19, R30
 	NEG	R8, R8
 	MOVW	R8, ret+40(FP)
 	RET
 
 child:
+	// Park %i6 on this thread's window scratch: the frame the kernel
+	// just built above our stack pointer (clone_stackframe), which the
+	// clone wrapper reserved and nothing will ever use again. Plant the
+	// scratch's own %i6 image so a phantom window cycle stays inside
+	// it. The kernel usually points %i6 here already; make it so
+	// explicitly rather than inherit the parent's.
+	MOVD	R14, R30		// R14 = RSP, the biased stack pointer
+	MOVD	R30, (112)(BSP)
+
 	// On the child stack now; the stash sits 192 bytes above our
 	// (unbiased) stack pointer.
 	MOVD	(192+0)(BSP), R16	// mp

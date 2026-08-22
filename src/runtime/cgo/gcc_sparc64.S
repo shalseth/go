@@ -28,7 +28,7 @@
 .globl crosscall1
 .type crosscall1, #function
 crosscall1:
-	add	%sp, -(176 + 176), %sp
+	add	%sp, -(176 + 176 + 192), %sp
 
 	/* Same reason as crosscall2 below: Go is about to use %i6, which is
 	   the stack pointer of the window beneath this one. */
@@ -50,6 +50,13 @@ crosscall1:
 	stx	%i5, [%sp + SAVED + 104]
 	stx	%i6, [%sp + SAVED + 112]
 	stx	%i7, [%sp + SAVED + 120]
+
+	/*
+	 * The first Go function's epilogue restores its caller's frame
+	 * anchor from this frame's AnchorFP slot - the one belonging to
+	 * whichever register RFP is. Publish it there as well.
+	 */
+	stx	%i6, [%sp + BIAS + 40]
 	stx	%o7, [%sp + SAVED + 128]
 
 	/* fn and setg_gcc outlive calls into Go, so they go to memory. */
@@ -62,6 +69,20 @@ crosscall1:
 	 nop
 
 	ldx	[%sp + SAVED + 136], %g1
+	/* Slot 40 above is %l5's spill slot: keep the live register equal
+	   to the published anchor so a trap here cannot clobber it. %l5 was
+	   saved above and is restored below. */
+	mov	%i6, %l5
+
+	/* Park %i6 on the scratch region carved at the top of this frame:
+	   the kernel dereferences the live %i6 (clone reads a frame through
+	   it, window spills write through it), and Go is about to run for
+	   an arbitrarily long time with this window's registers. The
+	   scratch's own %i6 image points back at itself. %i6 was saved
+	   above and is restored below. */
+	add	%sp, (176 + 176), %i6
+	stx	%i6, [%i6 + BIAS + 112]
+
 	call	%g1				/* fn() */
 	 nop
 
@@ -83,7 +104,7 @@ crosscall1:
 	ldx	[%sp + SAVED + 120], %i7
 	ldx	[%sp + SAVED + 128], %o7
 
-	add	%sp, (176 + 176), %sp
+	add	%sp, (176 + 176 + 192), %sp
 	retl
 	 nop
 
@@ -112,7 +133,7 @@ crosscall1:
 .globl crosscall2
 .type crosscall2, #function
 crosscall2:
-	save	%sp, -176, %sp
+	save	%sp, -(176 + 192), %sp
 
 	/*
 	 * Push the C windows out to the frames they belong to before Go
@@ -130,6 +151,17 @@ crosscall2:
 	 * read those frames, because the epilogues restore %i6 first.
 	 */
 	flushw
+
+	/* Same as crosscall1: advertise the anchor where Go looks, and
+	   keep live %l5 equal to its published spill slot. */
+	stx	%i6, [%sp + BIAS + 40]
+	stx	%i7, [%sp + BIAS + 120]
+	mov	%i6, %l5
+
+	/* %i6 must NOT be parked here, unlike crosscall1: this window came
+	   from a save, so %i6 is physically the caller's live %o6 - its
+	   stack pointer - and a restore does not undo a write to it. It
+	   already names a valid C frame, which is all the parking is for. */
 
 	mov	%i0, %o0
 	mov	%i1, %o1

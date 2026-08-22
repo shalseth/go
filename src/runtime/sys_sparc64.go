@@ -23,4 +23,11 @@ func gostartcall(buf *gobuf, fn, ctxt unsafe.Pointer) {
 	buf.olr = buf.lr
 	buf.pc = uintptr(fn)
 	buf.ctxt = ctxt
+
+	// Zero the outermost frame's anchor slot. The entry function's
+	// epilogue restores its caller's RFP from there - a frame no
+	// prologue ever built - and a reused stack can hold anything. The
+	// value is dead (the goroutine ends in goexit), but a stale stack
+	// pointer would survive into the parked gobuf.
+	*(*uintptr)(unsafe.Pointer(buf.sp + 40)) = 0
 }

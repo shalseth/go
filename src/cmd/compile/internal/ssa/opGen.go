@@ -101869,11 +101869,11 @@ var opcodeTable = [...]opInfo{
 		asm:         sparc64.AADD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -101884,10 +101884,10 @@ var opcodeTable = [...]opInfo{
 		asm:     sparc64.AADD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 16773118, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g
+				{0, regMask{v1: 8384510, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -101897,11 +101897,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.ASUB,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -101912,10 +101912,10 @@ var opcodeTable = [...]opInfo{
 		asm:     sparc64.ASUB,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -101926,11 +101926,11 @@ var opcodeTable = [...]opInfo{
 		asm:         sparc64.AMULD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -101940,11 +101940,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.ASDIVD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -101955,11 +101955,11 @@ var opcodeTable = [...]opInfo{
 		asm:         sparc64.AUMULXHI,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -101970,12 +101970,12 @@ var opcodeTable = [...]opInfo{
 		resultNotInArgs: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
-				{1, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
+				{1, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -101985,13 +101985,13 @@ var opcodeTable = [...]opInfo{
 		resultNotInArgs: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{2, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{2, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
-				{1, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
+				{1, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102001,13 +102001,13 @@ var opcodeTable = [...]opInfo{
 		resultNotInArgs: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{2, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{2, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
-				{1, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
+				{1, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102017,11 +102017,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AUDIVD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102032,11 +102032,11 @@ var opcodeTable = [...]opInfo{
 		asm:         sparc64.AAND,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102047,10 +102047,10 @@ var opcodeTable = [...]opInfo{
 		asm:     sparc64.AAND,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102061,11 +102061,11 @@ var opcodeTable = [...]opInfo{
 		asm:         sparc64.AOR,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102076,10 +102076,10 @@ var opcodeTable = [...]opInfo{
 		asm:     sparc64.AOR,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102090,11 +102090,11 @@ var opcodeTable = [...]opInfo{
 		asm:         sparc64.AXOR,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102105,10 +102105,10 @@ var opcodeTable = [...]opInfo{
 		asm:     sparc64.AXOR,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102118,11 +102118,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AANDN,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102132,11 +102132,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AORN,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102147,11 +102147,11 @@ var opcodeTable = [...]opInfo{
 		asm:         sparc64.AXNOR,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102161,11 +102161,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.ASLLD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102176,10 +102176,10 @@ var opcodeTable = [...]opInfo{
 		asm:     sparc64.ASLLD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102189,11 +102189,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.ASRLD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102204,10 +102204,10 @@ var opcodeTable = [...]opInfo{
 		asm:     sparc64.ASRLD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102217,11 +102217,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.ASRAD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102232,10 +102232,10 @@ var opcodeTable = [...]opInfo{
 		asm:     sparc64.ASRAD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102245,11 +102245,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.ASLLW,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102259,11 +102259,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.ASRLW,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102273,11 +102273,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.ASRAW,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102287,8 +102287,8 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.ACMP,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{1, regMask{v1: 12578815, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{1, regMask{v1: 6287359, v2: 0}}, // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 		},
 	},
@@ -102299,7 +102299,7 @@ var opcodeTable = [...]opInfo{
 		asm:     sparc64.ACMP,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 		},
 	},
@@ -102311,7 +102311,7 @@ var opcodeTable = [...]opInfo{
 		asm:               sparc64.AMOVD,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102323,7 +102323,7 @@ var opcodeTable = [...]opInfo{
 		asm:               sparc64.AFMOVS,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102335,7 +102335,7 @@ var opcodeTable = [...]opInfo{
 		asm:               sparc64.AFMOVD,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102348,10 +102348,10 @@ var opcodeTable = [...]opInfo{
 		asm:               sparc64.AMOVD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549760008192, v2: 0}}, // SP SB
+				{0, regMask{v1: 274880004096, v2: 0}}, // SP SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102365,10 +102365,10 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AMOVB,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102382,10 +102382,10 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AMOVUB,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102399,10 +102399,10 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AMOVH,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102416,10 +102416,10 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AMOVUH,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102433,10 +102433,10 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AMOVW,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102450,10 +102450,10 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AMOVUW,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102467,10 +102467,10 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AMOVD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102484,10 +102484,10 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AFMOVS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102501,10 +102501,10 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AFMOVD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102518,8 +102518,8 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AMOVB,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578815, v2: 0}},     // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287359, v2: 0}},      // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -102533,8 +102533,8 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AMOVH,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578815, v2: 0}},     // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287359, v2: 0}},      // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -102548,8 +102548,8 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AMOVW,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578815, v2: 0}},     // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287359, v2: 0}},      // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -102563,8 +102563,8 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AMOVD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578815, v2: 0}},     // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287359, v2: 0}},      // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -102578,8 +102578,8 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AFMOVS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -102593,8 +102593,8 @@ var opcodeTable = [...]opInfo{
 		asm:            sparc64.AFMOVD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -102604,10 +102604,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AMOVD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102617,10 +102617,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AMOVW,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102630,10 +102630,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AMOVUW,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102643,10 +102643,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AMOVH,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102656,10 +102656,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AMOVUH,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102669,10 +102669,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AMOVB,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102682,10 +102682,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AMOVUB,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102695,10 +102695,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.ANEG,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -102709,11 +102709,11 @@ var opcodeTable = [...]opInfo{
 		asm:         sparc64.AFADDS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102724,11 +102724,11 @@ var opcodeTable = [...]opInfo{
 		asm:         sparc64.AFADDD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102738,11 +102738,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFSUBS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102752,11 +102752,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFSUBD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102767,11 +102767,11 @@ var opcodeTable = [...]opInfo{
 		asm:         sparc64.AFMULS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102782,11 +102782,11 @@ var opcodeTable = [...]opInfo{
 		asm:         sparc64.AFMULD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102796,11 +102796,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFDIVS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102810,11 +102810,11 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFDIVD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102824,10 +102824,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFNEGS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102837,10 +102837,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFNEGD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102850,10 +102850,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFABSS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102863,10 +102863,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFABSD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102876,10 +102876,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFSQRTS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102889,10 +102889,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFSQRTD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102902,8 +102902,8 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFCMPS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102913,8 +102913,8 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFCMPD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
-				{1, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{1, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102924,10 +102924,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFSTOD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102937,10 +102937,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFDTOS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102950,10 +102950,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFSTOX,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102963,10 +102963,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFDTOX,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102976,10 +102976,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFSTOI,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -102989,10 +102989,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFDTOI,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -103002,10 +103002,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFXTOS,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -103015,10 +103015,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFXTOD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -103028,10 +103028,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFMOVD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103041,10 +103041,10 @@ var opcodeTable = [...]opInfo{
 		asm:    sparc64.AFMOVD,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 549739036672, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+				{0, regMask{v1: 274869518336, v2: 0}}, // Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			},
 		},
 	},
@@ -103054,10 +103054,10 @@ var opcodeTable = [...]opInfo{
 		faultOnNilArg0: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103067,10 +103067,10 @@ var opcodeTable = [...]opInfo{
 		faultOnNilArg0: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103080,10 +103080,10 @@ var opcodeTable = [...]opInfo{
 		faultOnNilArg0: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103094,8 +103094,8 @@ var opcodeTable = [...]opInfo{
 		hasSideEffects: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578815, v2: 0}},     // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287359, v2: 0}},      // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -103106,8 +103106,8 @@ var opcodeTable = [...]opInfo{
 		hasSideEffects: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578815, v2: 0}},     // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287359, v2: 0}},      // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -103118,8 +103118,8 @@ var opcodeTable = [...]opInfo{
 		hasSideEffects: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578815, v2: 0}},     // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287359, v2: 0}},      // ZR R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -103133,11 +103133,11 @@ var opcodeTable = [...]opInfo{
 		unsafePoint:     true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103151,11 +103151,11 @@ var opcodeTable = [...]opInfo{
 		unsafePoint:     true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103169,11 +103169,11 @@ var opcodeTable = [...]opInfo{
 		unsafePoint:     true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103187,11 +103187,11 @@ var opcodeTable = [...]opInfo{
 		unsafePoint:     true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103205,12 +103205,12 @@ var opcodeTable = [...]opInfo{
 		unsafePoint:     true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{2, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{2, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103224,12 +103224,12 @@ var opcodeTable = [...]opInfo{
 		unsafePoint:     true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{2, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{2, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103242,8 +103242,8 @@ var opcodeTable = [...]opInfo{
 		unsafePoint:    true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -103256,8 +103256,8 @@ var opcodeTable = [...]opInfo{
 		unsafePoint:    true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -103270,8 +103270,8 @@ var opcodeTable = [...]opInfo{
 		unsafePoint:    true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -103284,8 +103284,8 @@ var opcodeTable = [...]opInfo{
 		unsafePoint:    true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 12578814, v2: 0}},     // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
-				{0, regMask{v1: 549772587006, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP g SB
+				{1, regMask{v1: 6287358, v2: 0}},      // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
+				{0, regMask{v1: 274886291454, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP g SB
 			},
 		},
 	},
@@ -103296,7 +103296,7 @@ var opcodeTable = [...]opInfo{
 		clobberFlags: true,
 		call:         true,
 		reg: regInfo{
-			clobbers: regMask{v1: 549751615486, v2: 0}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+			clobbers: regMask{v1: 274875805694, v2: 0}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 		},
 	},
 	{
@@ -103307,7 +103307,7 @@ var opcodeTable = [...]opInfo{
 		call:         true,
 		tailCall:     true,
 		reg: regInfo{
-			clobbers: regMask{v1: 549751615486, v2: 0}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+			clobbers: regMask{v1: 274875805694, v2: 0}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 		},
 	},
 	{
@@ -103318,10 +103318,10 @@ var opcodeTable = [...]opInfo{
 		call:         true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{1, regMask{v1: 2097152, v2: 0}}, // R29
-				{0, regMask{v1: 8384510, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 SP
+				{1, regMask{v1: 1048576, v2: 0}}, // R29
+				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 SP
 			},
-			clobbers: regMask{v1: 549751615486, v2: 0}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+			clobbers: regMask{v1: 274875805694, v2: 0}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 		},
 	},
 	{
@@ -103332,9 +103332,9 @@ var opcodeTable = [...]opInfo{
 		call:         true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
-			clobbers: regMask{v1: 549751615486, v2: 0}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+			clobbers: regMask{v1: 274875805694, v2: 0}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 		},
 	},
 	{
@@ -103344,7 +103344,7 @@ var opcodeTable = [...]opInfo{
 		faultOnNilArg0: true,
 		reg: regInfo{
 			inputs: []inputInfo{
-				{0, regMask{v1: 12578814, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29 g
+				{0, regMask{v1: 6287358, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
 			},
 		},
 	},
@@ -103354,7 +103354,7 @@ var opcodeTable = [...]opInfo{
 		zeroWidth: true,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 2097152, v2: 0}}, // R29
+				{0, regMask{v1: 1048576, v2: 0}}, // R29
 			},
 		},
 	},
@@ -103364,7 +103364,7 @@ var opcodeTable = [...]opInfo{
 		rematerializeable: true,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103374,7 +103374,7 @@ var opcodeTable = [...]opInfo{
 		rematerializeable: true,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103456,9 +103456,9 @@ var opcodeTable = [...]opInfo{
 		argLen:       1,
 		clobberFlags: true,
 		reg: regInfo{
-			clobbers: regMask{v1: 549739040768, v2: 0}, // R15 Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+			clobbers: regMask{v1: 274869522432, v2: 0}, // R15 Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 			outputs: []outputInfo{
-				{0, regMask{v1: 1048576, v2: 0}}, // R25
+				{0, regMask{v1: 524288, v2: 0}}, // R25
 			},
 		},
 	},
@@ -103467,7 +103467,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103476,7 +103476,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103485,7 +103485,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103494,7 +103494,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103503,7 +103503,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103512,7 +103512,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103521,7 +103521,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103530,7 +103530,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103539,7 +103539,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103548,7 +103548,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103557,7 +103557,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103566,7 +103566,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103575,7 +103575,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103584,7 +103584,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103593,7 +103593,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -103602,7 +103602,7 @@ var opcodeTable = [...]opInfo{
 		argLen: 1,
 		reg: regInfo{
 			outputs: []outputInfo{
-				{0, regMask{v1: 4190206, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29
+				{0, regMask{v1: 2093054, v2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
 			},
 		},
 	},
@@ -119516,33 +119516,32 @@ var registersSPARC64 = [...]ssabase.Register{
 	{Num: 15, ObjNum: sparc64.REG_R18, Name: "R18"},
 	{Num: 16, ObjNum: sparc64.REG_R19, Name: "R19"},
 	{Num: 17, ObjNum: sparc64.REG_R20, Name: "R20"},
-	{Num: 18, ObjNum: sparc64.REG_R21, Name: "R21"},
-	{Num: 19, ObjNum: sparc64.REG_R24, Name: "R24"},
-	{Num: 20, ObjNum: sparc64.REG_R25, Name: "R25"},
-	{Num: 21, ObjNum: sparc64.REG_R29, Name: "R29"},
-	{Num: 22, ObjNum: sparc64.REGSP, Name: "SP"},
-	{Num: 23, ObjNum: sparc64.REGG, Name: "g"},
-	{Num: 24, ObjNum: sparc64.REG_Y1, Name: "Y1"},
-	{Num: 25, ObjNum: sparc64.REG_Y2, Name: "Y2"},
-	{Num: 26, ObjNum: sparc64.REG_Y3, Name: "Y3"},
-	{Num: 27, ObjNum: sparc64.REG_Y4, Name: "Y4"},
-	{Num: 28, ObjNum: sparc64.REG_Y5, Name: "Y5"},
-	{Num: 29, ObjNum: sparc64.REG_Y6, Name: "Y6"},
-	{Num: 30, ObjNum: sparc64.REG_Y7, Name: "Y7"},
-	{Num: 31, ObjNum: sparc64.REG_Y8, Name: "Y8"},
-	{Num: 32, ObjNum: sparc64.REG_Y9, Name: "Y9"},
-	{Num: 33, ObjNum: sparc64.REG_Y10, Name: "Y10"},
-	{Num: 34, ObjNum: sparc64.REG_Y11, Name: "Y11"},
-	{Num: 35, ObjNum: sparc64.REG_Y12, Name: "Y12"},
-	{Num: 36, ObjNum: sparc64.REG_Y13, Name: "Y13"},
-	{Num: 37, ObjNum: sparc64.REG_Y14, Name: "Y14"},
-	{Num: 38, ObjNum: sparc64.REG_Y15, Name: "Y15"},
-	{Num: 39, ObjNum: 0, Name: "SB"},
+	{Num: 18, ObjNum: sparc64.REG_R24, Name: "R24"},
+	{Num: 19, ObjNum: sparc64.REG_R25, Name: "R25"},
+	{Num: 20, ObjNum: sparc64.REG_R29, Name: "R29"},
+	{Num: 21, ObjNum: sparc64.REGSP, Name: "SP"},
+	{Num: 22, ObjNum: sparc64.REGG, Name: "g"},
+	{Num: 23, ObjNum: sparc64.REG_Y1, Name: "Y1"},
+	{Num: 24, ObjNum: sparc64.REG_Y2, Name: "Y2"},
+	{Num: 25, ObjNum: sparc64.REG_Y3, Name: "Y3"},
+	{Num: 26, ObjNum: sparc64.REG_Y4, Name: "Y4"},
+	{Num: 27, ObjNum: sparc64.REG_Y5, Name: "Y5"},
+	{Num: 28, ObjNum: sparc64.REG_Y6, Name: "Y6"},
+	{Num: 29, ObjNum: sparc64.REG_Y7, Name: "Y7"},
+	{Num: 30, ObjNum: sparc64.REG_Y8, Name: "Y8"},
+	{Num: 31, ObjNum: sparc64.REG_Y9, Name: "Y9"},
+	{Num: 32, ObjNum: sparc64.REG_Y10, Name: "Y10"},
+	{Num: 33, ObjNum: sparc64.REG_Y11, Name: "Y11"},
+	{Num: 34, ObjNum: sparc64.REG_Y12, Name: "Y12"},
+	{Num: 35, ObjNum: sparc64.REG_Y13, Name: "Y13"},
+	{Num: 36, ObjNum: sparc64.REG_Y14, Name: "Y14"},
+	{Num: 37, ObjNum: sparc64.REG_Y15, Name: "Y15"},
+	{Num: 38, ObjNum: 0, Name: "SB"},
 }
 var paramIntRegSPARC64 = []int8(nil)
 var paramFloatRegSPARC64 = []int8(nil)
-var gpRegMaskSPARC64 = regMask{v1: 4190206, v2: 0}
-var fpRegMaskSPARC64 = regMask{v1: 549739036672, v2: 0}
+var gpRegMaskSPARC64 = regMask{v1: 2093054, v2: 0}
+var fpRegMaskSPARC64 = regMask{v1: 274869518336, v2: 0}
 var specialRegMaskSPARC64 = regMask{v1: 0, v2: 0}
 var framepointerRegSPARC64 = int8(-1)
 var linkRegSPARC64 = int8(12)

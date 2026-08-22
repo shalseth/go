@@ -60,10 +60,10 @@ ibwords:;				\
 	BCSD	ibtail;			\
 	MOVD	(R8), R20;		\
 	XOR	R10, R20, R20;		\
-	SUB	R17, R20, R21;		\
-	ANDN	R20, R21, R21;		\
-	AND	R19, R21, R21;		\
-	CMP	ZR, R21;		\
+	SUB	R17, R20, R28;		\
+	ANDN	R20, R28, R28;		\
+	AND	R19, R28, R28;		\
+	CMP	ZR, R28;		\
 	BNED	ibfound;		\
 	ADD	$8, R8;			\
 	SUB	$8, R9;			\

@@ -34,7 +34,8 @@ import "strings"
 // R6/R7 (%g6 kernel, %g7 thread pointer), R14 (%o6, the stack pointer,
 // named SP), R22 (%l6, holds g), R23 (%l7, assembler temporary),
 // R26 (%i2, temporary), R27/R28 (%i3/%i4, runtime temporaries),
-// R29 (%i5, closure context), R30 (%i6, frame pointer), R31 (%i7),
+// R21 (%l5, frame pointer), R29 (%i5, closure context),
+// R30 (%i6, reserved: the window above's stack pointer), R31 (%i7),
 // and Y0 (the float temporary).
 var regNamesSPARC64 = []string{
 	"ZR", // R0, %g0, constant 0
@@ -62,7 +63,6 @@ var regNamesSPARC64 = []string{
 	"R18",
 	"R19",
 	"R20",
-	"R21",
 
 	// %i0..%i1.
 	"R24",
@@ -130,7 +130,7 @@ func init() {
 		// caller's return-address anchor, and an interrupt inside a
 		// function holding data in %o7 sends the unwinder - and with
 		// it the GC's stack scan - down a fabricated call chain.
-		gp   = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R21 R24 R25 R29")
+		gp   = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29")
 		gpg      = gp.union(buildReg("g"))
 		gpsp     = gp.union(buildReg("SP"))
 		gpspg    = gpg.union(buildReg("SP"))

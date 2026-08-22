@@ -721,18 +721,18 @@ func adjustframe(frame *stkframe, adjinfo *adjustinfo) {
 	if goarch.ArchFamily == goarch.SPARC64 {
 		// A framed callee of this frame saved this frame's anchor — a
 		// stack pointer that still carries the SPARC stack bias — at
-		// sp+112 (the %i6 slot position). The %i7 slot next to it
+		// sp+40 (the %l5 slot, RFP's own). The return-address slot at sp+120
 		// holds a code address and needs no adjustment. The value is
 		// range-checked, so a frame whose slot was never written is
 		// left alone.
 		if frame.fp > frame.sp {
-			adjustSparcAnchor(frame.sp+112, adjinfo)
+			adjustSparcAnchor(frame.sp+40, adjinfo)
 		}
 		if isInjectedCall(frame.fn.funcID) {
 			// An injected call (sigpanic, asyncPreempt) stored the
 			// interrupted frame anchors at the base of the pushed
 			// MinFrameSize area, which no ordinary frame covers.
-			adjustSparcAnchor(frame.fp+112, adjinfo)
+			adjustSparcAnchor(frame.fp+40, adjinfo)
 		}
 	}
 	// Adjust saved frame pointer if there is one.

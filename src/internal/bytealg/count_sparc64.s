@@ -53,14 +53,14 @@ cbwords:;				\
 	BCSD	cbtail;			\
 	MOVD	(R8), R20;		\
 	XOR	R10, R20, R20;		\
-	AND	R25, R20, R21;		\
-	ADD	R25, R21, R21;		\
-	OR	R20, R21, R21;		\
-	ANDN	R21, R19, R21;		\
-	SRLD	$7, R21, R21;		\
-	MULD	R17, R21, R21;		\
-	SRLD	$56, R21, R21;		\
-	ADD	R21, R24, R24;		\
+	AND	R25, R20, R28;		\
+	ADD	R25, R28, R28;		\
+	OR	R20, R28, R28;		\
+	ANDN	R28, R19, R28;		\
+	SRLD	$7, R28, R28;		\
+	MULD	R17, R28, R28;		\
+	SRLD	$56, R28, R28;		\
+	ADD	R28, R24, R24;		\
 	ADD	$8, R8;			\
 	SUB	$8, R9;			\
 	JMP	cbwords;		\

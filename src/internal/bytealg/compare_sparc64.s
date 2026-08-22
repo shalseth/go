@@ -95,18 +95,18 @@ mixedaligned:;				\
 	MOVD	$64, R19;		\
 	SUB	R18, R19, R19;		\
 	SUB	R17, R10, R20;		\
-	MOVD	(R20), R21;		\
+	MOVD	(R20), R28;		\
 mixedloop:;				\
 	CMP	$16, R12;		\
 	BCSD	bytes;			\
 	MOVD	8(R20), R24;		\
-	SLLD	R18, R21, R25;		\
+	SLLD	R18, R28, R25;		\
 	SRLD	R19, R24, R1;		\
 	OR	R1, R25, R25;		\
 	MOVD	(R8), R2;		\
 	CMP	R25, R2;		\
 	BNED	worddiff;		\
-	MOVD	R24, R21;		\
+	MOVD	R24, R28;		\
 	ADD	$8, R8;			\
 	ADD	$8, R10;		\
 	ADD	$8, R20;		\

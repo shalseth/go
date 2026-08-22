@@ -1933,7 +1933,7 @@ func mstart1() {
 	gp.sched.bp = getcallerfp()
 	if goarch.IsSparc64 != 0 {
 		sp := sys.GetCallerSP()
-		gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 112))
+		gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 40))
 		gp.sched.olr = *(*uintptr)(unsafe.Pointer(sp + 120))
 	}
 
@@ -4618,9 +4618,9 @@ func save(pc, sp, bp uintptr) {
 		// anchor registers, and sparc64 has no frame pointer for
 		// getcallerfp to report (it hands back zero). Recover the
 		// anchors from the stack: the frame at sp stored its own RFP
-		// and OLR at sp+112 and sp+120 when it called into the
+		// and OLR at sp+40 and sp+120 when it called into the
 		// runtime.
-		gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 112))
+		gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 40))
 		gp.sched.olr = *(*uintptr)(unsafe.Pointer(sp + 120))
 	}
 	// We need to ensure ctxt is zero, but can't have a write

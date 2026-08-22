@@ -494,7 +494,7 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 				p.From.Reg = REG_RFP
 				p.To.Type = obj.TYPE_MEM
 				p.To.Reg = REG_RSP
-				p.To.Offset = int64(112 + StackBias)
+				p.To.Offset = int64(AnchorFP + StackBias)
 
 				p = obj.Appendp(p, newprog)
 				p.As = AMOVD
@@ -573,7 +573,7 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.From.Reg = REG_RFP
 			p.To.Type = obj.TYPE_MEM
 			p.To.Reg = REG_RSP
-			p.To.Offset = int64(112 + StackBias)
+			p.To.Offset = int64(AnchorFP + StackBias)
 
 			// MOVD R31, (120+bias)(RSP)
 			//
@@ -642,11 +642,12 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			// decodes the rest of the stack from fossils. Storing the
 			// pair at frame birth closes that hole for good.
 
-			// MOVD RFP, (112+bias)(RSP)
+			// MOVD R30, (112+bias)(RSP) - the %i6 image slot gets the
+			// live %i6, exactly what the hardware would spill there.
 			p = obj.Appendp(p, newprog)
 			p.As = AMOVD
 			p.From.Type = obj.TYPE_REG
-			p.From.Reg = REG_RFP
+			p.From.Reg = REG_R30
 			p.To.Type = obj.TYPE_MEM
 			p.To.Reg = REG_RSP
 			p.To.Offset = int64(112 + StackBias)
@@ -659,6 +660,16 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.To.Type = obj.TYPE_MEM
 			p.To.Reg = REG_RSP
 			p.To.Offset = int64(120 + StackBias)
+
+			// MOVD RFP, (AnchorFP+bias)(RSP) - the slot the hardware
+			// spills RFP to. See AnchorFP.
+			p = obj.Appendp(p, newprog)
+			p.As = AMOVD
+			p.From.Type = obj.TYPE_REG
+			p.From.Reg = REG_RFP
+			p.To.Type = obj.TYPE_MEM
+			p.To.Reg = REG_RSP
+			p.To.Offset = int64(AnchorFP + StackBias)
 
 			p = ctxt.EndUnsafePoint(p, newprog, -1)
 
@@ -738,7 +749,7 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			q1.As = AMOVD
 			q1.From.Type = obj.TYPE_MEM
 			q1.From.Reg = REG_RFP
-			q1.From.Offset = 112 + StackBias
+			q1.From.Offset = AnchorFP + StackBias
 			q1.To.Type = obj.TYPE_REG
 			q1.To.Reg = REG_RFP
 

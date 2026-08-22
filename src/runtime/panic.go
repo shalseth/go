@@ -1425,10 +1425,10 @@ func recovery(gp *g) {
 	case goarch.IsSparc64 != 0:
 		// The flat-frame ABI resumes through the frame anchor
 		// registers. The resumed frame's anchors were stored at
-		// sp+112/120 by the prologue of any framed function it
+		// sp+40 and sp+120 by the prologue of any framed function it
 		// called (deferproc, at the least), so they are valid here:
 		// bp gets the frame's RFP and lr its own return address.
-		gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 112))
+		gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 40))
 		gp.sched.lr = *(*uintptr)(unsafe.Pointer(sp + 120))
 		gp.sched.olr = gp.sched.lr
 	}
