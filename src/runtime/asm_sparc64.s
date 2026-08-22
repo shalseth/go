@@ -796,12 +796,42 @@ havem:
 	SUB	$2047, R4, R9
 	SUB	$8, R5
 
+	MOVD	BSP, R20		// the C-side stack pointer, parked below
+
+	// Lay down a systemstack_switch frame between the goroutine's
+	// parked frames and the callback's.
+	//
+	// A traceback out of a callback is expected to report that frame
+	// where control left Go for C - the other ports get it from
+	// gosave_systemstack_switch parking its PC, and callers walking out
+	// of a callback (TestCallbackCallers) count on finding it. This ABI
+	// parks the real return address instead, which reports cgocall
+	// directly and leaves the frame out, shifting every frame above it
+	// by one. Rather than falsify the parked PC - tried, and it costs
+	// cgocall's own frame - fabricate the frame here: it advertises the
+	// parked frame as its caller and the parked PC as its return
+	// address, so the walk passes through it into cgocall.
+	//
+	// systemstack_switch declares the ABI minimum, so reserve exactly
+	// that; the unwinder derives this frame's extent from its PC and
+	// has to land on the parked stack pointer.
+	SUB	$176, R4
+	MOVD	R4, BSP
+	MOVD	R9, (112)(BSP)		// caller: the parked frame
+	MOVD	R5, (120)(BSP)		// return address: the parked PC
+
+	// This frame becomes the callback frame's caller, and the callback
+	// frame returns into systemstack_switch. The offset steps past the
+	// prologue, less the eight bytes every reader adds back to an OLR.
+	SUB	$2047, R4, R9
+	MOVD	$runtime·systemstack_switch(SB), R5
+	ADD	$(16-8), R5
+
 	// Open a frame on the goroutine stack: the ABI minimum, which
 	// covers the window save area and the reserved slots, plus the
 	// three arguments for cgocallbackg and a slot holding this
 	// frame's own stack pointer for the return trip.
 	SUB	$208, R4
-	MOVD	BSP, R20
 	MOVD	R4, BSP
 	MOVD	R20, (176+24)(BSP)
 
@@ -817,9 +847,10 @@ havem:
 	CALL	(R19)			// indirect: we are on another stack now
 
 	// Restore the goroutine's parked stack pointer. cgocallbackg
-	// leaves BSP where it found it, so undoing the frame is enough.
+	// leaves BSP where it found it, so undoing this frame and the
+	// systemstack_switch frame above it is enough.
 	MOVD	BSP, R4
-	ADD	$208, R4
+	ADD	$(208+176), R4
 	MOVD	R4, (g_sched+gobuf_sp)(g)
 
 	// Back to m->g0 and this frame's stack pointer, which comes from
