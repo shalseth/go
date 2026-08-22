@@ -2232,7 +2232,17 @@ func linkerFlagSupported(arch *sys.Arch, linker, altLinker, flag string) bool {
 		}
 	})
 
-	flags := hostlinkArchArgs(arch)
+	var flags []string
+
+	// The external linker command may carry arguments of its own (a
+	// quoted CC wrapper, "cc --sysroot=...", and so on). The probe must
+	// run the same command, not just its first word: a wrapper that
+	// treats its first argument as the compiler to exec would otherwise
+	// try to execute the probed flag.
+	if len(flagExtld) > 1 && flagExtld[0] == linker {
+		flags = append(flags, flagExtld[1:]...)
+	}
+	flags = append(flags, hostlinkArchArgs(arch)...)
 
 	moreFlags := trimLinkerArgv(append(ldflag, flagExtldflags...))
 	flags = append(flags, moreFlags...)
