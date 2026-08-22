@@ -5,12 +5,17 @@ developed on an UltraSPARC T4-1 running Gentoo. This branch adds
 `GOARCH=sparc64` to the compiler, assembler, linker and runtime; the
 `master` branch tracks upstream unchanged.
 
-Status: `go tool dist test -k` runs 442 packages green, including all of
-the `test/` language suite. Five tests fail, and all five are the same
-missing piece: there is no sparc64 disassembler, so `cmd/objdump` and
-`cmd/pprof` cannot disassemble (see "What is missing"). Grafana Alloy —
-an OpenTelemetry collector with roughly two and a half thousand packages
-— builds, runs, scrapes metrics and shuts down cleanly on the T4.
+Status: with **cgo enabled**, `go test std cmd` runs 380 packages green,
+including the full runtime suite, every cgo, callback, traceback and
+profiling test, and all of `cmd/go`'s script tests. The only failures are
+the missing disassembler (`cmd/objdump`, `cmd/pprof`; see "What is
+missing"), two `net` tests that need a kernel with `CONFIG_DUMMY`, and the
+`moddeps` provenance check, which an out-of-tree port that patches the
+vendored `golang.org/x/sys` cannot satisfy until that support is upstream.
+Both internal and external linking of cgo programs work, including a psABI
+PLT and GOT for dynamic imports under internal linking. Grafana Alloy — an
+OpenTelemetry collector with roughly two and a half thousand packages —
+builds, runs, scrapes metrics and shuts down cleanly on the T4.
 
 ## Provenance
 
@@ -90,6 +95,22 @@ bugs surface only under that kind of load.
   fork/exec, `net`, `net/http`, `os`, `syscall`.
 * The vDSO, for `walltime` and `nanotime`. `time.Now` costs about 278ns
   here rather than the 2043ns two `clock_gettime` syscalls took.
+* cgo, in both link modes. Go→C calls, C→Go callbacks, signals and
+  profiling during cgo execution, and thread exit through pthread TSD
+  destructors all work. The port survives the register-window hazards
+  this required: the frame pointer lives in `%l5` rather than `%i6`
+  (which is the hardware's stack pointer for the adjacent window and is
+  walked by the kernel in `clone`), the return-address chain slot sits
+  outside the `%i7` image the hardware spills over during signal
+  handling, and every Go↔C transition opens or flushes register windows
+  explicitly. See the commit history for the full analysis.
+* Internal linking of cgo binaries: the linker consumes host ELF
+  objects, applies the psABI GOTDATA code models, and emits the
+  patched-code PLT with `R_SPARC_JMP_SLOT` and a GOT with
+  `R_SPARC_GLOB_DAT` for dynamic imports; `DT_PLTGOT` names the PLT as
+  the SPARC dynamic linker expects.
+* `TrailingZeros` via the hardware `POPC` instruction, keeping the
+  allocator's hot path inlined.
 * Atomic intrinsics. `CASW`/`CASD` are SPARC V9's only read-modify-write
   primitives - there is no atomic add and no LL/SC - so exchange, add,
   and and or lower to CAS retry loops, and the 8-bit forms use a 32-bit
@@ -100,9 +121,11 @@ bugs surface only under that kind of load.
 
 ## What is missing
 
-* cgo and external linking. Everything must be built with
-  `CGO_ENABLED=0`.
-* The race detector, and the `-buildmode` variants beyond `exe`.
+* The race detector, and the `-buildmode` variants beyond `exe`:
+  `pie`, `c-archive` and `c-shared` need a position-independent code
+  model in the compiler, which SPARC makes expensive (no PC-relative
+  addressing; PIC costs a dedicated GOT register and GOT-relative
+  sequences for every global).
 * A disassembler. `cmd/internal/disasm` has no sparc64 support and
   there is no `golang.org/x/arch/sparc64asm` to build on, so `go tool
   objdump` and `pprof`'s annotated-assembly view do not work. This is
