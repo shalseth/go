@@ -609,6 +609,20 @@ TEXT ·asmcgocall(SB),NOSPLIT|NOFRAME,$0-20
 	MOVD	m_g0(R9), R28		// g0, kept where the O-registers below do not alias it
 	CMP	R28, g
 	BED	oncurrentstack
+
+	// gsignal counts as a system stack too. A signal handler can reach
+	// here - the cgo traceback and symbolizer hooks are C functions
+	// called from sigprof - and it is already running on a stack the
+	// scheduler does not move. Switching would park the handler's state
+	// in gsignal's gobuf and run C on g0's stack while the handler's
+	// own frames sit on gsignal's, which is not somewhere to return to.
+	MOVD	m_gsignal(R9), R27
+	CMP	R27, g
+	BNED	switchtog0
+	MOVD	g, R28			// stay here, and keep this g across the call
+	JMP	oncurrentstack
+
+switchtog0:
 	CALL	gosave<>(SB)
 	// g first, then the stack pointer. A signal taken between the two
 	// finds the pair inconsistent either way, but this is the order the
