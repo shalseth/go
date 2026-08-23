@@ -8,9 +8,6 @@ tracks upstream unchanged.
 **[Download a prebuilt toolchain from Releases](https://github.com/shalseth/go/releases/latest)**
 &nbsp;·&nbsp; **[Port documentation: README.sparc64.md](README.sparc64.md)**
 
-GitHub does not show the Releases section in the sidebar of a forked
-repository, so the link above is the way in.
-
 Upstream's README follows.
 
 ---
