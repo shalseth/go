@@ -1,3 +1,20 @@
+# Go for linux/sparc64
+
+This is an out-of-tree port of the Go gc toolchain to 64-bit SPARC
+(SPARC V9), developed on an UltraSPARC T4-1. The `sparc64` branch adds
+`GOARCH=sparc64` to the compiler, assembler, linker and runtime; `master`
+tracks upstream unchanged.
+
+**[Download a prebuilt toolchain from Releases](https://github.com/shalseth/go/releases/latest)**
+&nbsp;·&nbsp; **[Port documentation: README.sparc64.md](README.sparc64.md)**
+
+GitHub does not show the Releases section in the sidebar of a forked
+repository, so the link above is the way in.
+
+Upstream's README follows.
+
+---
+
 # The Go Programming Language
 
 Go is an open source programming language that makes it easy to build simple,
