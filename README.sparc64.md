@@ -435,3 +435,15 @@ scp sort.test target: && ssh target ./sort.test -test.short
 Tests that read files from their own source directory (`os`, `net`,
 `io/fs`, `text/template`) need that directory copied alongside the
 binary.
+
+Run with `-p 2` and `GOMAXPROCS=8`. Each test binary otherwise sizes
+itself to the T4's 64 hardware threads, and a full `all.bash` at that
+concurrency drives the load average past 400; the machine stops
+answering and needs an ILOM reset.
+
+Two kernel options are needed for a clean sweep, neither of them
+sparc64-specific:
+
+* `CONFIG_DUMMY` — `net` uses a dummy interface for two tests.
+* `CONFIG_CRYPTO_USER_API_HASH` — `golang.org/x/sys/unix`'s
+  `TestSockaddrALG` binds an `AF_ALG` socket.
