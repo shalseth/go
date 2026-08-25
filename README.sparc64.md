@@ -61,20 +61,22 @@ enough for a process-wide timebase (see "Timebase" below).
 
 ## Building
 
-Cross-compile from any supported host (amd64 here):
+Cross-compile from any supported host (amd64 here). Bootstrapping the
+tree needs Go 1.26 or later:
 
 ```sh
-cd src && GOROOT_BOOTSTRAP=/path/to/go1.24 ./make.bash
+cd src && GOROOT_BOOTSTRAP=/path/to/go1.26 ./make.bash
 GOOS=linux GOARCH=sparc64 ../bin/go build ./yourprogram
 ```
 
 The toolchain also builds and runs natively on sparc64. Cross-build a
-bootstrap tree once, copy it to the target, and build from there:
+bootstrap tree, copy it to the target, and build the source there:
 
 ```sh
-cd src && GOOS=linux GOARCH=sparc64 ./bootstrap.bash
+cd src && GOOS=linux GOARCH=sparc64 GOROOT_BOOTSTRAP=/path/to/go1.26 ./bootstrap.bash
 scp ../../go-linux-sparc64-bootstrap.tbz target:
 ssh target 'tar xjf go-linux-sparc64-bootstrap.tbz'
+ssh target 'git clone https://github.com/shalseth/go.git'
 ssh target 'GOROOT_BOOTSTRAP=$HOME/go-linux-sparc64-bootstrap go/src/make.bash'
 ```
 
