@@ -11,6 +11,7 @@ import (
 	"cmd/compile/internal/objw"
 	"cmd/compile/internal/ssa"
 	"cmd/compile/internal/ssa/block"
+	"cmd/compile/internal/ssa/ssaop"
 	"cmd/compile/internal/ssagen"
 	"cmd/compile/internal/types"
 	"cmd/internal/obj"
@@ -146,27 +147,27 @@ func casLoop(s *ssagen.State, got, want int16, top *obj.Prog) {
 // implements it. SPARC has no set-on-condition instruction, so a
 // boolean is produced by zeroing a register and then conditionally
 // moving 1 into it.
-func condMove(op ssa.Op) obj.As {
+func condMove(op ssaop.Op) obj.As {
 	switch op {
-	case ssa.OpSPARC64Equal:
+	case ssaop.OpSPARC64Equal:
 		return sparc64.AMOVE
-	case ssa.OpSPARC64NotEqual:
+	case ssaop.OpSPARC64NotEqual:
 		return sparc64.AMOVNE
-	case ssa.OpSPARC64LessThan:
+	case ssaop.OpSPARC64LessThan:
 		return sparc64.AMOVL
-	case ssa.OpSPARC64LessEqual:
+	case ssaop.OpSPARC64LessEqual:
 		return sparc64.AMOVLE
-	case ssa.OpSPARC64GreaterThan:
+	case ssaop.OpSPARC64GreaterThan:
 		return sparc64.AMOVG
-	case ssa.OpSPARC64GreaterEqual:
+	case ssaop.OpSPARC64GreaterEqual:
 		return sparc64.AMOVGE
-	case ssa.OpSPARC64LessThanU:
+	case ssaop.OpSPARC64LessThanU:
 		return sparc64.AMOVCS
-	case ssa.OpSPARC64LessEqualU:
+	case ssaop.OpSPARC64LessEqualU:
 		return sparc64.AMOVLEU
-	case ssa.OpSPARC64GreaterThanU:
+	case ssaop.OpSPARC64GreaterThanU:
 		return sparc64.AMOVGU
-	case ssa.OpSPARC64GreaterEqualU:
+	case ssaop.OpSPARC64GreaterEqualU:
 		return sparc64.AMOVCC
 	}
 	panic("bad conditional move op")
@@ -218,11 +219,11 @@ func panicBounds(s *ssagen.State, v *ssa.Value) {
 	}
 
 	switch v.Op {
-	case ssa.OpSPARC64LoweredPanicBoundsRR:
+	case ssaop.OpSPARC64LoweredPanicBoundsRR:
 		xIsReg, yIsReg = true, true
 		xVal = boundsRegIndex(v.Args[0].Reg())
 		yVal = boundsRegIndex(v.Args[1].Reg())
-	case ssa.OpSPARC64LoweredPanicBoundsRC:
+	case ssaop.OpSPARC64LoweredPanicBoundsRC:
 		xIsReg = true
 		xVal = boundsRegIndex(v.Args[0].Reg())
 		c := v.Aux.(ssa.PanicBoundsC).C
@@ -232,7 +233,7 @@ func panicBounds(s *ssagen.State, v *ssa.Value) {
 			yIsReg = true
 			yVal = loadConst(c, xVal)
 		}
-	case ssa.OpSPARC64LoweredPanicBoundsCR:
+	case ssaop.OpSPARC64LoweredPanicBoundsCR:
 		yIsReg = true
 		yVal = boundsRegIndex(v.Args[0].Reg())
 		c := v.Aux.(ssa.PanicBoundsC).C
@@ -242,7 +243,7 @@ func panicBounds(s *ssagen.State, v *ssa.Value) {
 			xIsReg = true
 			xVal = loadConst(c, yVal)
 		}
-	case ssa.OpSPARC64LoweredPanicBoundsCC:
+	case ssaop.OpSPARC64LoweredPanicBoundsCC:
 		cx := v.Aux.(ssa.PanicBoundsCC).Cx
 		if cx >= 0 && cx <= abi.BoundsMaxConst {
 			xVal = int(cx)
@@ -301,19 +302,19 @@ func zeroMoveAux(v *ssa.Value) (sz, chunk int64, mov obj.As) {
 // fcondMove maps a float flag-reading op to the SPARC conditional move
 // that implements it. These are the FMOVcc opcodes, whose cond field
 // uses the float encoding rather than the integer one.
-func fcondMove(op ssa.Op) obj.As {
+func fcondMove(op ssaop.Op) obj.As {
 	switch op {
-	case ssa.OpSPARC64FEqual:
+	case ssaop.OpSPARC64FEqual:
 		return sparc64.AMOVFE
-	case ssa.OpSPARC64FNotEqual:
+	case ssaop.OpSPARC64FNotEqual:
 		return sparc64.AMOVFNE
-	case ssa.OpSPARC64FLessThan:
+	case ssaop.OpSPARC64FLessThan:
 		return sparc64.AMOVFL
-	case ssa.OpSPARC64FLessEqual:
+	case ssaop.OpSPARC64FLessEqual:
 		return sparc64.AMOVFLE
-	case ssa.OpSPARC64FGreaterThan:
+	case ssaop.OpSPARC64FGreaterThan:
 		return sparc64.AMOVFG
-	case ssa.OpSPARC64FGreaterEqual:
+	case ssaop.OpSPARC64FGreaterEqual:
 		return sparc64.AMOVFGE
 	}
 	panic("bad float conditional move op")
@@ -321,7 +322,7 @@ func fcondMove(op ssa.Op) obj.As {
 
 func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 	switch v.Op {
-	case ssa.OpCopy:
+	case ssaop.OpCopy:
 		if v.Type.IsMemory() {
 			return
 		}
@@ -336,7 +337,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = y
 
-	case ssa.OpLoadReg:
+	case ssaop.OpLoadReg:
 		if v.Type.IsFlags() {
 			v.Fatalf("load flags not implemented: %v", v.LongString())
 			return
@@ -346,7 +347,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpStoreReg:
+	case ssaop.OpStoreReg:
 		if v.Type.IsFlags() {
 			v.Fatalf("store flags not implemented: %v", v.LongString())
 			return
@@ -356,26 +357,26 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.From.Reg = v.Args[0].Reg()
 		ssagen.AddrAuto(&p.To, v)
 
-	case ssa.OpArgIntReg, ssa.OpArgFloatReg:
+	case ssaop.OpArgIntReg, ssaop.OpArgFloatReg:
 		ssagen.CheckArgReg(v)
 
-	case ssa.OpPhi:
+	case ssaop.OpPhi:
 		ssagen.CheckLoweredPhi(v)
 
-	case ssa.OpInitMem, ssa.OpVarDef, ssa.OpVarLive, ssa.OpKeepAlive,
-		ssa.OpSelect0, ssa.OpSelect1, ssa.OpGetG, ssa.OpSP, ssa.OpSB:
+	case ssaop.OpInitMem, ssaop.OpVarDef, ssaop.OpVarLive, ssaop.OpKeepAlive,
+		ssaop.OpSelect0, ssaop.OpSelect1, ssaop.OpGetG, ssaop.OpSP, ssaop.OpSB:
 		// nothing to do
 
-	case ssa.OpSPARC64ADD, ssa.OpSPARC64SUB, ssa.OpSPARC64MULD,
-		ssa.OpSPARC64SDIVD, ssa.OpSPARC64UDIVD, ssa.OpSPARC64UMULXHI,
-		ssa.OpSPARC64AND, ssa.OpSPARC64OR, ssa.OpSPARC64XOR,
-		ssa.OpSPARC64ANDN, ssa.OpSPARC64ORN, ssa.OpSPARC64XNOR,
-		ssa.OpSPARC64SLLD, ssa.OpSPARC64SRLD, ssa.OpSPARC64SRAD,
-		ssa.OpSPARC64SLLW, ssa.OpSPARC64SRLW, ssa.OpSPARC64SRAW,
-		ssa.OpSPARC64FADDS, ssa.OpSPARC64FADDD,
-		ssa.OpSPARC64FSUBS, ssa.OpSPARC64FSUBD,
-		ssa.OpSPARC64FMULS, ssa.OpSPARC64FMULD,
-		ssa.OpSPARC64FDIVS, ssa.OpSPARC64FDIVD:
+	case ssaop.OpSPARC64ADD, ssaop.OpSPARC64SUB, ssaop.OpSPARC64MULD,
+		ssaop.OpSPARC64SDIVD, ssaop.OpSPARC64UDIVD, ssaop.OpSPARC64UMULXHI,
+		ssaop.OpSPARC64AND, ssaop.OpSPARC64OR, ssaop.OpSPARC64XOR,
+		ssaop.OpSPARC64ANDN, ssaop.OpSPARC64ORN, ssaop.OpSPARC64XNOR,
+		ssaop.OpSPARC64SLLD, ssaop.OpSPARC64SRLD, ssaop.OpSPARC64SRAD,
+		ssaop.OpSPARC64SLLW, ssaop.OpSPARC64SRLW, ssaop.OpSPARC64SRAW,
+		ssaop.OpSPARC64FADDS, ssaop.OpSPARC64FADDD,
+		ssaop.OpSPARC64FSUBS, ssaop.OpSPARC64FSUBD,
+		ssaop.OpSPARC64FMULS, ssaop.OpSPARC64FMULD,
+		ssaop.OpSPARC64FDIVS, ssaop.OpSPARC64FDIVD:
 		// SPARC three-operand form: op rs1, rs2, rd. Go's assembler
 		// takes rs2 in From, rs1 in Reg and rd in To.
 		p := s.Prog(v.Op.Asm())
@@ -385,9 +386,9 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpSPARC64ADDconst, ssa.OpSPARC64SUBconst,
-		ssa.OpSPARC64ANDconst, ssa.OpSPARC64ORconst, ssa.OpSPARC64XORconst,
-		ssa.OpSPARC64SLLDconst, ssa.OpSPARC64SRLDconst, ssa.OpSPARC64SRADconst:
+	case ssaop.OpSPARC64ADDconst, ssaop.OpSPARC64SUBconst,
+		ssaop.OpSPARC64ANDconst, ssaop.OpSPARC64ORconst, ssaop.OpSPARC64XORconst,
+		ssaop.OpSPARC64SLLDconst, ssaop.OpSPARC64SRLDconst, ssaop.OpSPARC64SRADconst:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_CONST
 		p.From.Offset = v.AuxInt
@@ -395,25 +396,25 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpSPARC64NEG, ssa.OpSPARC64POPC,
-		ssa.OpSPARC64MOVB, ssa.OpSPARC64MOVUB,
-		ssa.OpSPARC64MOVH, ssa.OpSPARC64MOVUH,
-		ssa.OpSPARC64MOVW, ssa.OpSPARC64MOVUW, ssa.OpSPARC64MOVD,
-		ssa.OpSPARC64FNEGS, ssa.OpSPARC64FNEGD,
-		ssa.OpSPARC64FABSS, ssa.OpSPARC64FABSD,
-		ssa.OpSPARC64FSQRTS, ssa.OpSPARC64FSQRTD,
-		ssa.OpSPARC64FSTOD, ssa.OpSPARC64FDTOS,
-		ssa.OpSPARC64FSTOX, ssa.OpSPARC64FDTOX,
-		ssa.OpSPARC64FSTOI, ssa.OpSPARC64FDTOI,
-		ssa.OpSPARC64FXTOS, ssa.OpSPARC64FXTOD,
-		ssa.OpSPARC64FMOVDgp, ssa.OpSPARC64FMOVDfp:
+	case ssaop.OpSPARC64NEG, ssaop.OpSPARC64POPC,
+		ssaop.OpSPARC64MOVB, ssaop.OpSPARC64MOVUB,
+		ssaop.OpSPARC64MOVH, ssaop.OpSPARC64MOVUH,
+		ssaop.OpSPARC64MOVW, ssaop.OpSPARC64MOVUW, ssaop.OpSPARC64MOVD,
+		ssaop.OpSPARC64FNEGS, ssaop.OpSPARC64FNEGD,
+		ssaop.OpSPARC64FABSS, ssaop.OpSPARC64FABSD,
+		ssaop.OpSPARC64FSQRTS, ssaop.OpSPARC64FSQRTD,
+		ssaop.OpSPARC64FSTOD, ssaop.OpSPARC64FDTOS,
+		ssaop.OpSPARC64FSTOX, ssaop.OpSPARC64FDTOX,
+		ssaop.OpSPARC64FSTOI, ssaop.OpSPARC64FDTOI,
+		ssaop.OpSPARC64FXTOS, ssaop.OpSPARC64FXTOD,
+		ssaop.OpSPARC64FMOVDgp, ssaop.OpSPARC64FMOVDfp:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = v.Args[0].Reg()
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpSPARC64MULDU:
+	case ssaop.OpSPARC64MULDU:
 		// UMULXHI rs1, rs2, hi ; MULD rs1, rs2, lo
 		p := s.Prog(sparc64.AUMULXHI)
 		p.From.Type = obj.TYPE_REG
@@ -428,7 +429,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg1()
 
-	case ssa.OpSPARC64ADDCARRY, ssa.OpSPARC64SUBBORROW:
+	case ssaop.OpSPARC64ADDCARRY, ssaop.OpSPARC64SUBBORROW:
 		// (sum, carry) = arg0 +- arg1 +- arg2, with arg2 and carry in {0, 1}:
 		//
 		//	ADDCC/SUBCC arg1, arg0, sum   // xcc.c = c1
@@ -440,7 +441,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		// itself carry. resultNotInArgs keeps sum clear of arg2, which
 		// is still live for the third instruction.
 		op := sparc64.AADDCC
-		if v.Op == ssa.OpSPARC64SUBBORROW {
+		if v.Op == ssaop.OpSPARC64SUBBORROW {
 			op = sparc64.ASUBCC
 		}
 		sum, carry := v.Reg0(), v.Reg1()
@@ -469,26 +470,26 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = carry
 
-	case ssa.OpSPARC64MOVDconst:
+	case ssaop.OpSPARC64MOVDconst:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_CONST
 		p.From.Offset = v.AuxInt
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpSPARC64CMP, ssa.OpSPARC64FCMPS, ssa.OpSPARC64FCMPD:
+	case ssaop.OpSPARC64CMP, ssaop.OpSPARC64FCMPS, ssaop.OpSPARC64FCMPD:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = v.Args[1].Reg()
 		p.Reg = v.Args[0].Reg()
 
-	case ssa.OpSPARC64CMPconst:
+	case ssaop.OpSPARC64CMPconst:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_CONST
 		p.From.Offset = v.AuxInt
 		p.Reg = v.Args[0].Reg()
 
-	case ssa.OpSPARC64MOVDaddr:
+	case ssaop.OpSPARC64MOVDaddr:
 		p := s.Prog(sparc64.AMOVD)
 		p.From.Type = obj.TYPE_ADDR
 		p.From.Reg = v.Args[0].Reg()
@@ -505,11 +506,11 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpSPARC64MOVBload, ssa.OpSPARC64MOVUBload,
-		ssa.OpSPARC64MOVHload, ssa.OpSPARC64MOVUHload,
-		ssa.OpSPARC64MOVWload, ssa.OpSPARC64MOVUWload,
-		ssa.OpSPARC64MOVDload,
-		ssa.OpSPARC64FMOVSload, ssa.OpSPARC64FMOVDload:
+	case ssaop.OpSPARC64MOVBload, ssaop.OpSPARC64MOVUBload,
+		ssaop.OpSPARC64MOVHload, ssaop.OpSPARC64MOVUHload,
+		ssaop.OpSPARC64MOVWload, ssaop.OpSPARC64MOVUWload,
+		ssaop.OpSPARC64MOVDload,
+		ssaop.OpSPARC64FMOVSload, ssaop.OpSPARC64FMOVDload:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_MEM
 		p.From.Reg = v.Args[0].Reg()
@@ -517,9 +518,9 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpSPARC64MOVBstore, ssa.OpSPARC64MOVHstore,
-		ssa.OpSPARC64MOVWstore, ssa.OpSPARC64MOVDstore,
-		ssa.OpSPARC64FMOVSstore, ssa.OpSPARC64FMOVDstore:
+	case ssaop.OpSPARC64MOVBstore, ssaop.OpSPARC64MOVHstore,
+		ssaop.OpSPARC64MOVWstore, ssaop.OpSPARC64MOVDstore,
+		ssaop.OpSPARC64FMOVSstore, ssaop.OpSPARC64FMOVDstore:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = v.Args[1].Reg()
@@ -527,9 +528,9 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Reg = v.Args[0].Reg()
 		ssagen.AddAux(&p.To, v)
 
-	case ssa.OpSPARC64FEqual, ssa.OpSPARC64FNotEqual,
-		ssa.OpSPARC64FLessThan, ssa.OpSPARC64FLessEqual,
-		ssa.OpSPARC64FGreaterThan, ssa.OpSPARC64FGreaterEqual:
+	case ssaop.OpSPARC64FEqual, ssaop.OpSPARC64FNotEqual,
+		ssaop.OpSPARC64FLessThan, ssaop.OpSPARC64FLessEqual,
+		ssaop.OpSPARC64FGreaterThan, ssaop.OpSPARC64FGreaterEqual:
 		// MOVD $0, rd ; MOVF<cc> FCC0, $1, rd
 		r := v.Reg()
 		p := s.Prog(sparc64.AMOVD)
@@ -544,11 +545,11 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = r
 
-	case ssa.OpSPARC64Equal, ssa.OpSPARC64NotEqual,
-		ssa.OpSPARC64LessThan, ssa.OpSPARC64LessEqual,
-		ssa.OpSPARC64GreaterThan, ssa.OpSPARC64GreaterEqual,
-		ssa.OpSPARC64LessThanU, ssa.OpSPARC64LessEqualU,
-		ssa.OpSPARC64GreaterThanU, ssa.OpSPARC64GreaterEqualU:
+	case ssaop.OpSPARC64Equal, ssaop.OpSPARC64NotEqual,
+		ssaop.OpSPARC64LessThan, ssaop.OpSPARC64LessEqual,
+		ssaop.OpSPARC64GreaterThan, ssaop.OpSPARC64GreaterEqual,
+		ssaop.OpSPARC64LessThanU, ssaop.OpSPARC64LessEqualU,
+		ssaop.OpSPARC64GreaterThanU, ssaop.OpSPARC64GreaterEqualU:
 		// MOVD $0, rd ; MOV<cc> XCC, $1, rd
 		r := v.Reg()
 		p := s.Prog(sparc64.AMOVD)
@@ -563,20 +564,20 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = r
 
-	case ssa.OpSPARC64FMOVSconst, ssa.OpSPARC64FMOVDconst:
+	case ssaop.OpSPARC64FMOVSconst, ssaop.OpSPARC64FMOVDconst:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_FCONST
 		p.From.Val = math.Float64frombits(uint64(v.AuxInt))
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpSPARC64LoweredAtomicLoad8, ssa.OpSPARC64LoweredAtomicLoad32, ssa.OpSPARC64LoweredAtomicLoad64:
+	case ssaop.OpSPARC64LoweredAtomicLoad8, ssaop.OpSPARC64LoweredAtomicLoad32, ssaop.OpSPARC64LoweredAtomicLoad64:
 		// A plain load. Under TSO it is already an acquire.
 		ld := sparc64.AMOVD
 		switch v.Op {
-		case ssa.OpSPARC64LoweredAtomicLoad8:
+		case ssaop.OpSPARC64LoweredAtomicLoad8:
 			ld = sparc64.AMOVUB
-		case ssa.OpSPARC64LoweredAtomicLoad32:
+		case ssaop.OpSPARC64LoweredAtomicLoad32:
 			ld = sparc64.AMOVUW
 		}
 		p := s.Prog(ld)
@@ -585,14 +586,14 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg0()
 
-	case ssa.OpSPARC64LoweredAtomicStore8, ssa.OpSPARC64LoweredAtomicStore32, ssa.OpSPARC64LoweredAtomicStore64:
+	case ssaop.OpSPARC64LoweredAtomicStore8, ssaop.OpSPARC64LoweredAtomicStore32, ssaop.OpSPARC64LoweredAtomicStore64:
 		// A plain store is already a release; #StoreLoad is what keeps
 		// a later load from passing it.
 		st := sparc64.AMOVD
 		switch v.Op {
-		case ssa.OpSPARC64LoweredAtomicStore8:
+		case ssaop.OpSPARC64LoweredAtomicStore8:
 			st = sparc64.AMOVB
-		case ssa.OpSPARC64LoweredAtomicStore32:
+		case ssaop.OpSPARC64LoweredAtomicStore32:
 			st = sparc64.AMOVW
 		}
 		p := s.Prog(st)
@@ -602,7 +603,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Reg = v.Args[0].Reg()
 		membar(s, membarStoreLoad)
 
-	case ssa.OpSPARC64LoweredAtomicExchange32, ssa.OpSPARC64LoweredAtomicExchange64:
+	case ssaop.OpSPARC64LoweredAtomicExchange32, ssaop.OpSPARC64LoweredAtomicExchange64:
 		// again:
 		//	MOV(UW|D)	(ptr), out
 		//	MOVD		val, TMP
@@ -611,7 +612,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		//	BNED		again
 		//	MEMBAR		$15
 		ld, cas := sparc64.AMOVD, sparc64.ACASD
-		if v.Op == ssa.OpSPARC64LoweredAtomicExchange32 {
+		if v.Op == ssaop.OpSPARC64LoweredAtomicExchange32 {
 			ld, cas = sparc64.AMOVUW, sparc64.ACASW
 		}
 		ptr, val, out := v.Args[0].Reg(), v.Args[1].Reg(), v.Reg0()
@@ -633,7 +634,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p2.To.Reg = sparc64.REG_TMP
 		casLoop(s, sparc64.REG_TMP, out, top)
 
-	case ssa.OpSPARC64LoweredAtomicAdd32, ssa.OpSPARC64LoweredAtomicAdd64:
+	case ssaop.OpSPARC64LoweredAtomicAdd32, ssaop.OpSPARC64LoweredAtomicAdd64:
 		// again:
 		//	MOV(UW|D)	(ptr), TMP
 		//	ADD		delta, TMP, out
@@ -644,7 +645,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		//	MEMBAR		$15
 		// The result is the new value, which is what Xadd returns.
 		ld, cas := sparc64.AMOVD, sparc64.ACASD
-		if v.Op == ssa.OpSPARC64LoweredAtomicAdd32 {
+		if v.Op == ssaop.OpSPARC64LoweredAtomicAdd32 {
 			ld, cas = sparc64.AMOVUW, sparc64.ACASW
 		}
 		ptr, delta, out := v.Args[0].Reg(), v.Args[1].Reg(), v.Reg0()
@@ -672,7 +673,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p3.To.Reg = sparc64.REG_TMP2
 		casLoop(s, sparc64.REG_TMP2, sparc64.REG_TMP, top)
 
-	case ssa.OpSPARC64LoweredAtomicCas32, ssa.OpSPARC64LoweredAtomicCas64:
+	case ssaop.OpSPARC64LoweredAtomicCas32, ssaop.OpSPARC64LoweredAtomicCas64:
 		//	MOVD		new, TMP	// CAS overwrites its destination
 		//	CAS(W|D)	(ptr), old, TMP
 		//	MEMBAR		$15
@@ -686,7 +687,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		// whenever bit 31 is set. SUBCC sets both code sets, and icc
 		// looks only at the low word.
 		cas, cc := sparc64.ACASD, int16(sparc64.REG_XCC)
-		if v.Op == ssa.OpSPARC64LoweredAtomicCas32 {
+		if v.Op == ssaop.OpSPARC64LoweredAtomicCas32 {
 			cas, cc = sparc64.ACASW, sparc64.REG_ICC
 		}
 		ptr, old, new, out := v.Args[0].Reg(), v.Args[1].Reg(), v.Args[2].Reg(), v.Reg0()
@@ -720,7 +721,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p4.To.Type = obj.TYPE_REG
 		p4.To.Reg = out
 
-	case ssa.OpSPARC64LoweredAtomicAnd32, ssa.OpSPARC64LoweredAtomicOr32:
+	case ssaop.OpSPARC64LoweredAtomicAnd32, ssaop.OpSPARC64LoweredAtomicOr32:
 		// again:
 		//	MOVUW	(ptr), TMP
 		//	AND/OR	val, TMP, TMP2
@@ -729,7 +730,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		//	BNED	again
 		//	MEMBAR	$15
 		logical := sparc64.AAND
-		if v.Op == ssa.OpSPARC64LoweredAtomicOr32 {
+		if v.Op == ssaop.OpSPARC64LoweredAtomicOr32 {
 			logical = sparc64.AOR
 		}
 		ptr, val := v.Args[0].Reg(), v.Args[1].Reg()
@@ -752,7 +753,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p2.To.Reg = sparc64.REG_TMP2
 		casLoop(s, sparc64.REG_TMP2, sparc64.REG_TMP, top)
 
-	case ssa.OpSPARC64LoweredAtomicAnd8, ssa.OpSPARC64LoweredAtomicOr8:
+	case ssaop.OpSPARC64LoweredAtomicAnd8, ssaop.OpSPARC64LoweredAtomicOr8:
 		// SPARC has no byte-width CAS, so operate on the containing
 		// aligned word. Big-endian, so the byte at p sits at bit
 		// (3 - (p & 3)) * 8.
@@ -775,7 +776,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		//	SUBCC	RT1, RT2, ZR
 		//	BNED	again
 		//	MEMBAR	$15
-		isAnd := v.Op == ssa.OpSPARC64LoweredAtomicAnd8
+		isAnd := v.Op == ssaop.OpSPARC64LoweredAtomicAnd8
 		ptr, val := v.Args[0].Reg(), v.Args[1].Reg()
 
 		p := s.Prog(sparc64.AAND)
@@ -870,7 +871,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Reg = sparc64.REG_RT1
 		casLoop(s, sparc64.REG_RT1, sparc64.REG_RT2, top)
 
-	case ssa.OpSPARC64LoweredZero:
+	case ssaop.OpSPARC64LoweredZero:
 		// MOVD	$size, TMP2
 		// ADD	R1, TMP2, TMP2	// TMP2 = end pointer
 		// loop:
@@ -912,7 +913,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p5.To.Type = obj.TYPE_BRANCH
 		p5.To.SetTarget(p2)
 
-	case ssa.OpSPARC64LoweredMove:
+	case ssaop.OpSPARC64LoweredMove:
 		// MOVD	$size, TMP2
 		// ADD	R1, TMP2, TMP2	// TMP2 = end of src
 		// loop:
@@ -964,27 +965,27 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p7.To.Type = obj.TYPE_BRANCH
 		p7.To.SetTarget(p2)
 
-	case ssa.OpSPARC64LoweredPanicBoundsRR, ssa.OpSPARC64LoweredPanicBoundsRC,
-		ssa.OpSPARC64LoweredPanicBoundsCR, ssa.OpSPARC64LoweredPanicBoundsCC:
+	case ssaop.OpSPARC64LoweredPanicBoundsRR, ssaop.OpSPARC64LoweredPanicBoundsRC,
+		ssaop.OpSPARC64LoweredPanicBoundsCR, ssaop.OpSPARC64LoweredPanicBoundsCC:
 		panicBounds(s, v)
 
-	case ssa.OpSPARC64LoweredWB:
+	case ssaop.OpSPARC64LoweredWB:
 		p := s.Prog(obj.ACALL)
 		p.To.Type = obj.TYPE_MEM
 		p.To.Name = obj.NAME_EXTERN
 		// AuxInt encodes how many buffer entries we need.
 		p.To.Sym = ir.Syms.GCWriteBarrier[v.AuxInt-1]
 
-	case ssa.OpSPARC64CALLstatic, ssa.OpSPARC64CALLclosure, ssa.OpSPARC64CALLinter:
+	case ssaop.OpSPARC64CALLstatic, ssaop.OpSPARC64CALLclosure, ssaop.OpSPARC64CALLinter:
 		s.Call(v)
 
-	case ssa.OpSPARC64CALLtail:
+	case ssaop.OpSPARC64CALLtail:
 		s.TailCall(v)
 
-	case ssa.OpSPARC64LoweredGetClosurePtr:
+	case ssaop.OpSPARC64LoweredGetClosurePtr:
 		ssagen.CheckLoweredGetClosurePtr(v)
 
-	case ssa.OpSPARC64LoweredGetCallerSP:
+	case ssaop.OpSPARC64LoweredGetCallerSP:
 		p := s.Prog(sparc64.AMOVD)
 		p.From.Type = obj.TYPE_ADDR
 		p.From.Offset = -base.Ctxt.Arch.FixedFrameSize
@@ -992,12 +993,12 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpSPARC64LoweredGetCallerPC:
+	case ssaop.OpSPARC64LoweredGetCallerPC:
 		p := s.Prog(obj.AGETCALLERPC)
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpSPARC64LoweredNilCheck:
+	case ssaop.OpSPARC64LoweredNilCheck:
 		// Issue a load through the pointer; a nil pointer faults.
 		p := s.Prog(sparc64.AMOVUB)
 		p.From.Type = obj.TYPE_MEM
@@ -1011,12 +1012,12 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 			base.WarnfAt(v.Pos, "generated nil check")
 		}
 
-	case ssa.OpSPARC64LoweredPubBarrier:
+	case ssaop.OpSPARC64LoweredPubBarrier:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_CONST
 		p.From.Offset = 0xf // #Sync
 
-	case ssa.OpClobber, ssa.OpClobberReg:
+	case ssaop.OpClobber, ssaop.OpClobberReg:
 		// nothing to do
 
 	default:

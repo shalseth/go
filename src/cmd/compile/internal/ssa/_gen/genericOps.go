@@ -429,7 +429,7 @@ var genericOps = []opData{
 
 	// PanicBounds and PanicExtend generate a runtime panic.
 	// Their arguments provide index values to use in panic messages.
-	// Both PanicBounds and PanicExtend have an AuxInt value from the BoundsKind type (in ../op.go).
+	// Both PanicBounds and PanicExtend have an AuxInt value from the BoundsKind type (in ../ssacore/bounds.go).
 	// PanicBounds' index is int sized.
 	// PanicExtend's index is int64 sized. (PanicExtend is only used on 32-bit archs.)
 	{name: "PanicBounds", argLength: 3, aux: "Int64", typ: "Mem", call: true}, // arg0=idx, arg1=len, arg2=mem, returns memory.
@@ -738,12 +738,8 @@ var genericOps = []opData{
 	{name: "IsNaNFloat64x4", argLength: 1},
 	{name: "IsNaNFloat64x8", argLength: 1},
 
-	// SVE ops
-	{name: "Count8s", argLength: 1},                     // arg0 = count
-	{name: "AddInt8s", argLength: 2, commutative: true}, // arg0 = x, arg1 = y
-	{name: "MergeInt8s", argLength: 3},                  // arg0 = x, arg1 = y, arg2 = mask
-	{name: "GreaterInt8s", argLength: 2},                // arg0 = x, arg1 = y
-	{name: "ScalableVectorLen", argLength: 0},           // SVE vector length
+	{name: "ScalableVectorLen", argLength: 0}, // SVE runtime vector length in bytes
+	{name: "Count8s", argLength: 1},           // arg0 = active byte count; builds an SVE predicate over that many byte lanes
 }
 
 //     kind          controls          successors   implicit exit

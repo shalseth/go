@@ -42,7 +42,7 @@
 (Const(64|32|16|8) [val]) => (MOVDconst [int64(val)])
 (Const(32|64)F ...) => (FMOV(S|D)const ...)
 (ConstNil) => (MOVDconst [0])
-(ConstBool [t]) => (MOVDconst [b2i(t)])
+(ConstBool [t]) => (MOVDconst [ssa.B2i(t)])
 
 // Addresses.
 (Addr {sym} base) => (MOVDaddr {sym} base)
@@ -51,14 +51,14 @@
 // An address derived from SP stays a MOVDaddr rather than becoming
 // arithmetic on SP, matching what the other backends do: the compiler
 // tracks stack-slot addresses through MOVDaddr.
-(OffPtr [off] ptr:(SP)) && is32Bit(off) => (MOVDaddr [int32(off)] ptr)
-(OffPtr [off] ptr) && is13Bit(off) => (ADDconst [off] ptr)
+(OffPtr [off] ptr:(SP)) && ssa.Is32Bit(off) => (MOVDaddr [int32(off)] ptr)
+(OffPtr [off] ptr) && ssa.Is13Bit(off) => (ADDconst [off] ptr)
 (OffPtr [off] ptr) => (ADD (MOVDconst [off]) ptr)
 
 // Merge offset arithmetic back into the address, so that a field access is a
 // single addressed operand rather than an add feeding a load. This is what
 // lets the folds below fire on anything but the first field.
-(ADDconst [c] (MOVDaddr [d] {sym} x)) && is32Bit(c+int64(d)) => (MOVDaddr [int32(c+int64(d))] {sym} x)
+(ADDconst [c] (MOVDaddr [d] {sym} x)) && ssa.Is32Bit(c+int64(d)) => (MOVDaddr [int32(c+int64(d))] {sym} x)
 
 // Fold a named stack address into the memory operand, as the other backends
 // do. Without this every field access materialises its own address, which
@@ -73,24 +73,24 @@
 // those would drop the bias and leave every access misaligned by an odd
 // amount, which SPARC reports as a bus error rather than anything subtle.
 (MOV(B|H|W|D)store [off1] {sym1} (MOVDaddr [off2] {sym2} ptr) val mem)
-	&& canMergeSym(sym1, sym2) && sym2 != nil && ptr.Op != OpSB
-	&& is32Bit(int64(off1)+int64(off2))
-	=> (MOV(B|H|W|D)store [off1+off2] {mergeSym(sym1,sym2)} ptr val mem)
+	&& ssa.CanMergeSym(sym1, sym2) && sym2 != nil && ptr.Op != ssaop.OpSB
+	&& ssa.Is32Bit(int64(off1)+int64(off2))
+	=> (MOV(B|H|W|D)store [off1+off2] {ssa.MergeSym(sym1,sym2)} ptr val mem)
 
 (FMOV(S|D)store [off1] {sym1} (MOVDaddr [off2] {sym2} ptr) val mem)
-	&& canMergeSym(sym1, sym2) && sym2 != nil && ptr.Op != OpSB
-	&& is32Bit(int64(off1)+int64(off2))
-	=> (FMOV(S|D)store [off1+off2] {mergeSym(sym1,sym2)} ptr val mem)
+	&& ssa.CanMergeSym(sym1, sym2) && sym2 != nil && ptr.Op != ssaop.OpSB
+	&& ssa.Is32Bit(int64(off1)+int64(off2))
+	=> (FMOV(S|D)store [off1+off2] {ssa.MergeSym(sym1,sym2)} ptr val mem)
 
 (MOV(B|UB|H|UH|W|UW|D)load [off1] {sym1} (MOVDaddr [off2] {sym2} ptr) mem)
-	&& canMergeSym(sym1, sym2) && sym2 != nil && ptr.Op != OpSB
-	&& is32Bit(int64(off1)+int64(off2))
-	=> (MOV(B|UB|H|UH|W|UW|D)load [off1+off2] {mergeSym(sym1,sym2)} ptr mem)
+	&& ssa.CanMergeSym(sym1, sym2) && sym2 != nil && ptr.Op != ssaop.OpSB
+	&& ssa.Is32Bit(int64(off1)+int64(off2))
+	=> (MOV(B|UB|H|UH|W|UW|D)load [off1+off2] {ssa.MergeSym(sym1,sym2)} ptr mem)
 
 (FMOV(S|D)load [off1] {sym1} (MOVDaddr [off2] {sym2} ptr) mem)
-	&& canMergeSym(sym1, sym2) && sym2 != nil && ptr.Op != OpSB
-	&& is32Bit(int64(off1)+int64(off2))
-	=> (FMOV(S|D)load [off1+off2] {mergeSym(sym1,sym2)} ptr mem)
+	&& ssa.CanMergeSym(sym1, sym2) && sym2 != nil && ptr.Op != ssaop.OpSB
+	&& ssa.Is32Bit(int64(off1)+int64(off2))
+	=> (FMOV(S|D)load [off1+off2] {ssa.MergeSym(sym1,sym2)} ptr mem)
 
 // Fold a constant offset into the memory operand. SPARC addresses memory
 // as a register plus a displacement, so a pointer plus a constant needs
@@ -104,32 +104,32 @@
 // offset folded onto a bare SP would lose it. Symbol-carrying addresses
 // are handled by the rules above, and SB is left to them.
 (MOV(B|UB|H|UH|W|UW|D)load [off1] {sym} (ADDconst [off2] ptr) mem)
-	&& is32Bit(int64(off1)+off2) && ptr.Op != OpSB && ptr.Op != OpSP
+	&& ssa.Is32Bit(int64(off1)+off2) && ptr.Op != ssaop.OpSB && ptr.Op != ssaop.OpSP
 	=> (MOV(B|UB|H|UH|W|UW|D)load [off1+int32(off2)] {sym} ptr mem)
 
 (FMOV(S|D)load [off1] {sym} (ADDconst [off2] ptr) mem)
-	&& is32Bit(int64(off1)+off2) && ptr.Op != OpSB && ptr.Op != OpSP
+	&& ssa.Is32Bit(int64(off1)+off2) && ptr.Op != ssaop.OpSB && ptr.Op != ssaop.OpSP
 	=> (FMOV(S|D)load [off1+int32(off2)] {sym} ptr mem)
 
 (MOV(B|H|W|D)store [off1] {sym} (ADDconst [off2] ptr) val mem)
-	&& is32Bit(int64(off1)+off2) && ptr.Op != OpSB && ptr.Op != OpSP
+	&& ssa.Is32Bit(int64(off1)+off2) && ptr.Op != ssaop.OpSB && ptr.Op != ssaop.OpSP
 	=> (MOV(B|H|W|D)store [off1+int32(off2)] {sym} ptr val mem)
 
 (FMOV(S|D)store [off1] {sym} (ADDconst [off2] ptr) val mem)
-	&& is32Bit(int64(off1)+off2) && ptr.Op != OpSB && ptr.Op != OpSP
+	&& ssa.Is32Bit(int64(off1)+off2) && ptr.Op != ssaop.OpSB && ptr.Op != ssaop.OpSP
 	=> (FMOV(S|D)store [off1+int32(off2)] {sym} ptr val mem)
 
 // Loads.
 (Load <t> ptr mem) && t.IsBoolean() => (MOVUBload ptr mem)
-(Load <t> ptr mem) && is8BitInt(t) && t.IsSigned() => (MOVBload ptr mem)
-(Load <t> ptr mem) && is8BitInt(t) && !t.IsSigned() => (MOVUBload ptr mem)
-(Load <t> ptr mem) && is16BitInt(t) && t.IsSigned() => (MOVHload ptr mem)
-(Load <t> ptr mem) && is16BitInt(t) && !t.IsSigned() => (MOVUHload ptr mem)
-(Load <t> ptr mem) && is32BitInt(t) && t.IsSigned() => (MOVWload ptr mem)
-(Load <t> ptr mem) && is32BitInt(t) && !t.IsSigned() => (MOVUWload ptr mem)
-(Load <t> ptr mem) && (is64BitInt(t) || isPtr(t)) => (MOVDload ptr mem)
-(Load <t> ptr mem) && is32BitFloat(t) => (FMOVSload ptr mem)
-(Load <t> ptr mem) && is64BitFloat(t) => (FMOVDload ptr mem)
+(Load <t> ptr mem) && ssa.Is8BitInt(t) && t.IsSigned() => (MOVBload ptr mem)
+(Load <t> ptr mem) && ssa.Is8BitInt(t) && !t.IsSigned() => (MOVUBload ptr mem)
+(Load <t> ptr mem) && ssa.Is16BitInt(t) && t.IsSigned() => (MOVHload ptr mem)
+(Load <t> ptr mem) && ssa.Is16BitInt(t) && !t.IsSigned() => (MOVUHload ptr mem)
+(Load <t> ptr mem) && ssa.Is32BitInt(t) && t.IsSigned() => (MOVWload ptr mem)
+(Load <t> ptr mem) && ssa.Is32BitInt(t) && !t.IsSigned() => (MOVUWload ptr mem)
+(Load <t> ptr mem) && (ssa.Is64BitInt(t) || ssa.IsPtr(t)) => (MOVDload ptr mem)
+(Load <t> ptr mem) && ssa.Is32BitFloat(t) => (FMOVSload ptr mem)
+(Load <t> ptr mem) && ssa.Is64BitFloat(t) => (FMOVDload ptr mem)
 
 // Stores.
 (Store {t} ptr val mem) && t.Size() == 1 => (MOVBstore ptr val mem)
@@ -172,10 +172,10 @@
 (PubBarrier ...) => (LoweredPubBarrier ...)
 
 (PanicBounds ...) => (LoweredPanicBoundsRR ...)
-(LoweredPanicBoundsRR [kind] x (MOVDconst [c]) mem) => (LoweredPanicBoundsRC [kind] x {PanicBoundsC{C:c}} mem)
-(LoweredPanicBoundsRR [kind] (MOVDconst [c]) y mem) => (LoweredPanicBoundsCR [kind] {PanicBoundsC{C:c}} y mem)
-(LoweredPanicBoundsRC [kind] {p} (MOVDconst [c]) mem) => (LoweredPanicBoundsCC [kind] {PanicBoundsCC{Cx:c, Cy:p.C}} mem)
-(LoweredPanicBoundsCR [kind] {p} (MOVDconst [c]) mem) => (LoweredPanicBoundsCC [kind] {PanicBoundsCC{Cx:p.C, Cy:c}} mem)
+(LoweredPanicBoundsRR [kind] x (MOVDconst [c]) mem) => (LoweredPanicBoundsRC [kind] x {ssa.PanicBoundsC{C:c}} mem)
+(LoweredPanicBoundsRR [kind] (MOVDconst [c]) y mem) => (LoweredPanicBoundsCR [kind] {ssa.PanicBoundsC{C:c}} y mem)
+(LoweredPanicBoundsRC [kind] {p} (MOVDconst [c]) mem) => (LoweredPanicBoundsCC [kind] {ssa.PanicBoundsCC{Cx:c, Cy:p.C}} mem)
+(LoweredPanicBoundsCR [kind] {p} (MOVDconst [c]) mem) => (LoweredPanicBoundsCC [kind] {ssa.PanicBoundsCC{Cx:p.C, Cy:c}} mem)
 
 // Zeroing. Small, aligned regions are stored inline; anything larger
 // uses the LoweredZero loop.
@@ -198,10 +198,10 @@
 (Move [2] {t} dst src mem) && t.Alignment()%2 == 0 => (MOVHstore dst (MOVHload src mem) mem)
 (Move [4] {t} dst src mem) && t.Alignment()%4 == 0 => (MOVWstore dst (MOVWload src mem) mem)
 (Move [8] {t} dst src mem) && t.Alignment()%8 == 0 => (MOVDstore dst (MOVDload src mem) mem)
-(Move [s] {t} dst src mem) && t.Alignment()%8 == 0 && logLargeCopy(v, s) => (LoweredMove [s<<4|8] dst src mem)
-(Move [s] {t} dst src mem) && t.Alignment()%4 == 0 && logLargeCopy(v, s) => (LoweredMove [s<<4|4] dst src mem)
-(Move [s] {t} dst src mem) && t.Alignment()%2 == 0 && logLargeCopy(v, s) => (LoweredMove [s<<4|2] dst src mem)
-(Move [s] dst src mem) && logLargeCopy(v, s) => (LoweredMove [s<<4|1] dst src mem)
+(Move [s] {t} dst src mem) && t.Alignment()%8 == 0 && ssa.LogLargeCopyValue(v, s) => (LoweredMove [s<<4|8] dst src mem)
+(Move [s] {t} dst src mem) && t.Alignment()%4 == 0 && ssa.LogLargeCopyValue(v, s) => (LoweredMove [s<<4|4] dst src mem)
+(Move [s] {t} dst src mem) && t.Alignment()%2 == 0 && ssa.LogLargeCopyValue(v, s) => (LoweredMove [s<<4|2] dst src mem)
+(Move [s] dst src mem) && ssa.LogLargeCopyValue(v, s) => (LoweredMove [s<<4|1] dst src mem)
 
 // Write barrier.
 (WB ...) => (LoweredWB ...)
@@ -235,12 +235,12 @@
 
 // Optimizations. Fold a constant into the immediate field when it fits
 // SPARC's 13-bit signed range; otherwise leave it in a register.
-(ADD (MOVDconst [c]) x) && is13Bit(c) => (ADDconst [c] x)
-(SUB x (MOVDconst [c])) && is13Bit(c) => (SUBconst [c] x)
-(AND (MOVDconst [c]) x) && is13Bit(c) => (ANDconst [c] x)
-(OR  (MOVDconst [c]) x) && is13Bit(c) => (ORconst  [c] x)
-(XOR (MOVDconst [c]) x) && is13Bit(c) => (XORconst [c] x)
-(CMP x (MOVDconst [c])) && is13Bit(c) => (CMPconst [c] x)
+(ADD (MOVDconst [c]) x) && ssa.Is13Bit(c) => (ADDconst [c] x)
+(SUB x (MOVDconst [c])) && ssa.Is13Bit(c) => (SUBconst [c] x)
+(AND (MOVDconst [c]) x) && ssa.Is13Bit(c) => (ANDconst [c] x)
+(OR  (MOVDconst [c]) x) && ssa.Is13Bit(c) => (ORconst  [c] x)
+(XOR (MOVDconst [c]) x) && ssa.Is13Bit(c) => (XORconst [c] x)
+(CMP x (MOVDconst [c])) && ssa.Is13Bit(c) => (CMPconst [c] x)
 
 // Fold a width conversion of a constant back into a constant. Without
 // this the extends inserted by the sub-word comparison rules block the
@@ -264,7 +264,7 @@
 // carried, which the scheduler could float above a result's VarDef.
 // Changing which values fold merely shifted register pressure and moved
 // the symptom around. See the LoweredZero comment in SPARC64Ops.go.
-(CMP x (MOVUW (MOVDconst [c]))) && is13Bit(int64(uint32(c))) => (CMPconst [int64(uint32(c))] x)
+(CMP x (MOVUW (MOVDconst [c]))) && ssa.Is13Bit(int64(uint32(c))) => (CMPconst [int64(uint32(c))] x)
 
 (SLLD x (MOVDconst [c])) => (SLLDconst [c&63] x)
 (SRLD x (MOVDconst [c])) => (SRLDconst [c&63] x)

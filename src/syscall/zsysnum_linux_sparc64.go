@@ -406,3 +406,7 @@ const (
 	SYS_WRITE                   = 4
 	SYS_WRITEV                  = 121
 )
+
+const (
+	_SYS_landlock_restrict_self = 446
+)
