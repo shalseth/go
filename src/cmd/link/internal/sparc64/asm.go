@@ -338,7 +338,7 @@ func archreloc(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, r loade
 	case objabi.R_SPARC64_TLS_LE:
 		// Local exec: the offset is relative to the thread pointer in
 		// %g7, which the runtime sets up.
-		t := ldr.SymValue(rs) + r.Add()
+		t := int64(syms.Tlsoffset) + r.Add()
 		if t < -4096 || t >= 4096 {
 			ldr.Errorf(s, "TLS offset out of range %d", t)
 		}
