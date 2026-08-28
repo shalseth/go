@@ -581,7 +581,7 @@ TEXT runtime·sigtramp(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
 	// holding the registers of the frame the signal interrupted (a
 	// thread parked in futex(FUTEX_WAIT) hands its notesleep frame
 	// anchors to the handler). The flat-frame ABI keeps its frame
-	// anchors in %i6/%i7, so that silently redirects the handler's
+	// anchors in %l5/%i7, so that silently redirects the handler's
 	// returns.
 	//
 	// Go code never executes SAVE, so one window serves the whole
