@@ -1,7 +1,7 @@
 # Merging upstream into the sparc64 port
 
 Procedure for pulling golang/go master into the `sparc64` branch, validating
-the result against a pre-merge baseline, and installing the toolchain.
+the result, and installing the toolchain.
 
 The merge itself is text work, but the rule generator, the build and the test
 suite all need a working sparc64 Go, so in practice every step runs on a
@@ -21,32 +21,10 @@ Paths below are this setup's — adjust for another.
 Rough costs on an UltraSPARC T4-1: `make.bash` ~12 min, `dist test -k` ~40 min,
 `emerge go-9999` ~12 min.
 
----
-
-## 0. Baseline first — before touching anything
-
-Without this, a post-merge failure cannot be attributed to the merge. Run it on
-an **idle** machine: some tests are load-sensitive.
-
-    cat /sys/kernel/mm/transparent_hugepage/enabled   # record it
-    cd /root/goport/go/src
-    ./make.bash && ../bin/go tool dist test -k > /root/baseline-k.log 2>&1
-
-Use `-k` (keep going). Without it `dist test` stops at the first failing
-package and never reaches the twenty later phases — which is how an
-internal-link cgo bug stayed hidden for six days, with every run reaching two
-phases out of twenty-two.
-
-    grep -cE '^--- FAIL' /root/baseline-k.log     # expect 0
-    grep -c '^#####' /root/baseline-k.log         # expect 22 phases
-
-Expect **zero failures**. The six `cmd/objdump` and one `cmd/pprof` disassembly
-tests skip through `mustHaveDisasm`, there being no sparc64 disassembler.
-Anything else is a real pre-existing problem: fix it *before* merging, or the
-comparison in step 4 is worthless.
-
-Whatever the transparent-hugepage setting is, keep it identical for the
-post-merge run.
+**The port tests clean.** A full `dist test -k` reaches 22 phases with zero
+failures — that is the standard every merge is held to, so there is no need to
+capture a fresh baseline first. Any failure is a real result: investigate it,
+do not explain it away.
 
 ---
 
@@ -62,8 +40,8 @@ Never merge onto `sparc64` directly — nothing is at risk until it is green.
     git worktree add /root/gomerge -b merge-upstream-$(date +%Y%m%d) sparc64
     cd /root/gomerge && git merge upstream/master
 
-A worktree keeps the baseline tree untouched and buildable while the merge is
-still in doubt.
+A worktree keeps the working checkout untouched and buildable while the merge
+is still in doubt.
 
 **Merge, never rebase.** Rebasing replays 150+ port commits through the drift,
 conflicting on generated files repeatedly, and rewrites hashes so release tags
@@ -155,28 +133,33 @@ is cheap. Once it passes it goes on to build the standard library with the
 
 ---
 
-## 4. Test and compare
-
-Same hugepage setting as the baseline, idle machine.
+## 4. Test
 
     cd /root/gomerge/src
     ../bin/go tool dist test -k > /root/mergebuild-k.log 2>&1
 
-Diff the failure *sets*, not the counts:
+Use `-k` (keep going). Without it `dist test` stops at the first failing
+package and never reaches the twenty later phases — which is how an
+internal-link cgo bug stayed hidden for six days, with every run reaching two
+phases out of twenty-two.
 
-    diff <(grep -E '^--- FAIL' /root/baseline-k.log     | sed 's/ ([0-9.]*s)//') \
-         <(grep -E '^--- FAIL' /root/mergebuild-k.log   | sed 's/ ([0-9.]*s)//')
+    grep -cE '^--- FAIL' /root/mergebuild-k.log   # expect 0
+    grep -c '^#####' /root/mergebuild-k.log       # expect 22 phases
 
-    diff <(grep -E '^(ok|FAIL)\s' /root/baseline-k.log   | awk '{print $1,$2}' | sort -u) \
-         <(grep -E '^(ok|FAIL)\s' /root/mergebuild-k.log | awk '{print $1,$2}' | sort -u)
+Zero failures across 22 phases is the pass condition. The six `cmd/objdump` and
+one `cmd/pprof` disassembly tests skip through `mustHaveDisasm`, there being no
+sparc64 disassembler; everything else must pass.
 
-New `ok` lines are fine — they are upstream's new packages. A package moving
-`ok` → `FAIL`, or any new `--- FAIL`, means stop and investigate.
+**Every failure is an issue to investigate**, whether or not it looks related
+to the merge. Two things worth knowing while investigating, neither of them an
+excuse to move on:
 
-`time.TestLongAdjustTimers` is the known load-sensitive one: it needs ~12 s
-against a hard 60 s deadline and fails under heavy parallel load. If it turns
-up, re-run it alone on an idle machine before concluding anything — and produce
-that evidence rather than assuming.
+* `time.TestLongAdjustTimers` is load-sensitive — it needs ~12 s against a hard
+  60 s deadline and fails under heavy parallel load. Re-run it alone on an idle
+  machine and produce that evidence before concluding it was contention.
+* Some failures depend on kernel configuration rather than on the port. If one
+  looks like that, confirm it against the running kernel's config before
+  changing any Go code.
 
 ---
 
@@ -207,6 +190,5 @@ It builds with `CGO_ENABLED=1` and bootstraps from the currently installed Go.
 
 ## Order that matters
 
-Baseline before merging, or failures are unattributable. Generator before
-`make.bash`, or the errors are noise. Push before emerging, since the ebuild
-pulls from the remote.
+Generator before `make.bash`, or the errors are noise. Push before emerging,
+since the ebuild pulls from the remote.
