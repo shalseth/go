@@ -21,10 +21,10 @@ Paths below are this setup's — adjust for another.
 Rough costs on an UltraSPARC T4-1: `make.bash` ~12 min, `dist test -k` ~40 min,
 `emerge go-9999` ~12 min.
 
-**The port tests clean.** A full `dist test -k` reaches 22 phases with zero
-failures — that is the standard every merge is held to, so there is no need to
-capture a fresh baseline first. Any failure is a real result: investigate it,
-do not explain it away.
+**The port is expected to test clean** — 22 phases, zero failures. That is the
+standard every merge is held to, so there is no need to capture a fresh
+baseline first. Any failure is a real result: investigate it, do not explain it
+away.
 
 ---
 
@@ -171,7 +171,19 @@ excuse to move on:
     git push origin sparc64
     git worktree remove /root/gomerge
 
-Confirm a release tag is still reachable with
+Then tag the merge, so any past toolchain can be checked out and rebuilt:
+
+    TAG=sparc64-$(date +%Y%m%d)
+    git tag -a $TAG -m "merged upstream through $(git rev-parse --short upstream/master)"
+    git push origin $TAG
+
+Annotated, not lightweight — the tag carries which upstream commit it caught
+up to, which is the thing worth knowing a year later. To go back to one:
+
+    git checkout $TAG && cd src && ./make.bash
+
+Tags are also why this is a merge rather than a rebase: a fast-forward keeps
+every earlier tag reachable. Confirm with
 `git merge-base --is-ancestor <tag> sparc64` if in doubt.
 
 ---
