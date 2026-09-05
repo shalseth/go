@@ -10,7 +10,11 @@ shows up far away - as heap corruption, or a nil dereference inside the GC.
 This has now happened twice: the atomics in 2026-08 and ADDCARRY/SUBBORROW in
 2026-09. Run it after adding or changing any multi-instruction op.
 
-    python3 src/cmd/compile/internal/sparc64/flagcheck.py
+It lives under misc/ rather than beside the code it checks because cmd/dist
+parses every file in a package directory under src/cmd and rejects one it
+cannot read as Go, which breaks make.bash from clean.
+
+    python3 misc/sparc64/flagcheck.py
 
 Exits non-zero if anything is unaccounted for.
 """
@@ -19,8 +23,8 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.normpath(os.path.join(HERE, '..', '..', '..', '..', '..'))
-SSA = os.path.join(HERE, 'ssa.go')
+ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
+SSA = os.path.join(ROOT, 'src/cmd/compile/internal/sparc64/ssa.go')
 OPS = os.path.join(ROOT, 'src/cmd/compile/internal/ssa/_gen/SPARC64Ops.go')
 
 # Arithmetic and logical forms ending in CC write the integer condition codes,

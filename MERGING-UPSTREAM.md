@@ -128,7 +128,7 @@ This has happened twice, both times in newly added multi-instruction ops: the
 atomics in 2026-08 and `ADDCARRY`/`SUBBORROW` in 2026-09, the latter reaching a
 released toolchain. Run the check after any op change:
 
-    python3 src/cmd/compile/internal/sparc64/flagcheck.py
+    python3 misc/sparc64/flagcheck.py
 
 It exits non-zero and names the ops. Note `MOV<cond>` reads the codes rather
 than writing them, so `MOVCC` is not a hit; `CMP`, `FCMP` and anything ending
