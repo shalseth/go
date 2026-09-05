@@ -1295,56 +1295,56 @@ func convConcatGroupedSlice[T, U number](a, b []T, conv func(T) U) []U {
 }
 
 func TestSaturateConcat(t *testing.T) {
-	// Int32x4.SaturateToInt16Concat
+	// Int32x4.ConcatSaturateToInt16
 	forSlicePair(t, int32s, 4, func(x, y []int32) bool {
 		a, b := archsimd.LoadInt32x4(x), archsimd.LoadInt32x4(y)
 		var out [8]int16
-		a.SaturateToInt16Concat(b).StoreArray(&out)
+		a.ConcatSaturateToInt16(b).StoreArray(&out)
 		want := convConcatSlice(x, y, satToInt16)
 		return checkSlicesLogInput(t, out[:], want, 0, func() { t.Logf("x=%v, y=%v", x, y) })
 	})
-	// Int32x4.SaturateToUint16Concat
+	// Int32x4.ConcatSaturateToUint16
 	forSlicePair(t, int32s, 4, func(x, y []int32) bool {
 		a, b := archsimd.LoadInt32x4(x), archsimd.LoadInt32x4(y)
 		var out [8]uint16
-		a.SaturateToUint16Concat(b).StoreArray(&out)
+		a.ConcatSaturateToUint16(b).StoreArray(&out)
 		want := convConcatSlice(x, y, satToUint16)
 		return checkSlicesLogInput(t, out[:], want, 0, func() { t.Logf("x=%v, y=%v", x, y) })
 	})
 
 	if archsimd.X86.AVX2() {
-		// Int32x8.SaturateToInt16ConcatGrouped
+		// Int32x8.ConcatSaturateToInt16Grouped
 		forSlicePair(t, int32s, 8, func(x, y []int32) bool {
 			a, b := archsimd.LoadInt32x8(x), archsimd.LoadInt32x8(y)
 			var out [16]int16
-			a.SaturateToInt16ConcatGrouped(b).StoreArray(&out)
+			a.ConcatSaturateToInt16Grouped(b).StoreArray(&out)
 			want := convConcatGroupedSlice(x, y, satToInt16)
 			return checkSlicesLogInput(t, out[:], want, 0, func() { t.Logf("x=%v, y=%v", x, y) })
 		})
-		// Int32x8.SaturateToUint16ConcatGrouped
+		// Int32x8.ConcatSaturateToUint16Grouped
 		forSlicePair(t, int32s, 8, func(x, y []int32) bool {
 			a, b := archsimd.LoadInt32x8(x), archsimd.LoadInt32x8(y)
 			var out [16]uint16
-			a.SaturateToUint16ConcatGrouped(b).StoreArray(&out)
+			a.ConcatSaturateToUint16Grouped(b).StoreArray(&out)
 			want := convConcatGroupedSlice(x, y, satToUint16)
 			return checkSlicesLogInput(t, out[:], want, 0, func() { t.Logf("x=%v, y=%v", x, y) })
 		})
 	}
 
 	if archsimd.X86.AVX512() {
-		// Int32x16.SaturateToInt16ConcatGrouped
+		// Int32x16.ConcatSaturateToInt16Grouped
 		forSlicePair(t, int32s, 16, func(x, y []int32) bool {
 			a, b := archsimd.LoadInt32x16(x), archsimd.LoadInt32x16(y)
 			var out [32]int16
-			a.SaturateToInt16ConcatGrouped(b).StoreArray(&out)
+			a.ConcatSaturateToInt16Grouped(b).StoreArray(&out)
 			want := convConcatGroupedSlice(x, y, satToInt16)
 			return checkSlicesLogInput(t, out[:], want, 0, func() { t.Logf("x=%v, y=%v", x, y) })
 		})
-		// Int32x16.SaturateToUint16ConcatGrouped
+		// Int32x16.ConcatSaturateToUint16Grouped
 		forSlicePair(t, int32s, 16, func(x, y []int32) bool {
 			a, b := archsimd.LoadInt32x16(x), archsimd.LoadInt32x16(y)
 			var out [32]uint16
-			a.SaturateToUint16ConcatGrouped(b).StoreArray(&out)
+			a.ConcatSaturateToUint16Grouped(b).StoreArray(&out)
 			want := convConcatGroupedSlice(x, y, satToUint16)
 			return checkSlicesLogInput(t, out[:], want, 0, func() { t.Logf("x=%v, y=%v", x, y) })
 		})
@@ -1564,4 +1564,89 @@ func TestMaskOr(t *testing.T) {
 	testMaskOr16x8(t)
 	testMaskOr32x4(t)
 	testMaskOr64x2(t)
+}
+
+func TestReduceSumFloat32x8(t *testing.T) {
+	// 256-bit float available with plain AVX
+	tests := []struct {
+		in   []float32
+		want float32
+	}{
+		{in: []float32{1, 2, 3, 4, 5, 6, 7, 8}, want: 36},
+		{in: []float32{0.5, -0.5, 1.25, -1.25, 2.125, -2.125, 4, 8}, want: 12},
+		{in: []float32{0, 0, 0, 0, 0, 0, 0, 0}, want: 0},
+		{in: []float32{-1, -2, -3, -4, -5, -6, -7, -8}, want: -36},
+	}
+	for _, tc := range tests {
+		v := archsimd.LoadFloat32x8(tc.in)
+		got := v.ReduceSum()
+		if got != tc.want {
+			t.Errorf("%v.ReduceSum() = %v, want %v", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestReduceSumFloat64x4(t *testing.T) {
+	// 256-bit float available with plain AVX
+	tests := []struct {
+		in   []float64
+		want float64
+	}{
+		{in: []float64{10, 20, 30, 40}, want: 100},
+		{in: []float64{0.5, -0.5, 1.25, -1.25}, want: 0},
+		{in: []float64{0, 0, 0, 0}, want: 0},
+		{in: []float64{1.125, 2.25, 3.5, 4.0}, want: 10.875},
+		{in: []float64{-10, -20, -30, -40}, want: -100},
+	}
+	for _, tc := range tests {
+		v := archsimd.LoadFloat64x4(tc.in)
+		got := v.ReduceSum()
+		if got != tc.want {
+			t.Errorf("%v.ReduceSum() = %v, want %v", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestReduceSumFloat32x16(t *testing.T) {
+	if !archsimd.X86.AVX512() {
+		t.Skip("Test requires X86.AVX512, not available on this hardware")
+		return
+	}
+	tests := []struct {
+		in   []float32
+		want float32
+	}{
+		{in: []float32{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}, want: 136},
+		{in: []float32{1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8, 9}, want: 17},
+		{in: make([]float32, 16), want: 0},
+	}
+	for _, tc := range tests {
+		v := archsimd.LoadFloat32x16(tc.in)
+		got := v.ReduceSum()
+		if got != tc.want {
+			t.Errorf("%v.ReduceSum() = %v, want %v", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestReduceSumFloat64x8(t *testing.T) {
+	if !archsimd.X86.AVX512() {
+		t.Skip("Test requires X86.AVX512, not available on this hardware")
+		return
+	}
+	tests := []struct {
+		in   []float64
+		want float64
+	}{
+		{in: []float64{1, 2, 3, 4, 5, 6, 7, 8}, want: 36},
+		{in: []float64{1, -1, 2, -2, 3, -3, 4, 5}, want: 9},
+		{in: make([]float64, 8), want: 0},
+	}
+	for _, tc := range tests {
+		v := archsimd.LoadFloat64x8(tc.in)
+		got := v.ReduceSum()
+		if got != tc.want {
+			t.Errorf("%v.ReduceSum() = %v, want %v", tc.in, got, tc.want)
+		}
+	}
 }
