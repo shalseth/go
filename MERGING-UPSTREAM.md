@@ -116,7 +116,25 @@ the result side and a condition-only scan reports nothing.
 one and gets as far as the type checker. When a rename target exists, check its
 signature against the call site in another arch's rules.
 
-**e. New syscall constants.** Upstream adds a syscall to `exec_linux.go` and
+**e. Ops that write the condition codes.** `flagalloc` uses an op's
+`clobberFlags` to know where a `Flags` value dies. An op whose expansion emits
+a CC-writing instruction without declaring it leaves the allocator believing a
+comparison result survives across it, and the consumer then branches on codes
+the op destroyed. Nothing catches this: it builds, the tests that exercise the
+op pass, and the damage surfaces somewhere else entirely — as heap corruption,
+or a nil dereference inside the GC sweeper.
+
+This has happened twice, both times in newly added multi-instruction ops: the
+atomics in 2026-08 and `ADDCARRY`/`SUBBORROW` in 2026-09, the latter reaching a
+released toolchain. Run the check after any op change:
+
+    python3 src/cmd/compile/internal/sparc64/flagcheck.py
+
+It exits non-zero and names the ops. Note `MOV<cond>` reads the codes rather
+than writing them, so `MOVCC` is not a hit; `CMP`, `FCMP` and anything ending
+in `CC` are.
+
+**f. New syscall constants.** Upstream adds a syscall to `exec_linux.go` and
 the generated `zsysnum_linux_sparc64.go` has never heard of it. Take the number
 from the target's own headers, never from another architecture:
 
@@ -151,8 +169,12 @@ one `cmd/pprof` disassembly tests skip through `mustHaveDisasm`, there being no
 sparc64 disassembler; everything else must pass.
 
 **Every failure is an issue to investigate**, whether or not it looks related
-to the merge. Two things worth knowing while investigating, neither of them an
-excuse to move on:
+to the merge. Note that a crash of the *compiler itself* - `signal: segmentation
+fault` against a package name, with no Go traceback - is not a test failure and
+`--- FAIL` will not count it. Grep the log for `signal:` separately.
+
+Two things worth knowing while investigating, neither of them an excuse
+to move on:
 
 * `time.TestLongAdjustTimers` is load-sensitive — it needs ~12 s against a hard
   60 s deadline and fails under heavy parallel load. Re-run it alone on an idle
