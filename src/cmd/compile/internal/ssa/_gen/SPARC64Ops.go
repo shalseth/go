@@ -195,8 +195,8 @@ func init() {
 		// adds plus five logical ops to recover the carry. As with MULDU
 		// the expansion reads an input after writing an output, so the
 		// results must not share registers with the arguments.
-		{name: "ADDCARRY", argLength: 3, reg: gp32, resultNotInArgs: true, typ: "(UInt64,UInt64)"},  // (sum, carryOut) = arg0 + arg1 + arg2; arg2 is 0 or 1, and so is carryOut
-		{name: "SUBBORROW", argLength: 3, reg: gp32, resultNotInArgs: true, typ: "(UInt64,UInt64)"}, // (diff, borrowOut) = arg0 - arg1 - arg2; arg2 is 0 or 1, and so is borrowOut
+		{name: "ADDCARRY", argLength: 3, reg: gp32, resultNotInArgs: true, clobberFlags: true, typ: "(UInt64,UInt64)"},  // (sum, carryOut) = arg0 + arg1 + arg2; arg2 is 0 or 1, and so is carryOut
+		{name: "SUBBORROW", argLength: 3, reg: gp32, resultNotInArgs: true, clobberFlags: true, typ: "(UInt64,UInt64)"}, // (diff, borrowOut) = arg0 - arg1 - arg2; arg2 is 0 or 1, and so is borrowOut
 		{name: "UDIVD", argLength: 2, reg: gp21, asm: "UDIVD"},                   // arg0 / arg1, unsigned
 
 		{name: "AND", argLength: 2, reg: gp21, asm: "AND", commutative: true},   // arg0 & arg1

@@ -106030,6 +106030,7 @@ var OpcodeTable = [...]OpInfo{
 		Name:            "ADDCARRY",
 		ArgLen:          3,
 		ResultNotInArgs: true,
+		ClobberFlags:    true,
 		Reg: RegInfo{
 			Inputs: []InputInfo{
 				{0, RegMask{V1: 6287358, V2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
@@ -106046,6 +106047,7 @@ var OpcodeTable = [...]OpInfo{
 		Name:            "SUBBORROW",
 		ArgLen:          3,
 		ResultNotInArgs: true,
+		ClobberFlags:    true,
 		Reg: RegInfo{
 			Inputs: []InputInfo{
 				{0, RegMask{V1: 6287358, V2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g
