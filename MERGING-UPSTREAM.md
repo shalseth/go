@@ -161,17 +161,27 @@ package and never reaches the twenty later phases — which is how an
 internal-link cgo bug stayed hidden for six days, with every run reaching two
 phases out of twenty-two.
 
-    grep -cE '^--- FAIL' /root/mergebuild-k.log   # expect 0
-    grep -c '^#####' /root/mergebuild-k.log       # expect 22 phases
+    grep -cE '^--- FAIL' /root/mergebuild-k.log     # expect 0
+    grep -c '^#####' /root/mergebuild-k.log         # expect 22 phases
+    grep -c 'test timed out' /root/mergebuild-k.log # expect 0
+    grep -c 'signal:' /root/mergebuild-k.log        # expect 0
 
 Zero failures across 22 phases is the pass condition. The six `cmd/objdump` and
 one `cmd/pprof` disassembly tests skip through `mustHaveDisasm`, there being no
 sparc64 disassembler; everything else must pass.
 
 **Every failure is an issue to investigate**, whether or not it looks related
-to the merge. Note that a crash of the *compiler itself* - `signal: segmentation
-fault` against a package name, with no Go traceback - is not a test failure and
-`--- FAIL` will not count it. Grep the log for `signal:` separately.
+to the merge. Two failure modes produce no `--- FAIL` line at all and so are
+invisible to that grep alone:
+
+* A crash of the *compiler itself* - `signal: segmentation fault` against a
+  package name, with no Go traceback.
+* A package-level timeout - `panic: test timed out after 10m0s`, which names
+  the hung test under `running tests:` and reports as a bare `FAIL <pkg>`.
+
+Both make `dist test` exit non-zero while `--- FAIL` counts zero, so a run
+scored on `--- FAIL` alone reads as clean when it is not. Check the exit
+status as well as the greps.
 
 Two things worth knowing while investigating, neither of them an excuse
 to move on:
@@ -179,6 +189,19 @@ to move on:
 * `time.TestLongAdjustTimers` is load-sensitive — it needs ~12 s against a hard
   60 s deadline and fails under heavy parallel load. Re-run it alone on an idle
   machine and produce that evidence before concluding it was contention.
+  `runtime.TestEINTR` behaves the same way and belongs in the same category.
+
+  The load is the suite's own. `cmd/dist` sets `maxbg` to `runtime.NumCPU()`
+  whenever the worklist holds the `GOMAXPROCS=2 runtime` phase, which it always
+  does, so a 64-thread T4 runs 64 test binaries at once - measured at 108 test
+  processes and 259 runnable against 32 CPUs. Constraining affinity does **not**
+  help: `NumCPU` is read through `sched_getaffinity`, so `taskset` scales
+  `maxbg` down with the CPU count and the ratio is unchanged. Nor does a longer
+  timeout - `tick_test.go:233: timer expired` is the test measuring timer
+  latency, not a harness deadline, and under that oversubscription timers really
+  are late. Four consecutive merge runs on this hardware each reached 22 phases
+  with no port failures and one such flake; the isolation re-run is the
+  resolution, not a knob.
 * Some failures depend on kernel configuration rather than on the port. If one
   looks like that, confirm it against the running kernel's config before
   changing any Go code.
