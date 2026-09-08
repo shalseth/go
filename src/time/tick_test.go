@@ -181,8 +181,18 @@ func TestLongAdjustTimers(t *testing.T) {
 	// which needed 77 seconds.
 	// Trybots are slower, so it will fail even more reliably there.
 	// With the fix, the code runs in under a second.
+	budget := 60 * Second
+	readTimeout := 5 * Second
+	if runtime.GOARCH == "sparc64" {
+		// dist test sets maxbg to NumCPU, so a 64-thread T4 runs 64 test
+		// binaries at once and this test misses 60 s while needing about 12 s
+		// alone. The pathology it guards against is orders of magnitude
+		// slower than that, so a wider budget still catches it.
+		budget = 5 * Minute
+		readTimeout = 30 * Second
+	}
 	done := make(chan bool)
-	AfterFunc(60*Second, func() { close(done) })
+	AfterFunc(budget, func() { close(done) })
 
 	// Set up a queuing goroutine to ping pong through the scheduler.
 	inQ := make(chan func())
@@ -227,7 +237,7 @@ func TestLongAdjustTimers(t *testing.T) {
 				if !ok {
 					t.Fatal("output channel is closed")
 				}
-			case <-After(5 * Second):
+			case <-After(readTimeout):
 				t.Fatalf("failed to read work, iteration %d", i)
 			case <-done:
 				t.Fatal("timer expired")
