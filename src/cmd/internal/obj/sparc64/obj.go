@@ -919,8 +919,19 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 		if p.Link != nil && p.Link.As == ARESTORE {
 			continue
 		}
+		jump := p
 		p = obj.Appendp(p, newprog)
 		p.As = ARNOP
+
+		// A delay slot runs as part of its jump, so a stack adjustment
+		// the jump carries must not take effect until after the slot.
+		// The epilogue's RET carries +framesize to undo the pop for
+		// body code that follows it; left on the RET it describes the
+		// slot as still owning the frame the ADD before it released,
+		// and a signal arriving in that one instruction unwinds a frame
+		// short - the traceback reads AnchorLR from inside the caller
+		// and reports a fossil as the return address.
+		p.Spadj, jump.Spadj = jump.Spadj, 0
 	}
 
 	// A call to a function that never returns (gopanic, panicwrap) may
