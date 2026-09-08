@@ -202,6 +202,16 @@ to move on:
   are late. Four consecutive merge runs on this hardware each reached 22 phases
   with no port failures and one such flake; the isolation re-run is the
   resolution, not a knob.
+* `runtime.TestSegv/SegvInCgo` fails about one run in five with `runtime: g N:
+  unexpected return pc for main._Cfunc_nop`. Known and pre-existing: a signal
+  landing in the cgo return path defeats the unwinder. Note the sibling
+  `unknown pc` message is a *different* case that the test skips by design
+  (go.dev/issue/50979), so grep for the exact wording before concluding
+  anything. It reproduces only under Go-process churn - parallel `go build
+  std` loops, ~0.5% - and not at all under CPU spinners or on an idle box, so
+  do not try to stress it with busy loops. Full write-up and reproducer in the
+  session memory.
+
 * Some failures depend on kernel configuration rather than on the port. If one
   looks like that, confirm it against the running kernel's config before
   changing any Go code.
