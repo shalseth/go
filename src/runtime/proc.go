@@ -2536,7 +2536,9 @@ func oneNewExtraM() {
 	gp := malg(4096)
 	gp.sched.pc = abi.FuncPCABI0(goexit) + sys.PCQuantum
 	gp.sched.sp = gp.stack.hi
-	gp.sched.sp -= 4 * goarch.PtrSize // extra space in case of reads slightly beyond frame
+	// The same reservation newproc1 makes: slack for reads slightly
+	// beyond the frame, plus the mandatory minimum frame.
+	gp.sched.sp -= alignUp(4*goarch.PtrSize+sys.MinFrameSize, sys.StackAlign)
 	gp.sched.lr = 0
 	gp.sched.g = guintptr(unsafe.Pointer(gp))
 	gp.syscallpc = gp.sched.pc
