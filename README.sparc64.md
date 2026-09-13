@@ -7,11 +7,7 @@ developed on an UltraSPARC T4-1 running Gentoo. This branch adds
 
 Status: with **cgo enabled**, `go test std cmd` runs 380 packages green,
 including the full runtime suite, every cgo, callback, traceback and
-profiling test, and all of `cmd/go`'s script tests. The only failures are
-the missing disassembler (`cmd/objdump`, `cmd/pprof`; see "What is
-missing"), two `net` tests that need a kernel with `CONFIG_DUMMY`, and the
-`moddeps` provenance check, which an out-of-tree port that patches the
-vendored `golang.org/x/sys` cannot satisfy until that support is upstream.
+profiling test, disassembly, and all of `cmd/go`'s script tests.
 Both internal and external linking of cgo programs work, including a psABI
 PLT and GOT for dynamic imports under internal linking. Grafana Alloy — an
 OpenTelemetry collector with roughly two and a half thousand packages —
@@ -40,24 +36,15 @@ boundary.
 ## Hardware requirements
 
 VIS3 is the baseline: SPARC T3 or later (T3, T4, T5, S7, M5-M8), or
-Fujitsu SPARC64 X or later. Earlier machines - UltraSPARC I through IV,
-T1, T2, SPARC64 V/VI/VII - fault with SIGILL during runtime startup; a
-binary from this branch dies immediately on an UltraSPARC IIIi.
+Fujitsu SPARC64 X or later.
 
 Three things need it, all emitted by the compiler: the register-file
 moves `MOVXTOD`, `MOVDTOX`, `MOVSTOUW` and `MOVWTOS`, which the register
 allocator inserts wherever an integer value meets a float one;
 `UMULXHI`, for the high half of a 64x64 multiply; and `ADDXC`, for
-`Add64carry` and `Sub64borrow`. Going below VIS3 would mean a build-time
-feature level in the style of `GOAMD64`, software fallbacks for the
-multiply and the carries, and - the hard part - reimplementing the
-register-file moves as memory round trips, which needs a scratch slot
-reserved in every frame. It has not been attempted.
+`Add64carry` and `Sub64borrow`.
 
-Independently of VIS3, the runtime reads `%stick` for its cycle counter,
-which UltraSPARC-III and later added; `%tick` exists everywhere but
-counts each strand's own cycles, and the strands do not agree closely
-enough for a process-wide timebase (see "Timebase" below).
+The runtime reads `%stick` for its cycle counter (see "Timebase" below).
 
 ## Building
 
@@ -123,18 +110,17 @@ bugs surface only under that kind of load.
 
 ## What is missing
 
-* The race detector, and the `-buildmode` variants beyond `exe`:
-  `pie`, `c-archive` and `c-shared` need a position-independent code
-  model in the compiler, which SPARC makes expensive (no PC-relative
-  addressing; PIC costs a dedicated GOT register and GOT-relative
-  sequences for every global).
-* A disassembler. `cmd/internal/disasm` has no sparc64 support and
-  there is no `golang.org/x/arch/sparc64asm` to build on, so `go tool
-  objdump` and `pprof`'s annotated-assembly view do not work. This is
-  the only part of the test suite still failing — `TestDisasm`,
-  `TestDisasmCode`, `TestDisasmGnuAsm`, `TestDisasmGoobj` and
-  `TestGoobjFileNumber`, across `cmd/objdump` and `cmd/pprof`.
-  Collecting and reading profiles is unaffected; only disassembly is.
+* The `-buildmode` variants beyond `exe`: `pie`, `c-archive` and
+  `c-shared` need a position-independent code model in the compiler,
+  which SPARC makes expensive (no PC-relative addressing; PIC costs a
+  dedicated GOT register and GOT-relative sequences for every global).
+* The race detector. Go does not implement this itself - it vendors
+  ThreadSanitizer from LLVM's compiler-rt as a prebuilt
+  `runtime/race/race_<goos>_<goarch>.syso` plus a small `race_<arch>.s`
+  shim, and the supported set is the six linux arches listed in
+  `internal/platform.RaceDetectorSupported`. compiler-rt ships no SPARC
+  TSan runtime, so there is nothing to vendor: this one is blocked
+  upstream of Go, in LLVM, and not by anything in the code model.
 
 ## Performance
 
