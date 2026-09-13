@@ -552,6 +552,24 @@ class GoroutinesCmd(gdb.Command):
 			print(s, ptr['goid'], "{0:8s}".format(st), blk.function)
 
 
+def stack_bias():
+	"""Offset from the hardware stack-pointer register to the real frame.
+
+	SPARC V9 keeps %sp biased by -2047, so gdb's $sp is 2047 below the
+	address the frame actually starts at. The runtime records the real,
+	unbiased address in g.sched.sp, so a value read out of the register
+	has to be corrected before the two can be used interchangeably.
+	Every other architecture Go supports has no bias.
+	"""
+	try:
+		arch = gdb.selected_frame().architecture().name()
+	except Exception:
+		return 0
+	if arch is not None and 'sparc' in arch:
+		return 2047
+	return 0
+
+
 def find_goroutine(goid):
 	"""
 	find_goroutine attempts to find the goroutine identified by goid.
@@ -596,7 +614,7 @@ def find_goroutine(goid):
 	try:
 		thr.switch()
 		pc = gdb.parse_and_eval('$pc')
-		sp = gdb.parse_and_eval('$sp')
+		sp = gdb.parse_and_eval('$sp') + stack_bias()
 	finally:
 		curthr.switch()
 	return pc.cast(vp), sp.cast(vp)
