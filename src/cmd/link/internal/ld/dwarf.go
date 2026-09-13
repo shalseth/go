@@ -1535,6 +1535,16 @@ func (d *dwctxt) writeframes(fs loader.Sym) dwarfSecInfo {
 		}
 		fpcsp := d.ldr.Pcsp(s)
 
+		// The signal handler enters an injected call by rewriting the PC,
+		// having first lowered SP by a minimum frame it pushes itself
+		// (pushCall and preparePanic). The pcsp table counts from the
+		// function's own entry and cannot see that push, so every CFA
+		// below would come out a minimum frame too low. The generic
+		// traceback compensates for the same push; see the usesLR &&
+		// injectedCall case in runtime/traceback.go.
+		injected := d.arch.Family == sys.SPARC64 &&
+			(fi.FuncID() == abi.FuncID_asyncPreempt || fi.FuncID() == abi.FuncID_sigpanic)
+
 		// Emit a FDE, Section 6.4.1.
 		// First build the section contents into a byte buffer.
 		deltaBuf = deltaBuf[:0]
@@ -1562,6 +1572,9 @@ func (d *dwctxt) writeframes(fs loader.Sym) dwarfSecInfo {
 			if !haslr {
 				// Return address has been pushed onto stack.
 				spdelta += int64(d.arch.PtrSize)
+			}
+			if injected {
+				spdelta += d.arch.FixedFrameSize
 			}
 
 			if haslr && !fi.TopFrame() {
