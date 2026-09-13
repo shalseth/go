@@ -31,6 +31,7 @@ import (
 	"golang.org/x/arch/ppc64/ppc64asm"
 	"golang.org/x/arch/riscv64/riscv64asm"
 	"golang.org/x/arch/s390x/s390xasm"
+	"golang.org/x/arch/sparc64/sparc64asm"
 	"golang.org/x/arch/x86/x86asm"
 )
 
@@ -439,6 +440,19 @@ func disasm_s390x(code []byte, pc uint64, lookup lookupFunc, _ binary.ByteOrder,
 	return text, size
 }
 
+func disasm_sparc64(code []byte, pc uint64, lookup lookupFunc, byteOrder binary.ByteOrder, gnuAsm bool) (string, int) {
+	inst, err := sparc64asm.Decode(code)
+	var text string
+	if err != nil || inst.Op == 0 {
+		text = "?"
+	} else if gnuAsm {
+		text = fmt.Sprintf("%-36s // %s", sparc64asm.GoSyntax(inst, pc, lookup), sparc64asm.GNUSyntax(inst))
+	} else {
+		text = sparc64asm.GoSyntax(inst, pc, lookup)
+	}
+	return text, 4
+}
+
 var disasms = map[string]disasmFunc{
 	"386":     disasm_386,
 	"amd64":   disasm_amd64,
@@ -449,6 +463,7 @@ var disasms = map[string]disasmFunc{
 	"ppc64le": disasm_ppc64,
 	"riscv64": disasm_riscv64,
 	"s390x":   disasm_s390x,
+	"sparc64": disasm_sparc64,
 }
 
 var byteOrders = map[string]binary.ByteOrder{
@@ -461,4 +476,5 @@ var byteOrders = map[string]binary.ByteOrder{
 	"ppc64le": binary.LittleEndian,
 	"riscv64": binary.LittleEndian,
 	"s390x":   binary.BigEndian,
+	"sparc64": binary.BigEndian,
 }

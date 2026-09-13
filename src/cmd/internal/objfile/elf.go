@@ -123,6 +123,8 @@ func (f *elfFile) goarch() string {
 		}
 	case elf.EM_S390:
 		return "s390x"
+	case elf.EM_SPARCV9:
+		return "sparc64"
 	}
 	return ""
 }

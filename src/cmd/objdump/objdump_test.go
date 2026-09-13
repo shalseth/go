@@ -77,6 +77,18 @@ var loong64GnuNeed = []string{
 	"beq",
 }
 
+var sparc64Need = []string{
+	"CALL main.Println(SB)",
+	"RET",
+	"MOVD",
+}
+
+var sparc64GnuNeed = []string{
+	"ldx",
+	"call",
+	"be",
+}
+
 var ppcNeed = []string{
 	"BR main.main(SB)",
 	"CALL main.Println(SB)",
@@ -105,8 +117,6 @@ func mustHaveDisasm(t *testing.T) {
 	switch runtime.GOARCH {
 	case "mips", "mipsle", "mips64", "mips64le":
 		t.Skipf("skipping on %s, issue 12559", runtime.GOARCH)
-	case "sparc64":
-		t.Skipf("skipping on %s, no disassembler support", runtime.GOARCH)
 	}
 }
 
@@ -169,6 +179,8 @@ func testDisasm(t *testing.T, srcfname string, printCode bool, printGnuAsm bool,
 		need = append(need, arm64Need...)
 	case "loong64":
 		need = append(need, loong64Need...)
+	case "sparc64":
+		need = append(need, sparc64Need...)
 	case "ppc64", "ppc64le":
 		var pie bool
 		for _, flag := range flags {
@@ -197,6 +209,8 @@ func testDisasm(t *testing.T, srcfname string, printCode bool, printGnuAsm bool,
 			need = append(need, armGnuNeed...)
 		case "loong64":
 			need = append(need, loong64GnuNeed...)
+		case "sparc64":
+			need = append(need, sparc64GnuNeed...)
 		case "ppc64", "ppc64le":
 			need = append(need, ppcGnuNeed...)
 		case "s390x":
