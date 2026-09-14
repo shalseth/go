@@ -3071,7 +3071,7 @@ func (ctxt *Link) address() []*sym.Segment {
 	}
 	order = append(order, &Segdata)
 	Segdata.Rwx = 06
-	if ctxt.Arch.Family == sys.SPARC64 && ctxt.LinkMode == LinkInternal && !*FlagD {
+	if ctxt.IsSPARC64() && ctxt.LinkMode == LinkInternal && !*FlagD {
 		// The sparc64 PLT is code in the data segment, bound by the
 		// dynamic linker patching it; the segment must be executable,
 		// as the native toolchain also makes it.
