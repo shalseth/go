@@ -1031,11 +1031,19 @@ func (ctxt *Link) findfunctab(state *pclntab, container loader.Bitmap) {
 			indexes[i] = NOIDX
 		}
 		idx := int32(0)
+		first := true
 		for i, s := range ctxt.Textp {
 			if !emitPcln(ctxt, s, container) {
 				continue
 			}
 			p := ldr.SymValue(s)
+			if first {
+				// A host object's text section need not begin on a
+				// function symbol. Cover the gap: findfunc only ever
+				// searches forward from the subbucket it lands in.
+				p = min
+				first = false
+			}
 			var e loader.Sym
 			i++
 			if i < len(ctxt.Textp) {
