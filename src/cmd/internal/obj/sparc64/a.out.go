@@ -18,6 +18,10 @@ import "cmd/internal/obj"
 //	R16..R23  %l0..%l7   local
 //	R24..R31  %i0..%i7   in     (%i6 is the frame pointer, %i7 the caller's return address)
 //
+// Those are the hardware's roles. This port keeps its own frame anchor
+// in %l5 (RFP) and parks %i6 on per-thread scratch, because %i6 is the
+// adjacent window's stack pointer and the kernel spills through it.
+//
 // Go code does not execute SAVE/RESTORE, so the window never rotates
 // within Go frames; see obj.go for how the frame is laid out and
 // docs/sparc64-port.md for why.

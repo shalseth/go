@@ -143,10 +143,10 @@ TEXT runtime·gogo(SB), NOSPLIT|NOFRAME, $0-8
 	CALL	runtime·save_g(SB)
 
 	MOVD	0(g), R4	// make sure g is not nil
-	// The frame anchor registers RFP (%i6) and OLR (%i7) are part of a
+	// The frame anchor registers RFP (%l5) and OLR (%i7) are part of a
 	// goroutine's context in the flat-frame ABI: a framed function's
 	// epilogue unwinds through them, and the kernel's register-window
-	// spill keeps [sp+bias+112/120] mirroring them. gobuf.bp holds the
+	// spill keeps [sp+bias+40/120] mirroring them. gobuf.bp holds the
 	// parked frame's RFP; gobuf.lr holds its OLR (the frame's own
 	// return address). LR gets the same value: for a fresh goroutine
 	// (gostartcall) the entry prologue captures its return address
@@ -655,9 +655,9 @@ oncurrentstack:
 
 	// Hand control to C in a register window of its own.
 	//
-	// %i6 is this ABI's frame anchor, but it is also the hardware's
-	// stack pointer for the window above - they are the same registers -
-	// and a window is spilled and refilled through it. Called in this
+	// %i6 is not this ABI's frame anchor - RFP is %l5 - but it is the
+	// hardware's stack pointer for the window above, and a window is
+	// spilled and refilled through it. Called in this
 	// window, C fills the register file underneath a window whose %i6
 	// names a goroutine frame while its own stack pointer has been
 	// walked onto the g0 stack; the window above then gets spilled into

@@ -339,9 +339,9 @@ walltime_noswitch:
 walltime_nosaveg:
 	// Call the vDSO in a register window of its own.
 	//
-	// It is C code, and %i6 is both this ABI's frame anchor and the
-	// hardware's stack pointer for the window above - they are the same
-	// register. Called in this window, with the anchor naming a
+	// It is C code, and %i6 is the hardware's stack pointer for the
+	// window above - not this ABI's frame anchor, which is %l5. Called
+	// in this window, with %i6 naming a
 	// goroutine frame and the stack pointer walked onto the g0 stack,
 	// any window the kernel spills while the vDSO runs is written
 	// through that anchor, into live goroutine memory. The kernel does
@@ -442,9 +442,9 @@ nanotime_noswitch:
 nanotime_nosaveg:
 	// Call the vDSO in a register window of its own.
 	//
-	// It is C code, and %i6 is both this ABI's frame anchor and the
-	// hardware's stack pointer for the window above - they are the same
-	// register. Called in this window, with the anchor naming a
+	// It is C code, and %i6 is the hardware's stack pointer for the
+	// window above - not this ABI's frame anchor, which is %l5. Called
+	// in this window, with %i6 naming a
 	// goroutine frame and the stack pointer walked onto the g0 stack,
 	// any window the kernel spills while the vDSO runs is written
 	// through that anchor, into live goroutine memory. The kernel does
