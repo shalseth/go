@@ -2536,9 +2536,7 @@ func oneNewExtraM() {
 	gp := malg(4096)
 	gp.sched.pc = abi.FuncPCABI0(goexit) + sys.PCQuantum
 	gp.sched.sp = gp.stack.hi
-	// The same reservation newproc1 makes: slack for reads slightly
-	// beyond the frame, plus the mandatory minimum frame.
-	gp.sched.sp -= alignUp(4*goarch.PtrSize+sys.MinFrameSize, sys.StackAlign)
+	gp.sched.sp -= 4 * goarch.PtrSize // extra space in case of reads slightly beyond frame
 	gp.sched.lr = 0
 	gp.sched.g = guintptr(unsafe.Pointer(gp))
 	gp.syscallpc = gp.sched.pc
@@ -4620,10 +4618,20 @@ func save(pc, sp, bp uintptr) {
 		// anchor registers, and sparc64 has no frame pointer for
 		// getcallerfp to report (it hands back zero). Recover the
 		// anchors from the stack: the frame at sp stored its own RFP
-		// and OLR at sp+40 and sp+120 when it called into the
+		// and OLR at sp+40 and sp+136 when it called into the
 		// runtime.
-		gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 40))
-		gp.sched.olr = *(*uintptr)(unsafe.Pointer(sp + 136))
+		//
+		// Only a real frame has them. save also runs with an sp
+		// recorded earlier - cgocallbackg replays the one it saved,
+		// which on a fresh extra M is the marker oneNewExtraM parked
+		// at the top of the stack - and a minimum frame does not fit
+		// above such an sp, which is what distinguishes it.
+		if sp+sys.MinFrameSize <= gp.stack.hi {
+			gp.sched.bp = *(*uintptr)(unsafe.Pointer(sp + 40))
+			gp.sched.olr = *(*uintptr)(unsafe.Pointer(sp + 136))
+		} else {
+			gp.sched.bp, gp.sched.olr = 0, 0
+		}
 	}
 	// We need to ensure ctxt is zero, but can't have a write
 	// barrier here. However, it should always already be zero.
