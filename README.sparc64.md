@@ -386,10 +386,18 @@ ones there, not at the call site.
 There is a related consequence for generated code. Because the return
 address points past the delay slot, "return address minus one" lands in
 the delay slot, never in the call. The slot must therefore carry the
-call's own position, which is why the assembler always appends its own
-`RNOP` rather than adopting whatever instruction follows a jump — an
-existing `RNOP` may be an inline mark, whose position the inline tree
-records as the parent frame's call site.
+call's own position, which is why the assembler appends its own `RNOP`
+rather than adopting whatever instruction follows a jump — an existing
+`RNOP` may be an inline mark, whose position the inline tree records as
+the parent frame's call site.
+
+The one exemption is `ret; restore`, the SPARC idiom for leaving a
+register window: there the restore is meant to run as part of the
+return, so it keeps the slot. A `RESTORE` after a `CALL` is refused
+outright, because control comes back from a call and a restore in its
+slot would rotate the window away before the callee ever runs — and
+take `%o0`, where the callee's result arrives, with it. Put the result
+somewhere first (`MOVD O0, I0`, as `·asmcgocall` does).
 
 MIPS, the only other delay-slot architecture Go supports, needs none of
 this: `JAL` writes `PC+8` into `$31` directly, so its link register is

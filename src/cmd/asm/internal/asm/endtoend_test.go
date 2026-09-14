@@ -536,6 +536,10 @@ func TestRISCV64Validation(t *testing.T) {
 	})
 }
 
+func TestSPARC64Errors(t *testing.T) {
+	testErrors(t, "sparc64", "sparc64error")
+}
+
 func TestS390XEndToEnd(t *testing.T) {
 	testEndToEnd(t, "s390x", "s390x")
 }

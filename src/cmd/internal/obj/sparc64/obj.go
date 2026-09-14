@@ -892,7 +892,7 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 	}
 
 	// Schedule delay-slots. Only RNOPs for now. A RESTORE directly
-	// after a jump is hand-written asm deliberately placing the window
+	// after a RET is hand-written asm deliberately placing the window
 	// restore in the delay slot (the `ret; restore` idiom) — leave it.
 	//
 	// The slot must belong to the jump, and Appendp gives the RNOP the
@@ -916,8 +916,18 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 		if !isJump[p.As] {
 			continue
 		}
-		if p.Link != nil && p.Link.As == ARESTORE {
+		// "ret; restore" is the SPARC idiom for leaving a register
+		// window, and the restore is meant to run as part of leaving.
+		if p.As == obj.ARET && p.Link != nil && p.Link.As == ARESTORE {
 			continue
+		}
+		// After a CALL control comes back, so a RESTORE in the delay
+		// slot would rotate the window away before the callee runs.
+		// Refuse it rather than quietly inserting a slot: RESTORE also
+		// rotates %o0 out from under the call's result, so the fix is
+		// almost always MOVD O0, I0 (see ·asmcgocall), not a bare RNOP.
+		if p.As == obj.ACALL && p.Link != nil && p.Link.As == ARESTORE {
+			ctxt.Diag("%v: RESTORE immediately after CALL; move the result into the I registers first (MOVD O0, I0), or write an explicit RNOP if the call returns nothing", p)
 		}
 		jump := p
 		p = obj.Appendp(p, newprog)
