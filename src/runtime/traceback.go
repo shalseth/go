@@ -118,70 +118,15 @@ type unwinder struct {
 	// frame.
 	calleeFuncID abi.FuncID
 
+	// trail records the frames resolved so far, so a failed unwind can name
+	// the frame whose size is wrong. Empty on every architecture but
+	// sparc64, and deliberately not the last field: a zero-size field in
+	// final position is padded out to a word.
+	trail unwindTrail
+
 	// flags are the flags to this unwind. Some of these are updated as we
 	// unwind (see the flags documentation).
 	flags unwindFlags
-
-	// trail records the frames resolved so far, so that a failed unwind can
-	// name the frame whose size is wrong rather than only the frame where
-	// the walk noticed something was off. Diagnostic aid for the sparc64
-	// port; sparcUnwindDebug compiles it out elsewhere.
-	trailPC    [8]uintptr
-	trailSP    [8]uintptr
-	trailFP    [8]uintptr
-	trailDelta [8]int32
-	trailN     int
-}
-
-// sparcUnwindDebug turns on the frame trail above.
-const sparcUnwindDebug = goarch.IsSparc64 != 0
-
-// record appends the current frame to the trail.
-func (u *unwinder) record() {
-	if !sparcUnwindDebug {
-		return
-	}
-	i := u.trailN
-	if i >= len(u.trailPC) {
-		// keep the first frames and the most recent one
-		i = len(u.trailPC) - 1
-	}
-	u.trailPC[i] = u.frame.pc
-	u.trailSP[i] = u.frame.sp
-	u.trailFP[i] = u.frame.fp
-	if u.frame.fn.valid() {
-		u.trailDelta[i] = funcspdelta(u.frame.fn, u.frame.pc)
-	} else {
-		u.trailDelta[i] = -1
-	}
-	u.trailN++
-}
-
-// dumpTrail prints the recorded frame chain. Each line is the frame as the
-// unwinder resolved it; a frame whose fp does not equal the next frame's sp,
-// or whose spdelta disagrees with fp-sp, is the one that mis-sized itself.
-func (u *unwinder) dumpTrail(why string) {
-	if !sparcUnwindDebug {
-		return
-	}
-	print("unwind trail (", why, "), ", u.trailN, " frames, newest last:\n")
-	n := u.trailN
-	if n > len(u.trailPC) {
-		n = len(u.trailPC)
-	}
-	for i := 0; i < n; i++ {
-		print("  [", i, "] ")
-		if fn := findfunc(u.trailPC[i]); fn.valid() {
-			print(funcname(fn))
-		} else {
-			print("<invalid>")
-		}
-		print(" pc=", hex(u.trailPC[i]),
-			" sp=", hex(u.trailSP[i]),
-			" fp=", hex(u.trailFP[i]),
-			" fp-sp=", u.trailFP[i]-u.trailSP[i],
-			" spdelta=", u.trailDelta[i], "\n")
-	}
 }
 
 // init initializes u to start unwinding gp's stack and positions the
