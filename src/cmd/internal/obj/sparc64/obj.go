@@ -648,7 +648,7 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			p.To.Type = obj.TYPE_REG
 			p.To.Reg = REG_R31
 
-			// Publish this frame's own anchors at [own sp+112/120],
+			// Publish this frame's own window image at [own sp+112/120],
 			// the same slots and values the kernel spills there on a
 			// trap. Without this a frame is described only by its
 			// callees: a framed function whose calls so far have all
@@ -760,17 +760,17 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 			q1.To.Type = obj.TYPE_REG
 			q1.To.Reg = REG_R31
 
-			// MOVD (112+StackBias)(RFP), RFP - restore the caller's
-			// frame anchor BEFORE raising SP. The kernel spills %i6
-			// to [sp+bias+112] on every involuntary context switch:
-			// if SP were raised first, there would be a window where
-			// [sp+112] is the caller's anchor slot while %i6 still
-			// holds the dying frame's fp, and a context switch there
-			// would overwrite the anchor with fp itself (the classic
-			// "RFP == RSP after return" corruption). With this order
-			// the transient spill clobbers only the dying frame's
-			// own slot, and once SP is raised, %i6 and [sp+112]
-			// already agree.
+			// MOVD (AnchorFP+StackBias)(RFP), RFP - restore the
+			// caller's frame anchor BEFORE raising SP. The kernel
+			// spills %l5 to [sp+bias+40] on every involuntary context
+			// switch: if SP were raised first, there would be a window
+			// where [sp+40] is the caller's anchor slot while RFP
+			// still holds the dying frame's fp, and a context switch
+			// there would overwrite the anchor with fp itself (the
+			// classic "RFP == RSP after return" corruption). With this
+			// order the transient spill clobbers only the dying
+			// frame's own slot, and once SP is raised, %l5 and
+			// [sp+40] already agree.
 			q1 = obj.Appendp(q1, newprog)
 			q1.As = AMOVD
 			q1.From.Type = obj.TYPE_MEM

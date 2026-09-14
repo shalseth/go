@@ -6,7 +6,9 @@
 // effort by Aram Hăvărneanu and others. See README.sparc64.md.
 
 // SPARC64 TOS is STACK_BIAS bytes *above* from RSP (R14, %o6).
-// Current frame is STACK_BIAS bytes *above* RFP (R30, %i6).
+// Current frame is STACK_BIAS bytes *above* RFP (R21, %l5). RFP is not
+// %i6: that register is the adjacent window's stack pointer. See
+// AnchorFP in cmd/internal/obj/sparc64.
 #define STACK_BIAS 0x7ff
 
 // FIXED_FRAME defines the size of the fixed part of a stack frame. A stack

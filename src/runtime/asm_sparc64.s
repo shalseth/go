@@ -767,9 +767,10 @@ havem:
 	//
 	// It points a frame's worth below this one rather than at it. A
 	// stack pointer handed to the runtime is a caller's stack pointer,
-	// and in this ABI a callee writes into its caller's frame: the
-	// caller's frame pointer and return address go to 112 and 120,
-	// and outgoing arguments start at 176. Anything that runs on the
+	// and in this ABI whatever runs there writes into the frame at it:
+	// the window image covers 0..127, the frame anchor is at 40 and the
+	// return address at 136, and outgoing arguments start at 176.
+	// Anything that runs on the
 	// g0 stack while the callback is in flight - newstack when the
 	// goroutine grows its stack, systemstack, the scheduler - would
 	// otherwise write through this frame's own reserved slots and
