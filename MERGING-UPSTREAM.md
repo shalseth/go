@@ -166,9 +166,10 @@ phases out of twenty-two.
     grep -c 'test timed out' /root/mergebuild-k.log # expect 0
     grep -c 'signal:' /root/mergebuild-k.log        # expect 0
 
-Zero failures across 22 phases is the pass condition. The six `cmd/objdump` and
-one `cmd/pprof` disassembly tests skip through `mustHaveDisasm`, there being no
-sparc64 disassembler; everything else must pass.
+Zero failures across 22 phases is the pass condition, with nothing skipped for
+the port: the `cmd/objdump` and `cmd/pprof` disassembly tests used to skip
+through `mustHaveDisasm` and have run since the sparc64 disassembler landed
+(2026-09-14).
 
 **Every failure is an issue to investigate**, whether or not it looks related
 to the merge. Two failure modes produce no `--- FAIL` line at all and so are
