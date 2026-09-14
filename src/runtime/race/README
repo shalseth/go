@@ -17,3 +17,7 @@ race_linux_loong64.syso built with LLVM 83fe85115da9dc25fa270d2ea8140113c8d49670
 race_linux_ppc64le.syso built with LLVM 51bfeff0e4b0757ff773da6882f4d538996c9b04 and Go e7d582b55dda36e76ce4d0ce770139ca0915b7c5.
 race_linux_riscv64.syso built with LLVM c3c24be13f7928460ca1e2fe613a1146c868854e and Go a21249436b6e1fd47356361d53dc053bbc074f90.
 race_linux_s390x.syso built with LLVM 51bfeff0e4b0757ff773da6882f4d538996c9b04 with patch race_linux_s390x.patch and Go a61fd428974822a8c57a2b2840fc237e6711b24d.
+race_linux_sparc64.syso built with LLVM 62f2d05b202d (shalseth/llvm-project branch sparc64-tsan) and Go ad05be10d26ab1581ceb5fbd6d304366257c1098.
+It must be compiled with gcc, not clang: clang emits R_SPARC_GOT10/GOT22 for the
+sanitizer globals, which the internal linker does not support. gcc emits the
+relaxable R_SPARC_GOTDATA_OP form instead.

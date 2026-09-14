@@ -2556,7 +2556,11 @@ func oneNewExtraM() {
 	gp.lockedm.set(mp)
 	gp.goid = sched.goidgen.Add(1)
 	if raceenabled {
-		gp.racectx = racegostart(abi.FuncPCABIInternal(newextram) + sys.PCQuantum)
+		// The race runtime steps back one instruction before
+		// symbolizing a pc, and on SPARC that is a whole delay-slot
+		// pair, so PCQuantum alone would name the preceding function.
+		const skew = sys.PCQuantum * (1 + goarch.IsSparc64)
+		gp.racectx = racegostart(abi.FuncPCABIInternal(newextram) + skew)
 	}
 	// put on allg for garbage collector
 	allgadd(gp)

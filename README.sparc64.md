@@ -100,6 +100,16 @@ bugs surface only under that kind of load.
   the SPARC dynamic linker expects.
 * `TrailingZeros` via the hardware `POPC` instruction, keeping the
   allocator's hot path inlined.
+* The race detector. ThreadSanitizer grew a SPARC target and a Go
+  mapping (`MappingGoSparc64_52`), and `runtime/race_sparc64.s` is the
+  shim onto it. Two things there are not transliterations of the other
+  ports: it hands C a register window of its own rather than only
+  moving the stack pointer, because C called in the Go window spills
+  that window over live goroutine frames; and a function entry handed
+  to tsan gains eight bytes rather than four, because tsan symbolizes a
+  pc by stepping back a whole call-plus-delay-slot pair. The `.syso`
+  has to be built with gcc - clang emits `R_SPARC_GOT10/GOT22` for the
+  sanitizer globals, which the internal linker does not implement.
 * Atomic intrinsics. `CASW`/`CASD` are SPARC V9's only read-modify-write
   primitives - there is no atomic add and no LL/SC - so exchange, add,
   and and or lower to CAS retry loops, and the 8-bit forms use a 32-bit
@@ -114,13 +124,6 @@ bugs surface only under that kind of load.
   `c-shared` need a position-independent code model in the compiler,
   which SPARC makes expensive (no PC-relative addressing; PIC costs a
   dedicated GOT register and GOT-relative sequences for every global).
-* The race detector. Go does not implement this itself - it vendors
-  ThreadSanitizer from LLVM's compiler-rt as a prebuilt
-  `runtime/race/race_<goos>_<goarch>.syso` plus a small `race_<arch>.s`
-  shim, and the supported set is the six linux arches listed in
-  `internal/platform.RaceDetectorSupported`. compiler-rt ships no SPARC
-  TSan runtime, so there is nothing to vendor: this one is blocked
-  upstream of Go, in LLVM, and not by anything in the code model.
 
 ## Performance
 
