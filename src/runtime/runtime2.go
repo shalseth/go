@@ -682,6 +682,7 @@ type m struct {
 	lockedInt       uint32      // tracking for internal lockOSThread
 	mWaitList       mWaitList   // list of runtime lock waiters
 	ditEnabled      bool        // set if DIT is currently enabled on this M
+	syncIOWorker    bool        // dedicated Windows synchronous pipe I/O worker; immutable after startup
 
 	mLockProfile mLockProfile // fields relating to runtime.lock contention
 	profStack    []uintptr    // used for memory/block/mutex stack traces
@@ -844,6 +845,10 @@ type p struct {
 	// Cache of a single pinner object to reduce allocations from repeated
 	// pinner creation.
 	pinnerCache *pinner
+
+	// Cache of one unused pin counter. Accessed by this P with preemption
+	// disabled, or during STW. Returned to the allocator when the P is destroyed.
+	pinCounterCache *specialPinCounter
 
 	trace pTraceState
 

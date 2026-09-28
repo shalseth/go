@@ -1890,27 +1890,25 @@ cachemiss:
 }
 
 func (b *Builder) export(ctx context.Context, a *Action) error {
-	if err := b.doExport(a); err != nil {
-		return err
-	}
-	// Propagate artifacts to package on success.
-	a.Package.Export = a.built
-	a.Package.BuildID = a.buildID
-	return nil
-}
-
-func (b *Builder) doExport(a *Action) error {
 	// Build input, hash it, and check for cache hit.
 	ecfg := b.buildExportConfig(a)
-	if b.useCache(a, b.exportActionID(a, ecfg), a.Target, !b.IsCmdList) {
+	aid := b.exportActionID(a, ecfg)
+	if b.useCache(a, aid, a.Target, !b.IsCmdList) {
+		e, err := cache.Default().Get(aid)
+		if err != nil {
+			return err
+		}
+		a.Package.BuildID = a.buildID
+		a.Package.Export = cache.Default().OutputFile(e.OutputID)
 		return nil
 	}
 	// Miss.
+	defer b.flushOutput(a)
 	sh := b.Shell(a)
 	if err := sh.Mkdir(a.Objdir); err != nil {
 		return err
 	}
-	// Serialize input, call tool, and update build ID.
+	// Serialize input and call tool.
 	js, err := json.Marshal(ecfg)
 	if err != nil {
 		return err
@@ -1923,10 +1921,23 @@ func (b *Builder) doExport(a *Action) error {
 	if err := sh.run(a.Package.Dir, a.Package.ImportPath, nil, cfg.BuildToolexec, tool, in); err != nil {
 		return err
 	}
+	// Update a.buildID and a.built.
 	if err := b.updateBuildID(a, a.Target); err != nil {
 		return err
 	}
 	a.built = a.Target
+	// Save the output in the cache and surface to a.Package.
+	f, err := os.Open(a.built)
+	if err != nil {
+		return err
+	}
+	defer f.Close() // ignore error
+	oid, _, err := cache.Default().Put(aid, f)
+	if err != nil {
+		return err
+	}
+	a.Package.BuildID = a.buildID
+	a.Package.Export = cache.Default().OutputFile(oid)
 	return nil
 }
 
@@ -1936,21 +1947,36 @@ func (b *Builder) buildExportConfig(a *Action) *exportConfig {
 		v = cmp.Or(a.Package.Module.GoVersion, gover.DefaultGoModVersion)
 	}
 
-	srcs := slices.Concat(a.Package.GoFiles, a.Package.CgoFiles)
+	srcs := make([]string, len(a.Package.GoFiles))
+	for i := range srcs {
+		srcs[i] = filepath.Join(a.Package.Dir, a.Package.GoFiles[i])
+	}
+	// Collect output source files from any cgo dependencies.
+	if a.Package.UsesCgo() {
+		for _, dep := range a.Deps {
+			if cgo, ok := dep.Provider.(*runCgoProvider); ok {
+				srcs = append(srcs, cgo.goFiles...)
+			}
+		}
+	}
+
 	ecfg := &exportConfig{
 		ImportPath:  a.Package.ImportPath,
 		Compiler:    cfg.BuildToolchainName,
 		GoVersion:   "go" + v,
-		GoFiles:     make([]string, len(srcs)),
+		GoFiles:     srcs,
 		ImportMap:   make(map[string]string),
 		PackageFile: make(map[string]string),
 		Output:      a.Target,
 	}
-	for i, f := range srcs {
-		ecfg.GoFiles[i] = filepath.Join(a.Package.Dir, f)
+	for i, s := range a.Package.Internal.RawImports {
+		if s != "C" {
+			ecfg.ImportMap[s] = a.Package.Imports[i]
+		}
 	}
-	for i, r := range a.Package.Internal.RawImports {
-		ecfg.ImportMap[r] = a.Package.Imports[i]
+	// Bring in any imports from cgo.
+	for _, s := range a.Package.Internal.CompiledImports {
+		ecfg.ImportMap[s] = s
 	}
 	for _, dep := range a.Deps {
 		// Careful: Export actions can have other kinds of dependencies and we

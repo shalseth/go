@@ -883,6 +883,39 @@ func TestServerUnencryptedHTTP2HeaderTimeout(t *testing.T) {
 	}
 }
 
+// The request context on an unencrypted HTTP/2 connection must not be
+// canceled just because the connection's serve goroutine parked while
+// the handler was waiting.
+func TestServerRequestContextOutlivesIdleServeGoroutine(t *testing.T) {
+	runSynctest(t, testServerRequestContextOutlivesIdleServeGoroutine,
+		testAddMode{http2UnencryptedMode})
+}
+func testServerRequestContextOutlivesIdleServeGoroutine(t *testing.T, mode testMode) {
+	cst := newClientServerTest(t, mode, HandlerFunc(func(w ResponseWriter, r *Request) {
+		// Long-poll: nothing happens on the connection while we wait,
+		// so the HTTP/2 serve goroutine parks in the meantime.
+		select {
+		case <-r.Context().Done():
+			w.WriteHeader(500)
+			fmt.Fprintf(w, "request context done early: %v", r.Context().Err())
+		case <-time.After(5 * time.Second):
+			io.WriteString(w, "ok")
+		}
+	}))
+	res, err := cst.c.Get(cst.ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != 200 || string(body) != "ok" {
+		t.Fatalf("got %d %q, want 200 %q", res.StatusCode, body, "ok")
+	}
+}
+
 func TestServerReadHeaderTimeoutIsCleared(t *testing.T) {
 	runSynctest(t, testServerReadHeaderTimeoutIsCleared,
 		testAddMode{http2UnencryptedMode})
@@ -7045,7 +7078,7 @@ func testTimeoutHandlerSuperfluousLogs(t *testing.T, mode testMode) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		synctest.Subtest(t, tt.name, func(t *testing.T) {
 			exitHandler := make(chan bool, 1)
 			defer close(exitHandler)
 			lastLine := make(chan int, 1)
@@ -7066,13 +7099,9 @@ func testTimeoutHandlerSuperfluousLogs(t *testing.T, mode testMode) {
 
 			logBuf := new(strings.Builder)
 			srvLog := log.New(logBuf, "", 0)
-			// When expecting to timeout, we'll keep the duration short.
-			dur := 20 * time.Millisecond
-			if !tt.mustTimeout {
-				// Otherwise, make it arbitrarily long to reduce the risk of flakes.
-				dur = 10 * time.Second
-			}
-			th := TimeoutHandler(sh, dur, timeoutMsg)
+			// Arbitrary 20ms timeout for all variations of the test because we're using
+			// synctest.
+			th := TimeoutHandler(sh, 20*time.Millisecond, timeoutMsg)
 			cst := newClientServerTest(t, mode, th, optWithServerLog(srvLog))
 			defer cst.close()
 

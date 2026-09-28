@@ -4742,6 +4742,7 @@ const (
 	OpARM64VADDP2D
 	OpARM64VADDP4S
 	OpARM64VADDP8H
+	OpARM64VADDP16B
 	OpARM64VADDV4S
 	OpARM64VADDV8H
 	OpARM64VADDV16B
@@ -7305,6 +7306,10 @@ const (
 	OpIfElseInt64s
 	OpIfElseUint64s
 	OpIfElseFloat64s
+	OpI32AsF32
+	OpF32AsI32
+	OpI64AsF64
+	OpF64AsI64
 	OpAESDecryptLastRoundUint8x16
 	OpAESDecryptLastRoundUint8x32
 	OpAESDecryptLastRoundUint8x64
@@ -7554,11 +7559,13 @@ const (
 	OpConcatAddPairsInt16x8
 	OpConcatAddPairsInt32x4
 	OpConcatAddPairsInt64x2
+	OpConcatAddPairsInt8x16
 	OpConcatAddPairsSaturatedGroupedInt16x16
 	OpConcatAddPairsSaturatedInt16x8
 	OpConcatAddPairsUint16x8
 	OpConcatAddPairsUint32x4
 	OpConcatAddPairsUint64x2
+	OpConcatAddPairsUint8x16
 	OpConcatEvenInt16x8
 	OpConcatEvenInt32x4
 	OpConcatEvenInt64x2
@@ -12378,11 +12385,13 @@ var OpcodeTable = [...]OpInfo{
 		Reg:    RegInfo{},
 	},
 	{
-		Name:   "LoweredGetG",
-		ArgLen: 1,
+		Name:         "LoweredGetG",
+		ArgLen:       1,
+		ClobberFlags: true,
 		Reg: RegInfo{
+			Clobbers: RegMask{V1: 1, V2: 0}, // AX
 			Outputs: []OutputInfo{
-				{0, RegMask{V1: 239, V2: 0}}, // AX CX DX BX BP SI DI
+				{0, RegMask{V1: 238, V2: 0}}, // CX DX BX BP SI DI
 			},
 		},
 	},
@@ -20838,11 +20847,13 @@ var OpcodeTable = [...]OpInfo{
 		Reg:    RegInfo{},
 	},
 	{
-		Name:   "LoweredGetG",
-		ArgLen: 1,
+		Name:         "LoweredGetG",
+		ArgLen:       1,
+		ClobberFlags: true,
 		Reg: RegInfo{
+			Clobbers: RegMask{V1: 4096, V2: 0}, // R12
 			Outputs: []OutputInfo{
-				{0, RegMask{V1: 49135, V2: 0}}, // AX CX DX BX BP SI DI R8 R9 R10 R11 R12 R13 R15
+				{0, RegMask{V1: 45039, V2: 0}}, // AX CX DX BX BP SI DI R8 R9 R10 R11 R13 R15
 			},
 		},
 	},
@@ -42551,11 +42562,11 @@ var OpcodeTable = [...]OpInfo{
 		asm:     x86.AVPCLMULQDQ,
 		Reg: RegInfo{
 			Inputs: []InputInfo{
-				{0, RegMask{V1: 281474976645120, V2: 0}}, // X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X15 X16 X17 X18 X19 X20 X21 X22 X23 X24 X25 X26 X27 X28 X29 X30 X31
-				{1, RegMask{V1: 281474976645120, V2: 0}}, // X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X15 X16 X17 X18 X19 X20 X21 X22 X23 X24 X25 X26 X27 X28 X29 X30 X31
+				{0, RegMask{V1: 2147418112, V2: 0}}, // X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14
+				{1, RegMask{V1: 4294901760, V2: 0}}, // X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X15
 			},
 			Outputs: []OutputInfo{
-				{0, RegMask{V1: 281472829161472, V2: 0}}, // X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X16 X17 X18 X19 X20 X21 X22 X23 X24 X25 X26 X27 X28 X29 X30 X31
+				{0, RegMask{V1: 2147418112, V2: 0}}, // X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14
 			},
 		},
 	},
@@ -61444,11 +61455,11 @@ var OpcodeTable = [...]OpInfo{
 		asm:       x86.AVPCLMULQDQ,
 		Reg: RegInfo{
 			Inputs: []InputInfo{
+				{0, RegMask{V1: 2147418112, V2: 0}},        // X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14
 				{1, RegMask{V1: 72057594037977087, V2: 0}}, // AX CX DX BX SP BP SI DI R8 R9 R10 R11 R12 R13 R15 SB
-				{0, RegMask{V1: 281474976645120, V2: 0}},   // X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X15 X16 X17 X18 X19 X20 X21 X22 X23 X24 X25 X26 X27 X28 X29 X30 X31
 			},
 			Outputs: []OutputInfo{
-				{0, RegMask{V1: 281472829161472, V2: 0}}, // X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X16 X17 X18 X19 X20 X21 X22 X23 X24 X25 X26 X27 X28 X29 X30 X31
+				{0, RegMask{V1: 2147418112, V2: 0}}, // X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14
 			},
 		},
 	},
@@ -81873,6 +81884,20 @@ var OpcodeTable = [...]OpInfo{
 	},
 	{
 		Name:   "VADDP8H",
+		ArgLen: 2,
+		asm:    arm64.AVADDP,
+		Reg: RegInfo{
+			Inputs: []InputInfo{
+				{0, RegMask{V1: 9223372034707292160, V2: 0}}, // F0 F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 F13 F14 F15 F16 F17 F18 F19 F20 F21 F22 F23 F24 F25 F26 F27 F28 F29 F30 F31
+				{1, RegMask{V1: 9223372034707292160, V2: 0}}, // F0 F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 F13 F14 F15 F16 F17 F18 F19 F20 F21 F22 F23 F24 F25 F26 F27 F28 F29 F30 F31
+			},
+			Outputs: []OutputInfo{
+				{0, RegMask{V1: 9223372034707292160, V2: 0}}, // F0 F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 F13 F14 F15 F16 F17 F18 F19 F20 F21 F22 F23 F24 F25 F26 F27 F28 F29 F30 F31
+			},
+		},
+	},
+	{
+		Name:   "VADDP16B",
 		ArgLen: 2,
 		asm:    arm64.AVADDP,
 		Reg: RegInfo{
@@ -112124,24 +112149,28 @@ var OpcodeTable = [...]OpInfo{
 		Name:        "Add8",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Add16",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Add32",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Add64",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
@@ -112153,32 +112182,38 @@ var OpcodeTable = [...]OpInfo{
 		Name:        "Add32F",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Add64F",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:    "Sub8",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Sub16",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Sub32",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Sub64",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
@@ -112189,47 +112224,55 @@ var OpcodeTable = [...]OpInfo{
 	{
 		Name:    "Sub32F",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Sub64F",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:        "Mul8",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Mul16",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Mul32",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Mul64",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Mul32F",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Mul64F",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
@@ -112246,58 +112289,68 @@ var OpcodeTable = [...]OpInfo{
 		Name:        "Hmul32",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Hmul32u",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Hmul64",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Hmul64u",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Mul32uhilo",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Mul64uhilo",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Mul32uover",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Mul64uover",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:    "Avg32u",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Avg64u",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
@@ -112395,648 +112448,762 @@ var OpcodeTable = [...]OpInfo{
 		Name:        "And8",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "And16",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "And32",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "And64",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Or8",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Or16",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Or32",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Or64",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Xor8",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Xor16",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Xor32",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Xor64",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:    "Lsh8x8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh8x16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh8x32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh8x64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh16x8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh16x16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh16x32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh16x64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh32x8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh32x16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh32x32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh32x64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh64x8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh64x16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh64x32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Lsh64x64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh8x8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh8x16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh8x32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh8x64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh16x8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh16x16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh16x32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh16x64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh32x8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh32x16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh32x32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh32x64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh64x8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh64x16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh64x32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh64x64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh8Ux8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh8Ux16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh8Ux32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh8Ux64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh16Ux8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh16Ux16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh16Ux32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh16Ux64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh32Ux8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh32Ux16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh32Ux32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh32Ux64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh64Ux8",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh64Ux16",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh64Ux32",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Rsh64Ux64",
 		AuxType: AuxTypeBool,
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:        "Eq8",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Eq16",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Eq32",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Eq64",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "EqPtr",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:    "EqInter",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "EqSlice",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:        "Eq32F",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Eq64F",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Neq8",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Neq16",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Neq32",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Neq64",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "NeqPtr",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:    "NeqInter",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "NeqSlice",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:        "Neq32F",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "Neq64F",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:    "Less8",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Less8U",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Less16",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Less16U",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Less32",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Less32U",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Less64",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Less64U",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Less32F",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Less64F",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Leq8",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Leq8U",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Leq16",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Leq16U",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Leq32",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Leq32U",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Leq64",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Leq64U",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Leq32F",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Leq64F",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "CondSelect",
 		ArgLen:  3,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:        "AndB",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "OrB",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "EqB",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:        "NeqB",
 		ArgLen:      2,
 		Commutative: true,
+		EarlyOk:     true,
 		Generic:     true,
 	},
 	{
 		Name:    "Not",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Neg8",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Neg16",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Neg32",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Neg64",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Neg32F",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Neg64F",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Com8",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Com16",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Com32",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Com64",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
@@ -113162,21 +113329,25 @@ var OpcodeTable = [...]OpInfo{
 	{
 		Name:    "RotateLeft64",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "RotateLeft32",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "RotateLeft16",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "RotateLeft8",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
@@ -113311,63 +113482,74 @@ var OpcodeTable = [...]OpInfo{
 		Name:    "ConstBool",
 		AuxType: AuxTypeBool,
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "ConstString",
 		AuxType: AuxTypeString,
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "ConstNil",
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Const8",
 		AuxType: AuxTypeInt8,
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Const16",
 		AuxType: AuxTypeInt16,
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Const32",
 		AuxType: AuxTypeInt32,
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Const64",
 		AuxType: AuxTypeInt64,
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Const32F",
 		AuxType: AuxTypeFloat32,
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Const64F",
 		AuxType: AuxTypeFloat64,
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "ConstInterface",
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "ConstSlice",
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
@@ -113402,6 +113584,7 @@ var OpcodeTable = [...]OpInfo{
 		Name:      "Addr",
 		AuxType:   AuxTypeSym,
 		ArgLen:    1,
+		EarlyOk:   true,
 		symEffect: SymAddr,
 		Generic:   true,
 	},
@@ -113409,6 +113592,7 @@ var OpcodeTable = [...]OpInfo{
 		Name:      "LocalAddr",
 		AuxType:   AuxTypeSym,
 		ArgLen:    2,
+		EarlyOk:   true,
 		symEffect: SymAddr,
 		Generic:   true,
 	},
@@ -113417,6 +113601,7 @@ var OpcodeTable = [...]OpInfo{
 		ArgLen:    0,
 		ZeroWidth: true,
 		FixedReg:  true,
+		EarlyOk:   true,
 		Generic:   true,
 	},
 	{
@@ -113424,6 +113609,7 @@ var OpcodeTable = [...]OpInfo{
 		ArgLen:    0,
 		ZeroWidth: true,
 		FixedReg:  true,
+		EarlyOk:   true,
 		Generic:   true,
 	},
 	{
@@ -113627,156 +113813,187 @@ var OpcodeTable = [...]OpInfo{
 	{
 		Name:    "SignExt8to16",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "SignExt8to32",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "SignExt8to64",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "SignExt16to32",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "SignExt16to64",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "SignExt32to64",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "ZeroExt8to16",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "ZeroExt8to32",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "ZeroExt8to64",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "ZeroExt16to32",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "ZeroExt16to64",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "ZeroExt32to64",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Trunc16to8",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Trunc32to8",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Trunc32to16",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Trunc64to8",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Trunc64to16",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Trunc64to32",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Cvt32to32F",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Cvt32to64F",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Cvt64to32F",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Cvt64to64F",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Cvt32Fto32",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Cvt32Fto64",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Cvt64Fto32",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Cvt64Fto64",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Cvt32Fto64F",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Cvt64Fto32F",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "CvtBoolToUint8",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Round32F",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "Round64F",
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
@@ -113809,11 +114026,13 @@ var OpcodeTable = [...]OpInfo{
 	{
 		Name:    "GetClosurePtr",
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "GetCallerPC",
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
@@ -113824,12 +114043,14 @@ var OpcodeTable = [...]OpInfo{
 	{
 		Name:    "PtrIndex",
 		ArgLen:  2,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
 		Name:    "OffPtr",
 		AuxType: AuxTypeInt64,
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
@@ -113972,6 +114193,7 @@ var OpcodeTable = [...]OpInfo{
 		Name:    "InlMark",
 		AuxType: AuxTypeInt32,
 		ArgLen:  1,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
@@ -114436,6 +114658,7 @@ var OpcodeTable = [...]OpInfo{
 	{
 		Name:    "Empty",
 		ArgLen:  0,
+		EarlyOk: true,
 		Generic: true,
 	},
 	{
@@ -114656,6 +114879,26 @@ var OpcodeTable = [...]OpInfo{
 	{
 		Name:    "IfElseFloat64s",
 		ArgLen:  3,
+		Generic: true,
+	},
+	{
+		Name:    "I32AsF32",
+		ArgLen:  1,
+		Generic: true,
+	},
+	{
+		Name:    "F32AsI32",
+		ArgLen:  1,
+		Generic: true,
+	},
+	{
+		Name:    "I64AsF64",
+		ArgLen:  1,
+		Generic: true,
+	},
+	{
+		Name:    "F64AsI64",
+		ArgLen:  1,
 		Generic: true,
 	},
 	{
@@ -116023,6 +116266,11 @@ var OpcodeTable = [...]OpInfo{
 		Generic: true,
 	},
 	{
+		Name:    "ConcatAddPairsInt8x16",
+		ArgLen:  2,
+		Generic: true,
+	},
+	{
 		Name:    "ConcatAddPairsSaturatedGroupedInt16x16",
 		ArgLen:  2,
 		Generic: true,
@@ -116044,6 +116292,11 @@ var OpcodeTable = [...]OpInfo{
 	},
 	{
 		Name:    "ConcatAddPairsUint64x2",
+		ArgLen:  2,
+		Generic: true,
+	},
+	{
+		Name:    "ConcatAddPairsUint8x16",
 		ArgLen:  2,
 		Generic: true,
 	},

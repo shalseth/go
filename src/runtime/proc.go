@@ -2447,10 +2447,6 @@ func needm(signal bool) {
 	// Store the original signal mask for use by minit.
 	mp.sigmask = sigmask
 
-	// Install TLS on some platforms (previously setg
-	// would do this if necessary).
-	osSetupTLS(mp)
-
 	// Install g (= m->g0) and set the stack bounds
 	// to match the current stack.
 	setg(mp.g0)
@@ -6057,6 +6053,12 @@ func (pp *p) destroy() {
 	clear(pp.sudogbuf[:])
 	pp.sudogcache = pp.sudogbuf[:0]
 	pp.pinnerCache = nil
+	if pp.pinCounterCache != nil {
+		lock(&mheap_.speciallock)
+		mheap_.specialPinCounterAlloc.free(unsafe.Pointer(pp.pinCounterCache))
+		unlock(&mheap_.speciallock)
+		pp.pinCounterCache = nil
+	}
 	clear(pp.deferpoolbuf[:])
 	pp.deferpool = pp.deferpoolbuf[:0]
 	systemstack(func() {
@@ -6969,7 +6971,15 @@ func preemptone(pp *p) bool {
 	// Request an async preemption of this P.
 	if preemptMSupported && debug.asyncpreemptoff == 0 {
 		pp.preempt = true
-		preemptM(mp)
+		// Claim the G's status and check that it is still running on mp.
+		// preemptM releases the _Gscan bit.
+		if castogscanstatus(gp, _Grunning, _Gscanrunning) {
+			if gp.m == mp {
+				preemptM(gp)
+			} else {
+				casfrom_Gscanstatus(gp, _Gscanrunning, _Grunning)
+			}
+		}
 	}
 
 	return true
