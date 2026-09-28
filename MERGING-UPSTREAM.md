@@ -266,7 +266,39 @@ every earlier tag reachable. Confirm with
 
 ---
 
-## 6. Install the toolchain
+## 6. Release
+
+Build the tarball from `/root/goport/go`, never from `/usr/lib/go`: the
+ebuild's `src_install` strips every `testdata` directory, so a GOROOT taken
+from there is missing the test corpus.
+
+    TAG=sparc64-$(date +%Y%m%d)
+    V=go-1.28.0_pre$(date +%Y%m%d)-linux-sparc64.tar.xz
+    cd src && ./make.bash            # rebuild AFTER the last commit
+    ../bin/go version                # must report the tagged head
+    tar -C /root/goport --exclude=.git -I 'xz -T0' -cf /var/cache/distfiles/$V go
+
+`go version` embeds the git HEAD at build time, so a tarball built before the
+final commit reports the previous one while carrying the new code. Rebuilding
+is cheap, about 6 minutes warm. Verify the artifact rather than the tree:
+
+    rm -rf /tmp/relverify && mkdir -p /tmp/relverify
+    tar -C /tmp/relverify -xf /var/cache/distfiles/$V
+    /tmp/relverify/go/bin/go version                          # its own bin/go
+    find /tmp/relverify/go/src -type d -name testdata | wc -l  # must be non-zero
+
+Then publish. Notes stay short: the port's scope belongs in
+`README.sparc64.md` and the changelog in the history, so one line per fix
+plus a compare link is enough.
+
+    gh release create $TAG --repo shalseth/go --title "$TAG" \
+        --notes-file notes.md /var/cache/distfiles/$V
+
+`gh release upload --clobber` replaces an asset that turns out wrong.
+
+---
+
+## 7. Install the toolchain
 
 `dev-lang/go-9999` is a live ebuild pulling branch `sparc64` from the fork, so
 it picks up whatever was just pushed. **Push before emerging.**
@@ -278,7 +310,36 @@ It builds with `CGO_ENABLED=1` and bootstraps from the currently installed Go.
 
 ---
 
+## 8. Rebuild Alloy
+
+The end-to-end check, and the reason step 7 is not optional: Alloy is roughly
+2500 packages and exercises far more of the toolchain than the suite's own
+tests do.
+
+    /root/alloybuild/alloy-sparc64/build.sh
+
+Leave `GOROOT_SPARC64` unset. `build.sh` defaults it to `$(go env GOROOT)`,
+which after step 7 is the toolchain just installed, and it prints which one it
+picked. Confirm the binary really came from it rather than from a cached
+build:
+
+    go version -m <out> | head -1
+
+About 20 minutes. A `josharian/native: unrecognized arch sparc64` line at
+startup is expected and is not ours to fix: upstream deleted that code path in
+2023 but has never tagged a release, so everyone still pins v1.1.0.
+
+---
+
 ## Order that matters
 
 Generator before `make.bash`, or the errors are noise. Push before emerging,
-since the ebuild pulls from the remote.
+since the ebuild pulls from the remote. Rebuild before packaging, or the
+tarball reports the wrong commit.
+
+Emerge last, and always. A release can be tagged, published and verified
+while the machine still runs a toolchain weeks old, because nothing in the
+release path touches `/usr/lib/go`. The gap is silent until someone types
+`go version`. Steps 7 and 8 are what close it, and they also mean the next
+merge bootstraps from current code rather than from whatever was installed
+months ago.
