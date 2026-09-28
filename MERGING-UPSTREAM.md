@@ -11,7 +11,7 @@ a dropped connection.
 Rebuilding downstream software against the new toolchain is out of scope here;
 for Grafana Alloy see the `alloy-sparc64` repo.
 
-Paths below are this setup's — adjust for another.
+Paths below are this setup's; adjust for another.
 
 | path | what |
 |---|---|
@@ -21,7 +21,7 @@ Paths below are this setup's — adjust for another.
 Rough costs on an UltraSPARC T4-1: `make.bash` ~12 min, `dist test -k` ~40 min,
 `emerge go-9999` ~12 min.
 
-**The port is expected to test clean** — 22 phases, zero failures. That is the
+**The port is expected to test clean**: 22 phases, zero failures. That is the
 standard every merge is held to, so there is no need to capture a fresh
 baseline first. Any failure is a real result: investigate it, do not explain it
 away.
@@ -30,7 +30,7 @@ away.
 
 ## 1. Merge onto a throwaway branch
 
-Never merge onto `sparc64` directly — nothing is at risk until it is green.
+Never merge onto `sparc64` directly. Nothing is at risk until it is green.
 
     cd /root/goport/go
     git remote add upstream https://github.com/golang/go.git   # first time only
@@ -58,7 +58,7 @@ deciding anything:
     BASE=$(git merge-base sparc64 upstream/master)
     git diff $BASE sparc64 -- <file>
 
-The deltas are usually tiny — a single op in a list, one helper function —
+The deltas are usually tiny: a single op in a list, one helper function,
 while the conflict spans hundreds of lines because upstream moved the file's
 contents elsewhere. In that shape the resolution is *take upstream wholesale,
 then re-apply the small delta in its new home*:
@@ -91,7 +91,7 @@ misses the bare `ssa.Op` *type*; match `\bssa\.Op\b` as well.
 
 **c. Unqualified helpers in `SPARC64.rules`.** Arch rules files call
 `ssa.Is32Bit`, `ssa.B2i`, `ssa.IsPtr` rather than the unexported names. Do not
-fix these one build at a time — scan the whole file against what the other
+fix these one build at a time. Scan the whole file against what the other
 arches do:
 
 ```python
@@ -107,7 +107,7 @@ for name in sorted(set(re.findall(r"(?<![.\w])([A-Za-z_]\w*)", src))):
         print("%-24s -> %s.%s" % (name, sorted(qualified[name])[0], name))
 ```
 
-Scan the **whole file**, not just rule conditions — `PanicBoundsC` appears on
+Scan the **whole file**, not just rule conditions: `PanicBoundsC` appears on
 the result side and a condition-only scan reports nothing.
 
 **d. Helper signatures, not just names.** `logLargeCopy` was split into
@@ -121,7 +121,7 @@ signature against the call site in another arch's rules.
 a CC-writing instruction without declaring it leaves the allocator believing a
 comparison result survives across it, and the consumer then branches on codes
 the op destroyed. Nothing catches this: it builds, the tests that exercise the
-op pass, and the damage surfaces somewhere else entirely — as heap corruption,
+op pass, and the damage surfaces somewhere else entirely, as heap corruption,
 or a nil dereference inside the GC sweeper.
 
 This has happened twice, both times in newly added multi-instruction ops: the
@@ -154,10 +154,10 @@ is cheap. Once it passes it goes on to build the standard library with the
 ## 4. Test
 
     cd /root/gomerge/src
-    ../bin/go tool dist test -k > /root/mergebuild-k.log 2>&1
+    GO_TEST_TIMEOUT_SCALE=2 ../bin/go tool dist test -k > /root/mergebuild-k.log 2>&1
 
 Use `-k` (keep going). Without it `dist test` stops at the first failing
-package and never reaches the twenty later phases — which is how an
+package and never reaches the twenty later phases, which is how an
 internal-link cgo bug stayed hidden for six days, with every run reaching two
 phases out of twenty-two.
 
@@ -187,22 +187,41 @@ status as well as the greps.
 Two things worth knowing while investigating, neither of them an excuse
 to move on:
 
-* `time.TestLongAdjustTimers` is load-sensitive — it needs ~12 s against a hard
-  60 s deadline and fails under heavy parallel load. Re-run it alone on an idle
-  machine and produce that evidence before concluding it was contention.
-  `runtime.TestEINTR` behaves the same way and belongs in the same category.
+* `time.TestLongAdjustTimers` is load-sensitive: about 12 s of work against a
+  hard 60 s deadline. Re-run it alone on an idle machine before blaming
+  contention. `runtime.TestEINTR` is the same category.
 
   The load is the suite's own. `cmd/dist` sets `maxbg` to `runtime.NumCPU()`
   whenever the worklist holds the `GOMAXPROCS=2 runtime` phase, which it always
-  does, so a 64-thread T4 runs 64 test binaries at once - measured at 108 test
-  processes and 259 runnable against 32 CPUs. Constraining affinity does **not**
-  help: `NumCPU` is read through `sched_getaffinity`, so `taskset` scales
-  `maxbg` down with the CPU count and the ratio is unchanged. Nor does a longer
-  timeout - `tick_test.go:233: timer expired` is the test measuring timer
-  latency, not a harness deadline, and under that oversubscription timers really
-  are late. Four consecutive merge runs on this hardware each reached 22 phases
-  with no port failures and one such flake; the isolation re-run is the
-  resolution, not a knob.
+  does, so a 64-thread T4 runs 64 test binaries at once: measured at 108 test
+  processes and 259 runnable against 32 CPUs. Affinity does not help. `NumCPU`
+  reads `sched_getaffinity`, so `taskset` scales `maxbg` down with it and the
+  ratio is unchanged.
+
+* **Two kinds of timeout. Do not confuse them.**
+
+  **Harness deadline.** `panic: test timed out after 10m0s`, reported as a bare
+  `FAIL <pkg>` with no `--- FAIL`. Scaled by `GO_TEST_TIMEOUT_SCALE`, which
+  `cmd/dist/test.go` parses as an integer and applies in `scaledTimeout`. No
+  source change, and it survives every merge. Preferred over re-adding the
+  per-arch timeout table upstream deleted, which would conflict on every merge.
+
+  **A test's own budget.** `TestLongAdjustTimers`' `AfterFunc(60*Second, ...)`
+  giving `timer expired`. The variable does nothing here. Only the test source
+  helps, gated on GOARCH: `src/time/tick_test.go` widens 60 s to 5 min and the
+  read timeout 5 s to 30 s, sparc64 only.
+
+  Step 4 sets `GO_TEST_TIMEOUT_SCALE=2`. Measured 2026-09-28:
+  `runtime` alone on an idle box is `ok 449.137s` against a 600 s budget, so a
+  1.34x slowdown busts it, and the suite's 45x parallelism supplies far more.
+  `../test` (`cmd/internal/testdir`) sits at 471 s. Scale 2 gives both 1200 s,
+  about 2.6x their idle cost. Raise it only if that proves tight: the budget is
+  also the hang detector, so keep it as low as works.
+
+  The knob is for a known load characteristic, not for an unexplained failure.
+  On a timeout, read what `running tests:` names and how long it had run. The
+  2026-09-28 case named `TestSUID (1s)`: nothing hung, the package was slow. A
+  real hang names a test whose duration is close to the whole budget.
 * `runtime.TestSegv/SegvInCgo` printing `runtime: g N: unexpected return pc`
   was a real backend bug, fixed 2026-09-08: a jump's `Spadj` landed on its
   branch delay slot, so the epilogue described the slot as still owning the
@@ -236,7 +255,7 @@ Then tag the merge, so any past toolchain can be checked out and rebuilt:
     git tag -a $TAG -m "merged upstream through $(git rev-parse --short upstream/master)"
     git push origin $TAG
 
-Annotated, not lightweight — the tag carries which upstream commit it caught
+Annotated, not lightweight: the tag carries which upstream commit it caught
 up to, which is the thing worth knowing a year later. To go back to one:
 
     git checkout $TAG && cd src && ./make.bash

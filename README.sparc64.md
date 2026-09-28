@@ -5,12 +5,10 @@ developed on an UltraSPARC T4-1 running Gentoo. This branch adds
 `GOARCH=sparc64` to the compiler, assembler, linker and runtime; the
 `master` branch tracks upstream unchanged.
 
-Status: with **cgo enabled**, `go test std cmd` runs 380 packages green,
-including the full runtime suite, every cgo, callback, traceback and
-profiling test, disassembly, and all of `cmd/go`'s script tests.
+Status: with **cgo enabled**, the entire test suite is green.
 Both internal and external linking of cgo programs work, including a psABI
-PLT and GOT for dynamic imports under internal linking. Grafana Alloy — an
-OpenTelemetry collector with roughly two and a half thousand packages —
+PLT and GOT for dynamic imports under internal linking. Grafana Alloy, an
+OpenTelemetry collector of roughly two and a half thousand packages,
 builds, runs, scrapes metrics and shuts down cleanly on the T4.
 
 ## Provenance
@@ -82,8 +80,7 @@ bugs surface only under that kind of load.
   `GODEBUG=gccheckmark=1`.
 * Signals: `os/signal`, `signal.NotifyContext`, SIGPIPE semantics,
   fork/exec, `net`, `net/http`, `os`, `syscall`.
-* The vDSO, for `walltime` and `nanotime`. `time.Now` costs about 278ns
-  here rather than the 2043ns two `clock_gettime` syscalls took.
+* The vDSO, for `walltime` and `nanotime`.
 * cgo, in both link modes. Go→C calls, C→Go callbacks, signals and
   profiling during cgo execution, and thread exit through pthread TSD
   destructors all work. The port survives the register-window hazards
@@ -305,19 +302,16 @@ it belongs to.
 cycles: passing a token around a ring of OS-thread-locked goroutines on
 the T4, a third of the handoffs saw `%tick` go *backwards* across the
 happens-before edge, by as much as 6ms. Callers assume a process-wide
-timebase — the debug log merges its per-P shards by this value, and the
-mutex profile subtracts two reads taken on different threads — so a
+timebase: the debug log merges its per-P shards by this value, and the
+mutex profile subtracts two reads taken on different threads. A
 per-strand counter yields impossible orderings and durations.
 
 Wall and monotonic clock reads are separate from `cputicks`: they go
 through the vDSO. The runtime looks up `__vdso_clock_gettime` at startup
 (`vdso_linux_sparc64.go`) and calls it from `nanotime` and `walltime`,
-falling back to a `ta 0x6d` syscall if the lookup fails. On the T4 that
-is worth a great deal, because a trap here is expensive: one monotonic
-read costs 142ns through the vDSO against 1056ns through the kernel, so
-the vDSO saves about 0.9us on every clock read, and `time.Now`, which
-reads both clocks, costs 260ns. It is also why `sigFetchG` needs its
-recovery path - a signal can land inside vDSO code, where the g register
+falling back to a `ta 0x6d` syscall if the lookup fails. That matters on
+the T4, where a trap is expensive. It is also why `sigFetchG` needs its
+recovery path: a signal can land inside vDSO code, where the g register
 does not hold a valid g.
 
 `%stick` is driven from a system-wide reference and measured zero
@@ -329,17 +323,30 @@ not need; `ticksPerSecond` calibrates against `nanotime` either way.
 
 Go does not use SPARC register windows: `SAVE`/`RESTORE` appear nowhere
 in generated code, and one window serves the whole program. Frames are
-flat, and two "in" registers act as per-frame anchors:
+flat, and two registers act as per-frame anchors:
 
-* `%i6` (RFP) — the frame's entry stack pointer, biased.
-* `%i7` (OLR) — the frame's own return address.
+* `%l5` (RFP): the frame's entry stack pointer, biased.
+* `%i7` (OLR): the frame's own return address.
 
-A function's prologue stores its caller's pair at `[sp+112]` and
-`[sp+120]` — the same offsets the hardware uses for `%i6`/`%i7` in a
-window save area — so the values the kernel spills there on a trap
-always agree with the ones the unwinder reads. The agreement is briefly untrue in three
-places, and each is either ordered so that the invariant holds or marked
-non-preemptible: the prologue between pushing the frame and publishing
+RFP cannot be `%i6`. That register is the hardware's stack pointer for
+the window above, so a frame pointer every prologue rewrites would
+decide where the hardware spills a window unrelated to this frame, onto
+the 128 bytes backing whatever registers were interrupted there. With
+RFP in `%l5`, `%i6` keeps the caller stack pointer the C side left in
+it, and such a spill lands harmlessly on the C stack.
+
+A frame keeps its anchors at `[sp+bias+40]`, the slot the hardware
+spills `%l5` to, and `[sp+bias+136]`. The first is idempotent under a
+hardware spill: spilling this window writes the value the slot already
+holds, so a trap cannot damage it. The second cannot be the `%i7` image
+at +120, because during signal handling the live `%i7` holds the
+interrupted frame's return address, so a trap taken mid-handler spills
+that stale value over the slot. +120 is still written, since the
+hardware expects it there, but nothing reads it back; `pushCall` owns
++128.
+
+The agreement is briefly untrue in three places, each either ordered so
+the invariant holds or marked non-preemptible: the prologue between pushing the frame and publishing
 the return address, the epilogue between reloading the caller's anchors
 and raising the stack pointer, and any signal handler that opens a
 second register window. Code that runs in those windows and expects to
@@ -359,19 +366,19 @@ has been violated at least once:
    runtime sees it. The runtime resolves a return address by the
    universal rule "subtract one and you are inside the CALL", so an
    unconverted value resolves one instruction too early. That is usually
-   still the right *line* — the instructions before a call belong to the
-   same statement — which is what makes the mistake so quiet. What it
-   loses is anything finer: inlined frames vanish, because the earlier
+   still the right *line*, since the instructions before a call belong
+   to the same statement, which is what makes the mistake so quiet. What
+   it loses is anything finer: inlined frames vanish, because the earlier
    instruction lies outside the range of the call that was inlined
    there.
 
-2. **Storing.** Anything that arranges to be *returned into* — an
-   injected `sigpanic` or `asyncPreempt` call — must store `target-8`,
+2. **Storing.** Anything that arranges to be *returned into*, such as
+   an injected `sigpanic` or `asyncPreempt` call, must store `target-8`,
    so that the conversion above reconstructs the intended address.
 
 3. **Trusting.** The link register is authoritative only for a frame
    that has not saved it: a leaf, or a frame still inside its prologue.
-   Every other frame has stored its own return address at `[sp+120]`,
+   Every other frame has stored its own return address at `[sp+136]`,
    and that slot wins. Any call a function makes overwrites `%o7` with
    an address pointing back into that same function, so a signal
    delivered to a framed function generally finds a stale
@@ -387,7 +394,7 @@ There is a related consequence for generated code. Because the return
 address points past the delay slot, "return address minus one" lands in
 the delay slot, never in the call. The slot must therefore carry the
 call's own position, which is why the assembler appends its own `RNOP`
-rather than adopting whatever instruction follows a jump — an existing
+rather than adopting whatever instruction follows a jump: an existing
 `RNOP` may be an inline mark, whose position the inline tree records as
 the parent frame's call site.
 
@@ -395,8 +402,8 @@ The one exemption is `ret; restore`, the SPARC idiom for leaving a
 register window: there the restore is meant to run as part of the
 return, so it keeps the slot. A `RESTORE` after a `CALL` is refused
 outright, because control comes back from a call and a restore in its
-slot would rotate the window away before the callee ever runs — and
-take `%o0`, where the callee's result arrives, with it. Put the result
+slot would rotate the window away before the callee ever runs, taking
+`%o0`, where the callee's result arrives, with it. Put the result
 somewhere first (`MOVD O0, I0`, as `·asmcgocall` does).
 
 MIPS, the only other delay-slot architecture Go supports, needs none of
@@ -443,6 +450,6 @@ answering and needs an ILOM reset.
 Two kernel options are needed for a clean sweep, neither of them
 sparc64-specific:
 
-* `CONFIG_DUMMY` — `net` uses a dummy interface for two tests.
-* `CONFIG_CRYPTO_USER_API_HASH` — `golang.org/x/sys/unix`'s
+* `CONFIG_DUMMY`: `net` uses a dummy interface for two tests.
+* `CONFIG_CRYPTO_USER_API_HASH`: `golang.org/x/sys/unix`'s
   `TestSockaddrALG` binds an `AF_ALG` socket.
