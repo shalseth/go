@@ -570,15 +570,30 @@ def stack_bias():
 	return 0
 
 
+# The SPARC register window. gdb keeps %l0-%i7 in memory at %sp+bias
+# rather than in the thread, and writes them there whenever $sp or one
+# of them is assigned.
+# gdb calls %i6 $fp.
+SPARC_WINDOW_REGS = ['$l%d' % i for i in range(8)] + ['$i%d' % i for i in range(6)] + ['$fp', '$i7']
+SPARC_WINDOW_SIZE = 16 * 8
+
+
+def reg_to_int(v):
+	"""Convert a register value of any type, pointers included, to an int."""
+	return int(v.format_string(format='x'), 16)
+
+
 def find_goroutine(goid):
 	"""
 	find_goroutine attempts to find the goroutine identified by goid.
 	It returns a tuple of gdb.Value's representing the stack pointer
-	and program counter pointer for the goroutine.
+	and program counter pointer for the goroutine, and a dict of the
+	other registers frame 0 needs to unwind (only the SPARC return
+	address registers so far).
 
 	@param int goid
 
-	@return tuple (gdb.Value, gdb.Value)
+	@return tuple (gdb.Value, gdb.Value, dict)
 	"""
 	vp = gdb.lookup_type('void').pointer()
 	for ptr in SliceValue(gdb.parse_and_eval("'runtime.allgs'")):
@@ -587,37 +602,45 @@ def find_goroutine(goid):
 		if ptr['goid'] == goid:
 			break
 	else:
-		return None, None
+		return None, None, {}
 	# Get the goroutine's saved state.
 	pc, sp = ptr['sched']['pc'], ptr['sched']['sp']
 	status = ptr['atomicstatus']['value']&~G_SCAN
 	# Goroutine is not running nor in syscall, so use the info in goroutine
 	if status != G_RUNNING and status != G_SYSCALL:
-		return pc.cast(vp), sp.cast(vp)
+		regs = {}
+		if stack_bias():
+			# The return address is in a register, %o7 before the
+			# prologue and %i7 after it, so the unwinder needs both.
+			regs = {'$o7': ptr['sched']['lr'], '$i7': ptr['sched']['olr']}
+		return pc.cast(vp), sp.cast(vp), regs
 
 	# If the goroutine is in a syscall, use syscallpc/sp.
 	pc, sp = ptr['syscallpc'], ptr['syscallsp']
 	if sp != 0:
-		return pc.cast(vp), sp.cast(vp)
+		return pc.cast(vp), sp.cast(vp), {}
 	# Otherwise, the goroutine is running, so it doesn't have
 	# saved scheduler state. Find G's OS thread.
 	m = ptr['m']
 	if m == 0:
-		return None, None
+		return None, None, {}
 	for thr in gdb.selected_inferior().threads():
 		if thr.ptid[1] == m['procid']:
 			break
 	else:
-		return None, None
+		return None, None, {}
 	# Get scheduler state from the G's OS thread state.
 	curthr = gdb.selected_thread()
+	regs = {}
 	try:
 		thr.switch()
 		pc = gdb.parse_and_eval('$pc')
 		sp = gdb.parse_and_eval('$sp') + stack_bias()
+		if stack_bias():
+			regs = {r: gdb.parse_and_eval(r) for r in ('$o7', '$i7')}
 	finally:
 		curthr.switch()
-	return pc.cast(vp), sp.cast(vp)
+	return pc.cast(vp), sp.cast(vp), regs
 
 
 class GoroutineCmd(gdb.Command):
@@ -653,19 +676,33 @@ class GoroutineCmd(gdb.Command):
 			self.invoke_per_goid(goid, cmd)
 
 	def invoke_per_goid(self, goid, cmd):
-		pc, sp = find_goroutine(goid)
+		pc, sp, regs = find_goroutine(goid)
 		if not pc:
 			print("No such goroutine: ", goid)
 			return
 		pc = pc_to_int(pc)
+		bias = stack_bias()
 		save_frame = gdb.selected_frame()
 		gdb.parse_and_eval('$save_sp = $sp')
 		gdb.parse_and_eval('$save_pc = $pc')
 		# In GDB, assignments to sp must be done from the
 		# top-most frame, so select frame 0 first.
 		gdb.execute('select-frame 0')
+		saved = []
+		window = None
+		if bias:
+			# Assigning $sp makes gdb write the thread's register window
+			# into the goroutine's frame, so keep both to put back. $sp
+			# itself must be biased: gdb takes an even one for a 32-bit
+			# frame and reads and writes the window at the wrong address.
+			saved = [(r, reg_to_int(gdb.parse_and_eval(r))) for r in SPARC_WINDOW_REGS + ['$o7']]
+			sp = int(sp)
+			window = (sp, gdb.selected_inferior().read_memory(sp, SPARC_WINDOW_SIZE).tobytes())
+			sp -= bias
 		gdb.parse_and_eval('$sp = {0}'.format(str(sp)))
 		gdb.parse_and_eval('$pc = {0}'.format(str(pc)))
+		for r, v in regs.items():
+			gdb.parse_and_eval('{0} = {1}'.format(r, reg_to_int(v)))
 		try:
 			gdb.execute(cmd)
 		finally:
@@ -674,6 +711,10 @@ class GoroutineCmd(gdb.Command):
 			gdb.execute('select-frame 0')
 			gdb.parse_and_eval('$pc = $save_pc')
 			gdb.parse_and_eval('$sp = $save_sp')
+			for r, v in saved:
+				gdb.parse_and_eval('{0} = {1}'.format(r, v))
+			if window:
+				gdb.selected_inferior().write_memory(window[0], window[1])
 			save_frame.select()
 
 
