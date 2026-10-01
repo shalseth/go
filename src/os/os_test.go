@@ -3007,7 +3007,9 @@ func TestPipeThreads(t *testing.T) {
 		w[i] = wp
 	}
 
-	defer debug.SetMaxThreads(debug.SetMaxThreads(threads / 2))
+	// The runtime may already run more than threads/2 threads on a
+	// machine with a large GOMAXPROCS; the cap is on top of those.
+	defer debug.SetMaxThreads(debug.SetMaxThreads(threads/2 + runtime.GOMAXPROCS(0)))
 
 	creading := make(chan bool, threads)
 	cdone := make(chan bool, threads)
