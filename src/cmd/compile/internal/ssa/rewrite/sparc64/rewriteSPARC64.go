@@ -635,7 +635,7 @@ func RewriteValue(v *ssa.Value) bool {
 		v.Op = ssaop.OpSPARC64CALLtail
 		return true
 	case ssaop.OpTailCallInter:
-		v.Op = ssaop.OpSPARC64CALLtail
+		v.Op = ssaop.OpSPARC64CALLtailinter
 		return true
 	case ssaop.OpTrunc16to8:
 		v.Op = ssaop.OpCopy

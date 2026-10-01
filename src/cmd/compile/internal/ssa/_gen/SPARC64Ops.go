@@ -130,17 +130,17 @@ func init() {
 		// caller's return-address anchor, and an interrupt inside a
 		// function holding data in %o7 sends the unwinder - and with
 		// it the GC's stack scan - down a fabricated call chain.
-		gp   = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29")
-		gpg      = gp.union(buildReg("g"))
-		gpsp     = gp.union(buildReg("SP"))
-		gpspg    = gpg.union(buildReg("SP"))
-		gpspsbg  = gpspg.union(buildReg("SB"))
-		fp       = buildReg("Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15")
-		rz       = buildReg("ZR")
+		gp      = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29")
+		gpg     = gp.union(buildReg("g"))
+		gpsp    = gp.union(buildReg("SP"))
+		gpspg   = gpg.union(buildReg("SP"))
+		gpspsbg = gpspg.union(buildReg("SB"))
+		fp      = buildReg("Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15")
+		rz      = buildReg("ZR")
 		// The 16 registers a PanicBounds operand may occupy. R15 is
 		// excluded: it is the link register, and the CALL into the
 		// panic shim would destroy an index held there.
-		first16 = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20")
+		first16    = buildReg("R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20")
 		callerSave = gp.union(fp).union(buildReg("g")) // runtime.setg may clobber g
 	)
 	// Common regInfo.
@@ -178,10 +178,10 @@ func init() {
 		{name: "ADD", argLength: 2, reg: gp21, asm: "ADD", commutative: true},   // arg0 + arg1
 		{name: "ADDconst", argLength: 1, reg: gp11sp, asm: "ADD", aux: "Int64"}, // arg0 + auxInt
 		{name: "SUB", argLength: 2, reg: gp21, asm: "SUB"},                      // arg0 - arg1
-		{name: "SUBconst", argLength: 1, reg: gp11, asm: "SUB", aux: "Int64"},    // arg0 - auxInt
+		{name: "SUBconst", argLength: 1, reg: gp11, asm: "SUB", aux: "Int64"},   // arg0 - auxInt
 		{name: "POPC", argLength: 1, reg: gp11, asm: "POPC"},                    // count of one bits in arg0
-		{name: "MULD", argLength: 2, reg: gp21, asm: "MULD", commutative: true},  // arg0 * arg1
-		{name: "SDIVD", argLength: 2, reg: gp21, asm: "SDIVD"},                   // arg0 / arg1, signed
+		{name: "MULD", argLength: 2, reg: gp21, asm: "MULD", commutative: true}, // arg0 * arg1
+		{name: "SDIVD", argLength: 2, reg: gp21, asm: "SDIVD"},                  // arg0 / arg1, signed
 		// VIS3. The T4 implements it; older SPARC V9 parts do not.
 		{name: "UMULXHI", argLength: 2, reg: gp21, asm: "UMULXHI", commutative: true}, // high 64 bits of arg0*arg1, unsigned
 		// Full 64x64->128 unsigned multiply, as a pair. SPARC has no
@@ -197,7 +197,7 @@ func init() {
 		// results must not share registers with the arguments.
 		{name: "ADDCARRY", argLength: 3, reg: gp32, resultNotInArgs: true, clobberFlags: true, typ: "(UInt64,UInt64)"},  // (sum, carryOut) = arg0 + arg1 + arg2; arg2 is 0 or 1, and so is carryOut
 		{name: "SUBBORROW", argLength: 3, reg: gp32, resultNotInArgs: true, clobberFlags: true, typ: "(UInt64,UInt64)"}, // (diff, borrowOut) = arg0 - arg1 - arg2; arg2 is 0 or 1, and so is borrowOut
-		{name: "UDIVD", argLength: 2, reg: gp21, asm: "UDIVD"},                   // arg0 / arg1, unsigned
+		{name: "UDIVD", argLength: 2, reg: gp21, asm: "UDIVD"},                                                          // arg0 / arg1, unsigned
 
 		{name: "AND", argLength: 2, reg: gp21, asm: "AND", commutative: true},   // arg0 & arg1
 		{name: "ANDconst", argLength: 1, reg: gp11, asm: "AND", aux: "Int64"},   // arg0 & auxInt
@@ -205,13 +205,13 @@ func init() {
 		{name: "ORconst", argLength: 1, reg: gp11, asm: "OR", aux: "Int64"},     // arg0 | auxInt
 		{name: "XOR", argLength: 2, reg: gp21, asm: "XOR", commutative: true},   // arg0 ^ arg1
 		{name: "XORconst", argLength: 1, reg: gp11, asm: "XOR", aux: "Int64"},   // arg0 ^ auxInt
-		{name: "ANDN", argLength: 2, reg: gp21, asm: "ANDN"},                     // arg0 &^ arg1
-		{name: "ORN", argLength: 2, reg: gp21, asm: "ORN"},                       // arg0 |^ arg1
+		{name: "ANDN", argLength: 2, reg: gp21, asm: "ANDN"},                    // arg0 &^ arg1
+		{name: "ORN", argLength: 2, reg: gp21, asm: "ORN"},                      // arg0 |^ arg1
 		{name: "XNOR", argLength: 2, reg: gp21, asm: "XNOR", commutative: true}, // ^(arg0 ^ arg1)
 
 		// Shifts. SPARC distinguishes 32-bit (W) and 64-bit (D) forms;
 		// the W forms operate on the low word.
-		{name: "SLLD", argLength: 2, reg: gp21, asm: "SLLD"},                   // arg0 << arg1, 64 bit
+		{name: "SLLD", argLength: 2, reg: gp21, asm: "SLLD"},                    // arg0 << arg1, 64 bit
 		{name: "SLLDconst", argLength: 1, reg: gp11, asm: "SLLD", aux: "Int64"}, // arg0 << auxInt
 		{name: "SRLD", argLength: 2, reg: gp21, asm: "SRLD"},                    // arg0 >> arg1, logical
 		{name: "SRLDconst", argLength: 1, reg: gp11, asm: "SRLD", aux: "Int64"},
@@ -254,14 +254,14 @@ func init() {
 		{name: "FMOVDstore", argLength: 3, reg: fpstore, asm: "FMOVD", aux: "SymOff", typ: "Mem", faultOnNilArg0: true, symEffect: "Write", addrSinkArg0: true},
 
 		// Register moves and conversions.
-		{name: "MOVD", argLength: 1, reg: gp11, asm: "MOVD"},     // move, 64 bit
-		{name: "MOVW", argLength: 1, reg: gp11, asm: "MOVW"},     // sign extend int32 to int64
-		{name: "MOVUW", argLength: 1, reg: gp11, asm: "MOVUW"},   // zero extend uint32 to uint64
-		{name: "MOVH", argLength: 1, reg: gp11, asm: "MOVH"},     // sign extend int16 to int64
-		{name: "MOVUH", argLength: 1, reg: gp11, asm: "MOVUH"},   // zero extend uint16 to uint64
-		{name: "MOVB", argLength: 1, reg: gp11, asm: "MOVB"},     // sign extend int8 to int64
-		{name: "MOVUB", argLength: 1, reg: gp11, asm: "MOVUB"},   // zero extend uint8 to uint64
-		{name: "NEG", argLength: 1, reg: gp11, asm: "NEG"},       // -arg0
+		{name: "MOVD", argLength: 1, reg: gp11, asm: "MOVD"},   // move, 64 bit
+		{name: "MOVW", argLength: 1, reg: gp11, asm: "MOVW"},   // sign extend int32 to int64
+		{name: "MOVUW", argLength: 1, reg: gp11, asm: "MOVUW"}, // zero extend uint32 to uint64
+		{name: "MOVH", argLength: 1, reg: gp11, asm: "MOVH"},   // sign extend int16 to int64
+		{name: "MOVUH", argLength: 1, reg: gp11, asm: "MOVUH"}, // zero extend uint16 to uint64
+		{name: "MOVB", argLength: 1, reg: gp11, asm: "MOVB"},   // sign extend int8 to int64
+		{name: "MOVUB", argLength: 1, reg: gp11, asm: "MOVUB"}, // zero extend uint8 to uint64
+		{name: "NEG", argLength: 1, reg: gp11, asm: "NEG"},     // -arg0
 
 		// Floating point arithmetic.
 		{name: "FADDS", argLength: 2, reg: fp21, asm: "FADDS", commutative: true},
@@ -282,14 +282,14 @@ func init() {
 		{name: "FCMPD", argLength: 2, reg: fp2flags, asm: "FCMPD", typ: "Flags"},
 
 		// Float/integer conversions.
-		{name: "FSTOD", argLength: 1, reg: fp11, asm: "FSTOD"}, // float32 -> float64
-		{name: "FDTOS", argLength: 1, reg: fp11, asm: "FDTOS"}, // float64 -> float32
-		{name: "FSTOX", argLength: 1, reg: fp11, asm: "FSTOX"}, // float32 -> int64
-		{name: "FDTOX", argLength: 1, reg: fp11, asm: "FDTOX"}, // float64 -> int64
-		{name: "FSTOI", argLength: 1, reg: fp11, asm: "FSTOI"}, // float32 -> int32
-		{name: "FDTOI", argLength: 1, reg: fp11, asm: "FDTOI"}, // float64 -> int32
-		{name: "FXTOS", argLength: 1, reg: fp11, asm: "FXTOS"}, // int64 -> float32
-		{name: "FXTOD", argLength: 1, reg: fp11, asm: "FXTOD"}, // int64 -> float64
+		{name: "FSTOD", argLength: 1, reg: fp11, asm: "FSTOD"},   // float32 -> float64
+		{name: "FDTOS", argLength: 1, reg: fp11, asm: "FDTOS"},   // float64 -> float32
+		{name: "FSTOX", argLength: 1, reg: fp11, asm: "FSTOX"},   // float32 -> int64
+		{name: "FDTOX", argLength: 1, reg: fp11, asm: "FDTOX"},   // float64 -> int64
+		{name: "FSTOI", argLength: 1, reg: fp11, asm: "FSTOI"},   // float32 -> int32
+		{name: "FDTOI", argLength: 1, reg: fp11, asm: "FDTOI"},   // float64 -> int32
+		{name: "FXTOS", argLength: 1, reg: fp11, asm: "FXTOS"},   // int64 -> float32
+		{name: "FXTOD", argLength: 1, reg: fp11, asm: "FXTOD"},   // int64 -> float64
 		{name: "FMOVDgp", argLength: 1, reg: fpgp, asm: "FMOVD"}, // move float64 bits to integer register
 		{name: "FMOVDfp", argLength: 1, reg: gpfp, asm: "FMOVD"}, // move integer bits to float register
 
@@ -333,6 +333,7 @@ func init() {
 		// Calls.
 		{name: "CALLstatic", argLength: -1, reg: regInfo{clobbers: callerSave}, aux: "CallOff", clobberFlags: true, call: true},
 		{name: "CALLtail", argLength: -1, reg: regInfo{clobbers: callerSave}, aux: "CallOff", clobberFlags: true, call: true, tailCall: true},
+		{name: "CALLtailinter", argLength: -1, reg: regInfo{inputs: []regMask{gp}, clobbers: callerSave}, aux: "CallOff", clobberFlags: true, call: true, tailCall: true},
 		{name: "CALLclosure", argLength: -1, reg: regInfo{inputs: []regMask{gpsp, buildReg("R29"), {}}, clobbers: callerSave}, aux: "CallOff", clobberFlags: true, call: true},
 		{name: "CALLinter", argLength: -1, reg: regInfo{inputs: []regMask{gp}, clobbers: callerSave}, aux: "CallOff", clobberFlags: true, call: true},
 
@@ -403,7 +404,6 @@ func init() {
 		// be in the clobber set — regalloc would otherwise keep a live
 		// value there across the call.
 		{name: "LoweredWB", argLength: 1, reg: regInfo{clobbers: callerSave.minus(gpg).union(buildReg("R15")), outputs: []regMask{buildReg("R25")}}, clobberFlags: true, aux: "Int64"},
-
 
 		// Materialise a boolean from the condition codes. SPARC has no
 		// set-on-condition instruction, so each of these becomes a

@@ -6497,6 +6497,7 @@ const (
 	OpSPARC64LoweredAtomicOr8
 	OpSPARC64CALLstatic
 	OpSPARC64CALLtail
+	OpSPARC64CALLtailinter
 	OpSPARC64CALLclosure
 	OpSPARC64CALLinter
 	OpSPARC64LoweredNilCheck
@@ -107381,6 +107382,20 @@ var OpcodeTable = [...]OpInfo{
 		Call:         true,
 		tailCall:     true,
 		Reg: RegInfo{
+			Clobbers: RegMask{V1: 274875805694, V2: 0}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
+		},
+	},
+	{
+		Name:         "CALLtailinter",
+		AuxType:      AuxTypeCallOff,
+		ArgLen:       -1,
+		ClobberFlags: true,
+		Call:         true,
+		tailCall:     true,
+		Reg: RegInfo{
+			Inputs: []InputInfo{
+				{0, RegMask{V1: 2093054, V2: 0}}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29
+			},
 			Clobbers: RegMask{V1: 274875805694, V2: 0}, // R1 R2 R3 R4 R5 R8 R9 R10 R11 R12 R13 R16 R17 R18 R19 R20 R24 R25 R29 g Y1 Y2 Y3 Y4 Y5 Y6 Y7 Y8 Y9 Y10 Y11 Y12 Y13 Y14 Y15
 		},
 	},

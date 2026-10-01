@@ -474,7 +474,7 @@
 // than the generic body's arithmetic recovery of the carry bit.
 (Add64carry ...) => (ADDCARRY ...)
 (Sub64borrow ...) => (SUBBORROW ...)
-(TailCallInter ...) => (CALLtail ...)
+(TailCallInter ...) => (CALLtailinter ...)
 
 // count trailing zeros: popc(^x & (x-1)). The T4 implements POPC in
 // hardware. For 32 bits a guard bit caps the zero case at 32.

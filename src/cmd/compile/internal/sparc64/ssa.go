@@ -979,7 +979,7 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 	case ssaop.OpSPARC64CALLstatic, ssaop.OpSPARC64CALLclosure, ssaop.OpSPARC64CALLinter:
 		s.Call(v)
 
-	case ssaop.OpSPARC64CALLtail:
+	case ssaop.OpSPARC64CALLtail, ssaop.OpSPARC64CALLtailinter:
 		s.TailCall(v)
 
 	case ssaop.OpSPARC64LoweredGetClosurePtr:
