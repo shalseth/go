@@ -430,8 +430,29 @@ Other things worth knowing before touching this code:
 
 ## Testing
 
-Standard library test binaries are cross-compiled and run on the
-target:
+The port is self-hosting, so the suite runs natively:
+
+```sh
+cd src && ./make.bash
+cd .. && GO_TEST_TIMEOUT_SCALE=2 ./bin/go tool dist test -k
+```
+
+`-k` keeps going past a failing package. Without it the run stops at the
+first failure and never reaches the twenty later phases. The pass condition
+is zero `--- FAIL` across 22 phases.
+
+`GO_TEST_TIMEOUT_SCALE` scales the per-package harness deadline, and is set
+because `dist test` sizes its background parallelism to `runtime.NumCPU()`:
+the suite competes with itself, and `runtime`, which needs about 450 s alone,
+can otherwise exceed its 600 s budget. No concurrency limit is set.
+`MERGING-UPSTREAM.md` has the detail, including why a test's own internal
+budget is a different problem that this variable does not touch.
+
+On an UltraSPARC T4-1, 64 threads at 2.85 GHz, that is about 12 minutes for
+`make.bash` and 29 for the suite.
+
+Test binaries can also be cross-compiled, for a target with no toolchain on
+it:
 
 ```sh
 GOOS=linux GOARCH=sparc64 go test -c -o sort.test sort
@@ -441,11 +462,6 @@ scp sort.test target: && ssh target ./sort.test -test.short
 Tests that read files from their own source directory (`os`, `net`,
 `io/fs`, `text/template`) need that directory copied alongside the
 binary.
-
-Run with `-p 2` and `GOMAXPROCS=8`. Each test binary otherwise sizes
-itself to the T4's 64 hardware threads, and a full `all.bash` at that
-concurrency drives the load average past 400; the machine stops
-answering and needs an ILOM reset.
 
 Two kernel options are needed for a clean sweep, neither of them
 sparc64-specific:
