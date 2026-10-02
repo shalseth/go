@@ -619,7 +619,23 @@ func badmorestackg0() {
 //go:nosplit
 //go:nowritebarrierrec
 func badmorestackgsignal() {
-	writeErrStr("fatal: morestack on gsignal\n")
+	if !crashStackImplemented {
+		writeErrStr("fatal: morestack on gsignal\n")
+		return
+	}
+
+	g := getg()
+	switchToCrashStack(func() {
+		print("runtime: morestack on gsignal, stack [", hex(g.stack.lo), " ", hex(g.stack.hi), "], sp=", hex(g.sched.sp), ", called from\n")
+		if curg := g.m.curg; curg != nil {
+			print("runtime: m.curg goid=", curg.goid, " stack [", hex(curg.stack.lo), " ", hex(curg.stack.hi), "]\n")
+		}
+		g.m.traceback = 2 // include pc and sp in stack trace
+		traceback1(g.sched.pc, g.sched.sp, g.sched.lr, g, 0)
+		print("\n")
+
+		throw("morestack on gsignal")
+	})
 }
 
 //go:nosplit
