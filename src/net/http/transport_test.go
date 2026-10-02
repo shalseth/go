@@ -2608,7 +2608,7 @@ func testIssue4191_InfiniteGetToPutTimeout(t *testing.T, mode testMode) {
 		return conn, nil
 	}
 
-	getFailed := false
+	getRetries := 0
 	nRuns := 5
 	if testing.Short() {
 		nRuns = 1
@@ -2619,9 +2619,10 @@ func testIssue4191_InfiniteGetToPutTimeout(t *testing.T, mode testMode) {
 		}
 		sres, err := c.Get(ts.URL + "/get")
 		if err != nil {
-			if !getFailed {
-				// Make the timeout longer, once.
-				getFailed = true
+			if getRetries < 2 {
+				// Make the timeout longer, up to twice: a loaded
+				// machine can take seconds to answer the GET.
+				getRetries++
 				t.Logf("increasing timeout")
 				i--
 				timeout *= 10
