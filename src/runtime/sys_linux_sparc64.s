@@ -571,90 +571,76 @@ TEXT runtime·sigfwd(SB),NOSPLIT,$0-32
 // hand. g lives in %l6 and is saved with them, so it needs no shuffling
 // through a global register either. The %g and %o registers are part of
 // the signal context and rt_sigreturn restores them, so they are free.
-TEXT runtime·sigtramp(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
-	// Run the handler in the INTERRUPTED register window.
-	//
-	// The obvious implementation - SAVE a fresh window for the handler -
-	// is wrong on Linux/sparc64. A SAVE here leaves two live user
-	// windows, and the kernel's window bookkeeping does not survive a
-	// syscall made from inside the handler: the window comes back
-	// holding the registers of the frame the signal interrupted (a
-	// thread parked in futex(FUTEX_WAIT) hands its notesleep frame
-	// anchors to the handler). The flat-frame ABI keeps its frame
-	// anchors in %l5/%i7, so that silently redirects the handler's
-	// returns.
-	//
-	// Go code never executes SAVE, so one window serves the whole
-	// program; keep it that way here and preserve the interrupted
-	// window by hand instead. %g registers need no saving: the kernel
-	// restores them from the signal context.
-	ADD	$-352, RSP
-
-	// Save the interrupted window: %l0-%l7, %i0-%i7, and the return
-	// address the kernel left in %o7 (CALL below clobbers it).
-	MOVD	R16, (208+0)(BSP)
-	MOVD	R17, (208+8)(BSP)
-	MOVD	R18, (208+16)(BSP)
-	MOVD	R19, (208+24)(BSP)
-	MOVD	R20, (208+32)(BSP)
-	MOVD	R21, (208+40)(BSP)
-	MOVD	g, (208+48)(BSP)
-	MOVD	R23, (208+56)(BSP)
-	MOVD	R24, (208+64)(BSP)
-	MOVD	R25, (208+72)(BSP)
-	MOVD	R26, (208+80)(BSP)
-	MOVD	R27, (208+88)(BSP)
-	MOVD	R28, (208+96)(BSP)
-	MOVD	R29, (208+104)(BSP)
-	MOVD	R30, (208+112)(BSP)
-	MOVD	R31, (208+120)(BSP)
-	MOVD	LR, (208+128)(BSP)
-
-	// sigtrampgo(sig uint32, info, ctx unsafe.Pointer); the kernel
-	// passed them in %o0-%o2, which this window still holds.
-	MOVW	R8, (176+0)(BSP)
-	MOVD	R9, (176+8)(BSP)
-	MOVD	R10, (176+16)(BSP)
-
-	// Recover g from thread-local storage before entering Go. g lives
-	// in %l6, and the interrupted code may have been C, which is free
-	// to use that register for anything: sigtrampgo would then find no
-	// g, take the signal for one arriving on a non-Go thread, and
-	// re-raise it. load_g is a no-op when the program has no cgo, so
-	// this only costs the builds that need it.
-	CALL	runtime·load_g(SB)
-
-	MOVD	$runtime·sigtrampgo(SB), R11
-	CALL	(R11)
-
-	// Restore the interrupted window.
-	MOVD	(208+0)(BSP), R16
-	MOVD	(208+8)(BSP), R17
-	MOVD	(208+16)(BSP), R18
-	MOVD	(208+24)(BSP), R19
-	MOVD	(208+32)(BSP), R20
-	MOVD	(208+40)(BSP), R21
-	MOVD	(208+48)(BSP), g
-	MOVD	(208+56)(BSP), R23
-	MOVD	(208+64)(BSP), R24
-	MOVD	(208+72)(BSP), R25
-	MOVD	(208+80)(BSP), R26
-	MOVD	(208+88)(BSP), R27
-	MOVD	(208+96)(BSP), R28
-	MOVD	(208+104)(BSP), R29
-	MOVD	(208+112)(BSP), R30
-	MOVD	(208+120)(BSP), R31
-	// The restorer address goes to a %g register: every %l and %i is
-	// live again, and the kernel reloads %g from the signal context.
-	MOVD	(208+128)(BSP), R5
-
-	ADD	$352, RSP
-	// Return to the kernel's restorer stub, which lands at +8 as usual.
-	JMPL	$8(R5), ZR
+// SIGTRAMP is the body of sigtramp and cgoSigtramp.
+#define SIGTRAMP \
+	ADD	$-352, RSP; \
+	/* Save the interrupted window: %l0-%l7, %i0-%i7, and the return */ \
+	/* address the kernel left in %o7 (CALL below clobbers it). */ \
+	MOVD	R16, (208+0)(BSP); \
+	MOVD	R17, (208+8)(BSP); \
+	MOVD	R18, (208+16)(BSP); \
+	MOVD	R19, (208+24)(BSP); \
+	MOVD	R20, (208+32)(BSP); \
+	MOVD	R21, (208+40)(BSP); \
+	MOVD	g, (208+48)(BSP); \
+	MOVD	R23, (208+56)(BSP); \
+	MOVD	R24, (208+64)(BSP); \
+	MOVD	R25, (208+72)(BSP); \
+	MOVD	R26, (208+80)(BSP); \
+	MOVD	R27, (208+88)(BSP); \
+	MOVD	R28, (208+96)(BSP); \
+	MOVD	R29, (208+104)(BSP); \
+	MOVD	R30, (208+112)(BSP); \
+	MOVD	R31, (208+120)(BSP); \
+	MOVD	LR, (208+128)(BSP); \
+	/* sigtrampgo(sig uint32, info, ctx unsafe.Pointer); the kernel */ \
+	/* passed them in %o0-%o2, which this window still holds. */ \
+	MOVW	R8, (176+0)(BSP); \
+	MOVD	R9, (176+8)(BSP); \
+	MOVD	R10, (176+16)(BSP); \
+	/* Recover g from thread-local storage before entering Go. g lives */ \
+	/* in %l6, and the interrupted code may have been C, which is free */ \
+	/* to use that register for anything: sigtrampgo would then find no */ \
+	/* g, take the signal for one arriving on a non-Go thread, and */ \
+	/* re-raise it. load_g is a no-op when the program has no cgo, so */ \
+	/* this only costs the builds that need it. */ \
+	CALL	runtime·load_g(SB); \
+	MOVD	$runtime·sigtrampgo(SB), R11; \
+	CALL	(R11); \
+	/* Restore the interrupted window. */ \
+	MOVD	(208+0)(BSP), R16; \
+	MOVD	(208+8)(BSP), R17; \
+	MOVD	(208+16)(BSP), R18; \
+	MOVD	(208+24)(BSP), R19; \
+	MOVD	(208+32)(BSP), R20; \
+	MOVD	(208+40)(BSP), R21; \
+	MOVD	(208+48)(BSP), g; \
+	MOVD	(208+56)(BSP), R23; \
+	MOVD	(208+64)(BSP), R24; \
+	MOVD	(208+72)(BSP), R25; \
+	MOVD	(208+80)(BSP), R26; \
+	MOVD	(208+88)(BSP), R27; \
+	MOVD	(208+96)(BSP), R28; \
+	MOVD	(208+104)(BSP), R29; \
+	MOVD	(208+112)(BSP), R30; \
+	MOVD	(208+120)(BSP), R31; \
+	/* The restorer address goes to a %g register: every %l and %i is */ \
+	/* live again, and the kernel reloads %g from the signal context. */ \
+	MOVD	(208+128)(BSP), R5; \
+	ADD	$352, RSP; \
+	/* Return to the kernel's restorer stub, which lands at +8 as usual. */ \
+	JMPL	$8(R5), ZR; \
 	RNOP
 
-TEXT runtime·cgoSigtramp(SB),NOSPLIT|NOFRAME,$0
-	JMP	runtime·sigtramp(SB)
+TEXT runtime·sigtramp(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
+	SIGTRAMP
+
+// cgoSigtramp expands sigtramp's body again instead of jumping to it.
+// A JMP to another symbol builds the target address in TMP and TMP2,
+// %i2 and %l7, which would destroy two of the interrupted registers
+// before the body saves them.
+TEXT runtime·cgoSigtramp(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
+	SIGTRAMP
 
 // func mmap(addr unsafe.Pointer, n uintptr, prot, flags, fd int32, off uint32) (p unsafe.Pointer, err int)
 TEXT runtime·mmap(SB),NOSPLIT|NOFRAME,$0
