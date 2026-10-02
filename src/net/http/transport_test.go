@@ -2593,7 +2593,7 @@ func testIssue4191_InfiniteGetToPutTimeout(t *testing.T, mode testMode) {
 		io.Copy(io.Discard, r.Body)
 	})
 	ts := newClientServerTest(t, mode, mux, optRealNet).ts
-	timeout := 100 * time.Millisecond
+	timeout := 100 * time.Millisecond * time.Duration(timeoutScale())
 
 	c := ts.Client()
 	c.Transport.(*Transport).Dial = func(n, addr string) (net.Conn, error) {

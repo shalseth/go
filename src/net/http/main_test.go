@@ -9,9 +9,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/internal/http2"
 	"os"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +23,10 @@ var quietLog = log.New(io.Discard, "", 0)
 
 func TestMain(m *testing.M) {
 	*http.MaxWriteWaitBeforeConnReuse = 60 * time.Minute
+	// The HTTP/2 server gives a client 2 seconds to send its SETTINGS
+	// frame. Scale that like the other deadlines when the machine is
+	// slow or loaded.
+	http2.SetFirstSettingsTimeout(2 * time.Second * time.Duration(timeoutScale()))
 	v := m.Run()
 	if v == 0 && goroutineLeaked() {
 		os.Exit(1)
@@ -173,4 +179,14 @@ func waitCondition(t testing.TB, delay time.Duration, fn func(time.Duration) boo
 		delay = 2*delay - (delay / 2) // 1.5x, rounded up
 		since = time.Since(start)
 	}
+}
+
+// timeoutScale returns GO_TEST_TIMEOUT_SCALE, or 1.
+func timeoutScale() int {
+	if s := os.Getenv("GO_TEST_TIMEOUT_SCALE"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 1
 }

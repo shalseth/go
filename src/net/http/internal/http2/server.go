@@ -48,7 +48,6 @@ import (
 
 const (
 	prefaceTimeout        = 10 * time.Second
-	firstSettingsTimeout  = 2 * time.Second // should be in-flight with preface anyway
 	handlerChunkWriteSize = 4 << 10
 	defaultMaxStreams     = 250 // TODO: make this 100 as the GFE seems to?
 
@@ -57,6 +56,21 @@ const (
 	// the connection is closed to prevent memory exhaustion attacks.
 	maxQueuedControlFrames = 10000
 )
+
+// firstSettingsTimeout is how long a server connection waits for the
+// client's SETTINGS frame, which should be in flight with the preface.
+// Tests scale it with GO_TEST_TIMEOUT_SCALE through SetFirstSettingsTimeout.
+var firstSettingsTimeout = func() *atomic.Int64 {
+	var v atomic.Int64
+	v.Store(int64(2 * time.Second))
+	return &v
+}()
+
+// SetFirstSettingsTimeout sets the time a server connection waits for the
+// client's first SETTINGS frame. It is for tests.
+func SetFirstSettingsTimeout(d time.Duration) {
+	firstSettingsTimeout.Store(int64(d))
+}
 
 var (
 	errClientDisconnected = errors.New("client disconnected")
@@ -880,7 +894,7 @@ func (sc *serverConn) serve(conf Config) {
 
 	go sc.readFrames() // closed by the conn.Close in sc.teardown
 
-	sc.settingsTimer = time.AfterFunc(firstSettingsTimeout, sc.onSettingsTimer)
+	sc.settingsTimer = time.AfterFunc(time.Duration(firstSettingsTimeout.Load()), sc.onSettingsTimer)
 
 	sc.lastFrameTime = time.Now()
 	parked = sc.serveLoop()
