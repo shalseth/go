@@ -32,6 +32,7 @@ func dumpregs(c *sigctxt) {
 func (c *sigctxt) sigpc() uintptr { return uintptr(c.pc()) }
 
 func (c *sigctxt) sigsp() uintptr { return uintptr(c.sp()) }
+
 // siglr returns the link register as a return address. A SPARC CALL
 // writes the address of the CALL itself into %o7 and the callee returns
 // with JMPL %o7+8, past the delay slot, so the raw register is eight
@@ -160,13 +161,7 @@ func (c *sigctxt) pushCall(targetPC, resumePC uintptr) {
 	if c.npc() != c.pc()+4 {
 		return
 	}
-	// Freshness check on the kernel's window spill. copyWindow copies
-	// [sp+0..127] assuming the kernel spilled the interrupted window
-	// there at delivery. Verify it: the spilled %i6 slot must equal the
-	// interrupted frame's biased frame pointer, which we can compute
-	// from the context. A mismatch means the image is stale (the live
-	// window never hit memory), and injecting would resume the
-	// goroutine with old register state - so skip; preemption retries.
+	// Record the injection in the witness log that fatalthrow prints.
 	if gp := getg(); gp != nil && gp.m != nil && gp.m.curg != nil {
 		i := pushCallIdx.Add(1) - 1
 		r := &pushCallLog[i%uint32(len(pushCallLog))]
@@ -182,6 +177,8 @@ func (c *sigctxt) pushCall(targetPC, resumePC uintptr) {
 	// the traceback machinery knows this shape for injected calls.
 	oldsp := c.sp()
 	sp := oldsp - goarch.PtrSize*(_MinFrameSizeWords)
+	// This trusts that the kernel spilled the interrupted window to
+	// [oldsp+0..127] at delivery; nothing here verifies it.
 	copyWindow(sp, oldsp)
 	c.set_sp(sp)
 	// The link register is spilled at sp+128, above the register
