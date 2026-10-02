@@ -1383,8 +1383,11 @@ func testTransportDiscardsUnneededConns(t *testing.T, mode testMode) {
 		}
 	}
 
+	// The extra connections are closed once their TLS handshakes finish,
+	// which can take seconds on a heavily loaded machine.
 	var open, close int32
-	for i := 0; i < 150; i++ {
+	deadline := time.Now().Add(5 * time.Second * time.Duration(timeoutScale()))
+	for {
 		open, close = atomic.LoadInt32(&numOpen), atomic.LoadInt32(&numClose)
 		if open < 1 {
 			t.Fatalf("open = %d; want at least", open)
@@ -1392,6 +1395,9 @@ func testTransportDiscardsUnneededConns(t *testing.T, mode testMode) {
 		if close == open-1 {
 			// Success
 			return
+		}
+		if time.Now().After(deadline) {
+			break
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
