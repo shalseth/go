@@ -7823,6 +7823,14 @@ func testServerExpect100ContinueUnreadBody(t *testing.T, mode testMode) {
 		io.ReadAll(r.Body)
 	}))
 
+	// Connect first, so the short timeout below covers only the request.
+	res, err := cst.c.Get(cst.ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	io.Copy(io.Discard, res.Body)
+	res.Body.Close()
+
 	req, _ := NewRequest("POST", cst.ts.URL, strings.NewReader("some body"))
 	req.Header.Set("Expect", "100-continue")
 
