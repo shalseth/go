@@ -48,7 +48,14 @@ func test18146(t *testing.T) {
 	case "aix":
 		nproc = 9
 	case "linux":
-		nproc = 6
+		switch runtime.GOARCH {
+		case "mips", "mipsle", "mips64", "mips64le":
+			nproc = 8
+		case "sparc64":
+			nproc = 7
+		default:
+			nproc = 6
+		}
 	case "darwin", "dragonfly", "freebsd", "netbsd", "openbsd":
 		nproc = 7
 	}
