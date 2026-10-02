@@ -129,6 +129,7 @@ TEXT ·StorepNoWB(SB), NOSPLIT|NOFRAME, $0-16
 	MOVD	ptr+0(FP), R8
 	MOVD	val+8(FP), R9
 	MOVD	R9, (R8)
+	MEMBAR_SL
 	RET
 
 // func Xchg(ptr *uint32, new uint32) uint32
