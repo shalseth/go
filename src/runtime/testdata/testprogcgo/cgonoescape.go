@@ -49,7 +49,9 @@ func withoutNoEscape() {
 }
 
 func CgoNoEscape() {
-	// make GC stop to see the heap objects allocated
+	// Finish any GC cycle in progress, including its sweep, so that no
+	// objects are freed while counting, then stop the GC.
+	runtime.GC()
 	debug.SetGCPercent(-1)
 
 	var stats runtime.MemStats
