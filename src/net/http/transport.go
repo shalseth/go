@@ -91,7 +91,7 @@ const DefaultMaxIdleConnsPerHost = 2
 // if the connection has already been used successfully and if the
 // request is idempotent and either has no body or has its [Request.GetBody]
 // defined. HTTP requests are considered idempotent if they have HTTP methods
-// GET, HEAD, OPTIONS, or TRACE; or if their [Header] map contains an
+// GET, HEAD, OPTIONS, TRACE, or QUERY; or if their [Header] map contains an
 // "Idempotency-Key" or "X-Idempotency-Key" entry. If the idempotency key
 // value is a zero-length slice, the request is treated as idempotent but the
 // header is not sent on the wire.
@@ -464,7 +464,7 @@ func (t *Transport) onceSetNextProtoDefaults() {
 	if !protocols.HTTP2() && !protocols.UnencryptedHTTP2() {
 		return
 	}
-	if omitBundledHTTP2 {
+	if omitHTTP2Client {
 		return
 	}
 
@@ -2432,9 +2432,13 @@ func maybeDrainBody(r io.Reader) bool {
 	}
 }
 
-// errClosedEarly is an internal-only error used to indicate that a response body
-// was closed early prior to EOF.
-var errClosedEarly = errors.New("net/http: response body closed early")
+type bodyReadStatus uint8
+
+const (
+	bodyReadEOF bodyReadStatus = iota
+	bodyReadClosedEarly
+	bodyReadError
+)
 
 func (pc *persistConn) readLoop() {
 	closeErr := errReadLoopExiting // default value, if not changed below
@@ -2554,21 +2558,24 @@ func (pc *persistConn) readLoop() {
 			continue
 		}
 
-		waitForBodyRead := make(chan error, 1)
+		waitForBodyRead := make(chan bodyReadStatus, 1)
 		body := &bodyEOFSignal{
 			body: resp.Body,
 			earlyCloseFn: func() error {
-				waitForBodyRead <- errClosedEarly
+				waitForBodyRead <- bodyReadClosedEarly
 				<-eofc // will be closed by deferred call at the end of the function
 				return nil
 			},
 			fn: func(err error) error {
-				waitForBodyRead <- err
 				if err == io.EOF {
+					waitForBodyRead <- bodyReadEOF
 					<-eofc // see comment above eofc declaration
-				} else if err != nil {
-					if cerr := pc.canceled(); cerr != nil {
-						return cerr
+				} else {
+					waitForBodyRead <- bodyReadError
+					if err != nil {
+						if cerr := pc.canceled(); cerr != nil {
+							return cerr
+						}
 					}
 				}
 				return err
@@ -2594,18 +2601,18 @@ func (pc *persistConn) readLoop() {
 		// the bufio.Reader, wait for the caller goroutine to finish
 		// reading the response body. (or for cancellation or death)
 		select {
-		case err := <-waitForBodyRead:
+		case status := <-waitForBodyRead:
 			tryPutIdle := func() {
 				alive = alive &&
 					!pc.sawEOF &&
 					pc.wroteRequest() &&
 					tryPutIdleConn(rc.treq)
 			}
-			switch err {
-			case io.EOF:
+			switch status {
+			case bodyReadEOF:
 				tryPutIdle()
 				eofc <- struct{}{}
-			case errClosedEarly:
+			case bodyReadClosedEarly:
 				// Read resp before signaling eofc: the send lets the caller's
 				// Close return, and resp belongs to the caller after that.
 				tryDrain := alive && !pc.t.keepAlivesDisabled() && resp.ContentLength <= maxPostCloseReadBytes
@@ -2615,7 +2622,7 @@ func (pc *persistConn) readLoop() {
 				} else {
 					alive = false
 				}
-			default:
+			case bodyReadError:
 				alive = false
 			}
 		case <-rc.treq.ctx.Done():

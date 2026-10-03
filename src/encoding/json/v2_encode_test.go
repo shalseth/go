@@ -434,6 +434,43 @@ func TestUnsupportedValues(t *testing.T) {
 	}
 }
 
+// Issue 81176: UnsupportedValueError.Value should hold the NaN or ±Inf value.
+func TestUnsupportedValueErrorValue(t *testing.T) {
+	type NamedFloat float64
+	tests := []struct {
+		CaseName
+		in   any
+		want any
+	}{
+		{Name(""), NamedFloat(math.NaN()), NamedFloat(math.NaN())},
+		{Name(""), math.Inf(-1), math.Inf(-1)},
+		{Name(""), NamedFloat(math.Inf(1)), NamedFloat(math.Inf(1))},
+		{Name(""), map[string]float64{"x": math.Inf(1)}, math.Inf(1)},
+		{Name(""), []NamedFloat{NamedFloat(math.NaN())}, NamedFloat(math.NaN())},
+		{Name(""), struct{ F float64 }{math.Inf(-1)}, math.Inf(-1)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			_, err := Marshal(tt.in)
+			uve, ok := err.(*UnsupportedValueError)
+			if !ok {
+				t.Fatalf("%s: Marshal error:\n\tgot:  %T\n\twant: %T", tt.Where, err, new(UnsupportedValueError))
+			}
+			got := uve.Value
+			want := reflect.ValueOf(tt.want)
+			if got.Type() != want.Type() {
+				t.Fatalf("%s: UnsupportedValueError.Value.Type = %v, want %v", tt.Where, got.Type(), want.Type())
+			}
+			equalFloat := func(x, y float64) bool {
+				return x == y || math.IsNaN(x) == math.IsNaN(y)
+			}
+			if !equalFloat(got.Float(), want.Float()) {
+				t.Fatalf("%s: UnsupportedValueError.Value.Float = %v, want %v", tt.Where, got.Float(), want.Float())
+			}
+		})
+	}
+}
+
 // Issue 43207
 func TestMarshalTextFloatMap(t *testing.T) {
 	m := map[textfloat]string{
@@ -846,6 +883,23 @@ type BugD struct { // Same as BugA after tagging.
 type BugY struct {
 	BugA
 	BugD
+}
+
+// A tag name holding a character isValidTag rejects is not a name at all, so
+// the field keeps its Go name. See golang.org/issue/81383.
+func TestInvalidTagNameUsesFieldName(t *testing.T) {
+	var v struct {
+		Quote     int `json:"one\"two"`
+		Backslash int `json:"one\\two"`
+		Valid     int `json:"ok"`
+	}
+	got, err := Marshal(v)
+	if err != nil {
+		t.Fatalf("Marshal error: %v", err)
+	}
+	if want := `{"Quote":0,"Backslash":0,"ok":0}`; string(got) != want {
+		t.Errorf("Marshal:\n\tgot  %s\n\twant %s", got, want)
+	}
 }
 
 // Test that a field with a tag dominates untagged fields.
