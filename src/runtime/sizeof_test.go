@@ -23,9 +23,9 @@ func TestSizeof(t *testing.T) {
 	}{
 		// This port adds gobuf.olr, the frame's own return address, which
 		// sparc64 needs because Go never executes SAVE/RESTORE and so cannot
-		// recover it from a register window. gobuf is shared, so g is eight
-		// bytes larger on every architecture in this tree.
-		{runtime.G{}, 292 + xreg, 456 + xreg}, // g, but exported for testing
+		// recover it from a register window. gobuf is shared, so g is one
+		// word larger on every architecture in this tree.
+		{runtime.G{}, 288 + xreg, 456 + xreg}, // g, but exported for testing
 		{runtime.Sudog{}, 64, 104},            // sudog, but exported for testing
 	}
 
