@@ -11,17 +11,27 @@ a dropped connection.
 Rebuilding downstream software against the new toolchain is out of scope here;
 for Grafana Alloy see the `alloy-sparc64` repo.
 
-Paths below are this setup's; adjust for another.
+Paths and machines below are this setup's; adjust for another.
 
 | path | what |
 |---|---|
 | `/root/goport/go` | port checkout, branch `sparc64` |
 | `/root/gomerge` | throwaway worktree for the merge |
 
-Rough costs on an UltraSPARC T4-1: `make.bash` ~12 min, `dist test -k` ~40 min,
-`emerge go-9999` ~12 min.
+Two machines. The merge, the build and the suite run on the T7 (SPARC M7,
+256 threads), which is several times faster. Publishing runs on the T4
+(UltraSPARC T4-1), which has the signing key, `gh` and the overlay checkout.
+The merge commit moves between them as a `git bundle`, so no throwaway branch
+is pushed:
 
-**The port is expected to test clean**: 22 phases, zero failures. That is the
+    git bundle create /root/merge.bundle sparc64..merge-upstream-YYYYMMDD
+    # copy it over, then on the other machine:
+    git fetch /tmp/merge.bundle merge-upstream-YYYYMMDD:merge-upstream-YYYYMMDD
+
+Rough costs on the T7: `make.bash` ~3 min, `dist test -k` ~10-12 min. On the
+T4: `make.bash` ~12 min, `dist test -k` ~40 min, `emerge go-9999` ~12 min.
+
+**The port is expected to test clean**: 25 phases, zero failures. That is the
 standard every merge is held to, so there is no need to capture a fresh
 baseline first. Any failure is a real result: investigate it, do not explain it
 away.
@@ -162,11 +172,11 @@ internal-link cgo bug stayed hidden for six days, with every run reaching two
 phases out of twenty-two.
 
     grep -cE '^--- FAIL' /root/mergebuild-k.log     # expect 0
-    grep -c '^#####' /root/mergebuild-k.log         # expect 22 phases
+    grep -c '^#####' /root/mergebuild-k.log         # expect 25 phases
     grep -c 'test timed out' /root/mergebuild-k.log # expect 0
     grep -c 'signal:' /root/mergebuild-k.log        # expect 0
 
-Zero failures across 22 phases is the pass condition, with nothing skipped for
+Zero failures across 25 phases is the pass condition, with nothing skipped for
 the port: the `cmd/objdump` and `cmd/pprof` disassembly tests used to skip
 through `mustHaveDisasm` and have run since the sparc64 disassembler landed
 (2026-09-14).
@@ -249,7 +259,9 @@ to move on:
     git push origin sparc64
     git worktree remove /root/gomerge
 
-Then tag the merge, so any past toolchain can be checked out and rebuilt:
+Pushing is done from the T4 (see above). Then tag the merge, so any past
+toolchain can be checked out and rebuilt. When a release follows, as it
+normally does, the release tag in step 6 is that tag; don't tag twice:
 
     TAG=sparc64-$(date +%Y%m%d)
     git tag -a $TAG -m "merged upstream through $(git rev-parse --short upstream/master)"
@@ -296,6 +308,10 @@ plus a compare link is enough.
 
 `gh release upload --clobber` replaces an asset that turns out wrong.
 
+Finally add the matching `dev-lang/go-1.28.0_preYYYYMMDD` ebuild to the
+overlay (copy the previous one, change `MY_TAG`, `ebuild ... manifest`),
+commit and push it.
+
 ---
 
 ## 7. Install the toolchain
@@ -307,6 +323,10 @@ it picks up whatever was just pushed. **Push before emerging.**
     go version        # must report the merged head, not the old one
 
 It builds with `CGO_ENABLED=1` and bootstraps from the currently installed Go.
+
+Emerge on the T7 first and check it there: `go version`, a cgo hello world,
+`go test -short` on a few packages. Only once it is good there, emerge it on
+the T4.
 
 ---
 
