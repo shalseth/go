@@ -245,19 +245,9 @@ var avx2UnsignedComparisons = &shapes{
 }
 
 // The shift-all shapes are for rotate emulation
-var amdIntShiftAllShapes = &shapes{
-	vecs: []int{128, 256, 512},
-	ints: []int{16, 32, 64}, // has 32 and 64 rotate on AVX512 that is too hard to use, and no 8-bit shiftall
-}
-
 var amdUintShiftAllShapes = &shapes{
 	vecs:  []int{128, 256, 512},
 	uints: []int{16, 32, 64}, // has 32 and 64 rotate on AVX512 that is too hard to use, and no 8-bit shiftall
-}
-
-var neonIntShiftAllShapes = &shapes{
-	vecs: []int{128},
-	ints: []int{8, 16, 32, 64},
 }
 
 var neonUintShiftAllShapes = &shapes{
@@ -921,47 +911,27 @@ func (x {{.VType}}) LessEqual(y {{.VType}}) Mask{{.WxC}} {
 //
 // Emulated, CPU Feature: {{.CPUfeature}}
 func (x {{.VType}}) NotEqual(y {{.VType}}) Mask{{.WxC}} {
-	return x.Equal(y).ToInt{{.WxC}}().Not().asMask()	
+	return x.Equal(y).ToInt{{.WxC}}().Not().asMask()
 }
 `)
 
-var intRotateAllTemplate = sgutil.TemplateNamed("intRotateAll", `
+var uintRotateAllTemplate = sgutil.TemplateNamed("uintRotateAll", `
 // RotateAllLeft rotates all elements left by the specified amount
 //
 // Emulated
-func (x {{.VType}}) RotateAllLeft(dist uint64) {{.VType}} {
-	dist = dist & ({{.EWidth}}-1)
-	ndist := {{.EWidth}} - dist
-	return x.ToBits().ShiftAllLeft(dist).Or(x.ToBits().ShiftAllRight(ndist)).BitsToInt{{.EWidth}}()
+func (x {{.VType}}) RotateAllLeft(shift uint64) {{.VType}} {
+	shift = shift & ({{.EWidth}}-1)
+	nshift := {{.EWidth}} - shift
+	return x.ShiftAllLeft(shift).Or(x.ShiftAllRight(nshift))
 }
 
 // RotateAllRight rotates all elements right by the specified amount
 //
 // Emulated
-func (x {{.VType}}) RotateAllRight(dist uint64) {{.VType}} {
-	dist = dist & ({{.EWidth}}-1)
-	ndist := {{.EWidth}} - dist
-	return x.ToBits().ShiftAllLeft(ndist).Or(x.ToBits().ShiftAllRight(dist)).BitsToInt{{.EWidth}}()
-}
-`)
-
-var uintRotateAllTemplate = sgutil.TemplateNamed("intRotateAll", `
-// RotateAllLeft rotates all elements left by the specified amount
-//
-// Emulated
-func (x {{.VType}}) RotateAllLeft(dist uint64) {{.VType}} {
-	dist = dist & ({{.EWidth}}-1)
-	ndist := {{.EWidth}} - dist
-	return x.ShiftAllLeft(dist).Or(x.ShiftAllRight(ndist))
-}
-
-// RotateAllRight rotates all elements right by the specified amount
-//
-// Emulated
-func (x {{.VType}}) RotateAllRight(dist uint64) {{.VType}} {
-	dist = dist & ({{.EWidth}}-1)
-	ndist := {{.EWidth}} - dist
-	return x.ShiftAllLeft(ndist).Or(x.ShiftAllRight(dist))
+func (x {{.VType}}) RotateAllRight(shift uint64) {{.VType}} {
+	shift = shift & ({{.EWidth}}-1)
+	nshift := {{.EWidth}} - shift
+	return x.ShiftAllLeft(nshift).Or(x.ShiftAllRight(shift))
 }
 `)
 
@@ -1185,8 +1155,8 @@ var broadcastTemplate = templateOf("Broadcast functions", `
 //
 // Emulated, CPU Feature: {{.CPUfeatureBC}}
 func Broadcast{{.VType}}(x {{.Etype}}) {{.VType}} {
-	var z {{.As128BitVec }}
-	return z.SetElem(0, x).broadcast1To{{.Count}}()
+	var v {{.As128BitVec }}
+	return v.SetElem(0, x).broadcast1To{{.Count}}()
 }
 `)
 
@@ -1194,8 +1164,8 @@ var broadcastTemplateArm64 = shapedTemplateOf(arm64Shapes, "arm64_broadcast", `
 // Broadcast{{.VType}} returns a vector with the input
 // x assigned to all elements of the output.
 func Broadcast{{.VType}}(x {{.Etype}}) {{.VType}} {
-	var z {{.VType}}
-	return z.SetElem(0, x).broadcast1To{{.Count}}()
+	var v {{.VType}}
+	return v.SetElem(0, x).broadcast1To{{.Count}}()
 }
 `)
 
@@ -1212,20 +1182,20 @@ var getHiTemplateArm64 = shapedTemplateOf(arm64Shapes, "arm64_HiToLo methods", `
 // HiToLo returns a vector with the upper 64 bits zeroed and the lower
 // 64 bits replaced with the upper 64 bits of x.
 func (x {{.VType}}) HiToLo() {{.VType}} {
-	var z {{.VType}}
+	var v {{.VType}}
 {{- if and (eq .Base "Float") (eq .EWidth 64)}}
-	return z.SetElem(0, x.GetElem(1))
+	return v.SetElem(0, x.GetElem(1))
 {{- else if (eq .EWidth 64)}}
 {{-  if (eq .Base "Uint")}}
-	return z.BitsToFloat64().SetElem(0, x.BitsToFloat64().GetElem(1)).ToBits()
+	return v.BitsToFloat64().SetElem(0, x.BitsToFloat64().GetElem(1)).ToBits()
 {{-  else}}
-	return z.ToBits().BitsToFloat64().SetElem(0, x.ToBits().BitsToFloat64().GetElem(1)).ToBits().BitsTo{{.Base}}{{.EWidth}}()
+	return v.ToBits().BitsToFloat64().SetElem(0, x.ToBits().BitsToFloat64().GetElem(1)).ToBits().BitsTo{{.Base}}{{.EWidth}}()
 {{-  end}}
 {{- else}}
 {{-  if (eq .Base "Uint")}}
-	return z.ReshapeToUint64s().BitsToFloat64().SetElem(0, x.ReshapeToUint64s().BitsToFloat64().GetElem(1)).ToBits().ReshapeToUint{{.EWidth}}s()
+	return v.ReshapeToUint64s().BitsToFloat64().SetElem(0, x.ReshapeToUint64s().BitsToFloat64().GetElem(1)).ToBits().ReshapeToUint{{.EWidth}}s()
 {{-  else}}
-	return z.ToBits().ReshapeToUint64s().BitsToFloat64().SetElem(0, x.ToBits().ReshapeToUint64s().BitsToFloat64().GetElem(1)).ToBits().ReshapeToUint{{.EWidth}}s().BitsTo{{.Base}}{{.EWidth}}()
+	return v.ToBits().ReshapeToUint64s().BitsToFloat64().SetElem(0, x.ToBits().ReshapeToUint64s().BitsToFloat64().GetElem(1)).ToBits().ReshapeToUint{{.EWidth}}s().BitsTo{{.Base}}{{.EWidth}}()
 {{-  end}}
 {{- end}}
 }
@@ -1258,15 +1228,15 @@ func (x {{.VType}}) ReduceMin() {{.Etype}} {
 
 var maskCvtTemplate = shapedTemplateOf(intShapes, "Mask conversions", `
 // ToMask returns a mask whose i'th element is set if x[i] is non-zero.
-func (from {{.Base}}{{.WxC}}) ToMask() (to Mask{{.WxC}}) {
-	return from.NotEqual({{.Base}}{{.WxC}}{})
+func (x {{.Base}}{{.WxC}}) ToMask() (z Mask{{.WxC}}) {
+	return x.NotEqual({{.Base}}{{.WxC}}{})
 }
 `)
 
 var arm64MaskCvtTemplate = shapedTemplateOf(arm64IntShapes, "Mask conversions", `
 // ToMask returns a mask whose i'th element is set if x[i] is non-zero.
-func (from {{.Base}}{{.WxC}}) ToMask() (to Mask{{.WxC}}) {
-	return from.NotEqual({{.Base}}{{.WxC}}{})
+func (x {{.Base}}{{.WxC}}) ToMask() (z Mask{{.WxC}}) {
+	return x.NotEqual({{.Base}}{{.WxC}}{})
 }
 `)
 
@@ -1419,10 +1389,7 @@ func main() {
 	}
 	specIdx := specgen.NewIndex(specFuncs)
 	files.AddPostProcessor(specdoc.Filler(specIdx, specdoc.Options{
-		AllowDocRewrite:     true,
-		AllowNameMismatches: true,
-		NoFillDoc:           true,
-		NoFillNames:         true,
+		AllowDocRewrite: true,
 	}))
 
 	defer files.FlushOrExit()
@@ -1455,7 +1422,6 @@ func main() {
 			bitWiseUintTemplate,
 			stringTemplate,
 			maskToString,
-			shapeAndTemplate{amdIntShiftAllShapes, intRotateAllTemplate},
 			shapeAndTemplate{amdUintShiftAllShapes, uintRotateAllTemplate},
 		)
 	}
@@ -1507,7 +1473,6 @@ func main() {
 			stringTemplateArm64,
 			getHiTemplateArm64,
 			arm64MaskCvtTemplate,
-			shapeAndTemplate{neonIntShiftAllShapes, intRotateAllTemplate},
 			shapeAndTemplate{neonUintShiftAllShapes, uintRotateAllTemplate},
 			reduceSumTemplateArm64,
 			reduceMinMaxTemplateArm64)

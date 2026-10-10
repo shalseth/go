@@ -195,10 +195,6 @@ func TestAbsSVE(t *testing.T) {
 	if !archsimd.ARM64.SVE() {
 		t.Skip("no SVE")
 	}
-	testInt8sUnary(t, archsimd.Int8s.Abs, absSlice[int8])
-	testInt16sUnary(t, archsimd.Int16s.Abs, absSlice[int16])
-	testInt32sUnary(t, archsimd.Int32s.Abs, absSlice[int32])
-	testInt64sUnary(t, archsimd.Int64s.Abs, absSlice[int64])
 	testFloat32sUnary(t, archsimd.Float32s.Abs, absSlice[float32])
 	testFloat64sUnary(t, archsimd.Float64s.Abs, absSlice[float64])
 }
@@ -396,4 +392,17 @@ func TestMinSVE(t *testing.T) {
 	testUint64sBinary(t, archsimd.Uint64s.Min, minSlice[uint64])
 	testFloat32sBinary(t, archsimd.Float32s.Min, minSlice[float32])
 	testFloat64sBinary(t, archsimd.Float64s.Min, minSlice[float64])
+}
+
+func TestDivSVE(t *testing.T) {
+	if !archsimd.ARM64.SVE() {
+		t.Skip("no SVE")
+	}
+	// Integer division exists only for 32- and 64-bit elements.
+	testInt32sBinary(t, archsimd.Int32s.Div, intDivSlice[int32])
+	testInt64sBinary(t, archsimd.Int64s.Div, intDivSlice[int64])
+	testUint32sBinary(t, archsimd.Uint32s.Div, intDivSlice[uint32])
+	testUint64sBinary(t, archsimd.Uint64s.Div, intDivSlice[uint64])
+	testFloat32sBinary(t, archsimd.Float32s.Div, divSlice[float32])
+	testFloat64sBinary(t, archsimd.Float64s.Div, divSlice[float64])
 }

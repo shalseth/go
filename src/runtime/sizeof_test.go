@@ -25,7 +25,7 @@ func TestSizeof(t *testing.T) {
 		// sparc64 needs because Go never executes SAVE/RESTORE and so cannot
 		// recover it from a register window. gobuf is shared, so g is eight
 		// bytes larger on every architecture in this tree.
-		{runtime.G{}, 296 + xreg, 456 + xreg}, // g, but exported for testing
+		{runtime.G{}, 292 + xreg, 456 + xreg}, // g, but exported for testing
 		{runtime.Sudog{}, 64, 104},            // sudog, but exported for testing
 	}
 

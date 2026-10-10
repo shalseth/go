@@ -19,6 +19,8 @@ import (
 
 	"golang.org/x/tools/go/packages"
 	"gopkg.in/yaml.v3"
+
+	"simd/archsimd/_gen/gentools"
 )
 
 // buildConfigs are the configurations we report API coverage for. The API is spread
@@ -96,24 +98,64 @@ func (f fact) archMethodKey() archMethodKey { return archMethodKey{f.target, f.p
 // runs count as one tool.
 func (f fact) tool() string { t, _, _ := strings.Cut(f.gen, "/"); return t }
 
-// nonSpecOps are the operations that will never come from spec: they are Go
-// conventions, not SIMD operations. They are excluded from the fact table, and
+// nonSpecOp reports whether name is an operation that will never come from spec:
+// they are Go conventions (String, Len) or architecture bridge operations
+// (ToArch, FromArch). They are excluded from the fact table, and
 // so from every denominator. See SPEC-TRANSITION.md §2.7.
-var nonSpecOps = map[string]bool{"String": true, "Len": true}
+func nonSpecOp(name string) bool {
+	return name == "String" || name == "Len" || name == "ToArch" || strings.HasSuffix(name, "FromArch")
+}
 
-func loadAPI(simdDir string) []*decl {
+// loadOverlay builds a packages.Config.Overlay map from the scratch overlay
+// directory if one is active.
+func loadOverlay(genOpts *gentools.Options) map[string][]byte {
+	if genOpts == nil {
+		return nil
+	}
+	dir := genOpts.OverlayDir()
+	if dir == "" {
+		return nil
+	}
+	root := filepath.Join(dir, "src")
+	overlay := make(map[string][]byte)
+	_ = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return nil
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return nil
+		}
+		slashRel := filepath.ToSlash(rel)
+		if !strings.HasPrefix(slashRel, "simd/") {
+			return nil
+		}
+		b, err := genOpts.ReadFile(rel)
+		if err != nil {
+			return nil
+		}
+		gorootPath := filepath.Join(genOpts.GOROOT, "src", filepath.FromSlash(rel))
+		overlay[gorootPath] = b
+		return nil
+	})
+	return overlay
+}
+
+func loadAPI(genOpts *gentools.Options, simdDir string) []*decl {
 	fset := token.NewFileSet()
 	byKey := map[declKey]*decl{}
+	overlay := loadOverlay(genOpts)
 
 	for _, bc := range buildConfigs {
 		cfg := &packages.Config{
 			// Syntax only: we compare declarations across configurations, which
 			// type-checking would not help with and would slow down. See
 			// SPEC-TRANSITION.md §2.4.
-			Mode: packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedSyntax,
-			Dir:  simdDir,
-			Fset: fset,
-			Env:  append(os.Environ(), "GOOS="+bc.goos, "GOARCH="+bc.goarch, "GOEXPERIMENT=simd"),
+			Mode:    packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles | packages.NeedSyntax,
+			Dir:     simdDir,
+			Fset:    fset,
+			Env:     append(os.Environ(), "GOOS="+bc.goos, "GOARCH="+bc.goarch, "GOEXPERIMENT=simd"),
+			Overlay: overlay,
 		}
 		pkgs, err := packages.Load(cfg, ".", "./archsimd")
 		if err != nil {
@@ -365,17 +407,21 @@ func countMidwayComments(genDir string) (n int) {
 	return n
 }
 
-// commonMethods returns the method names in comments.yaml's .common_methods
-// block, less [nonSpecOps]. That set is spec-common's scope, and the portable
+// commonMethods returns the method names defined in simd_emulated.go,
+// less [nonSpecOp]. That set is spec-common's scope, and the portable
 // core a new architecture implements first.
-func commonMethods(genDir string) []string {
-	block := mapValue(readYAML(commentsPath(genDir)), ".common_methods")
+func commonMethods(api []*decl) []string {
+	seen := map[string]bool{}
 	var names []string
-	eachEntry(block, func(k, _ *yaml.Node) {
-		if !nonSpecOps[k.Value] {
-			names = append(names, k.Value)
+	for _, d := range api {
+		if d.file == "simd_emulated.go" && d.recv != "" && !nonSpecOp(d.name) {
+			if !seen[d.name] {
+				seen[d.name] = true
+				names = append(names, d.name)
+			}
 		}
-	})
+	}
+	slices.Sort(names)
 	return names
 }
 
