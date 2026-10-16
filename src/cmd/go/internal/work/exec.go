@@ -1739,6 +1739,12 @@ func (b *Builder) vet(ctx context.Context, a *Action) error {
 		// changed here.
 		vetFlags = []string{"-unsafeptr=false"}
 
+		// Unlike go test, go vet has no analyzer flags in VetFlags here,
+		// only its own flags for the tool, such as -json and -fix. Keep them.
+		if cfg.CmdName != "test" {
+			vetFlags = append(vetFlags, VetFlags...)
+		}
+
 		// Also turn off -unreachable checks during go test.
 		// During testing it is very common to make changes
 		// like hard-coded forced returns or panics that make
@@ -1949,7 +1955,8 @@ func (b *Builder) buildExportConfig(a *Action) *exportConfig {
 	}
 
 	// Careful, a.Package.GoFiles can be relative or absolute paths (see #82042).
-	srcs := mkAbsFiles(a.Package.Dir, a.Package.GoFiles)
+	// Also, the path may point to a virtual file system (e.g. for overlays).
+	srcs := actualFiles(mkAbsFiles(a.Package.Dir, a.Package.GoFiles))
 	// Collect output source files from any cgo dependencies.
 	if a.Package.UsesCgo() {
 		for _, dep := range a.Deps {

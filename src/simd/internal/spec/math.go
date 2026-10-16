@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//simdgen:category Math
+//specgen:category Math
 
 package spec
 
@@ -361,6 +361,19 @@ func ReduceSum[E Elt, W Width](x Vec[E, W]) (z E) {
 	// TODO: Determine and document the precision of the result.
 	for _, xi := range x {
 		z += xi
+	}
+	return z
+}
+
+// ReduceMax returns the largest element of x.
+//
+//	z = max(x[0], x[1], ...)
+func ReduceMax[E Elt, W Width](x Vec[E, W]) (z E) {
+	// TODO: Platforms may not agree on NaN and on the sign of a zero result,
+	// as with Max.
+	z = x[0]
+	for _, xi := range x[1:] {
+		z = max(z, xi)
 	}
 	return z
 }

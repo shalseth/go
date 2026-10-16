@@ -199,12 +199,26 @@ var arm64ReduceIntegerShapes = &shapes{
 	uints: []int{8, 16, 32},
 }
 
-// arm64ReduceAllShapes includes float32 in addition to integer reduce shapes.
-var arm64ReduceAllShapes = &shapes{
+// arm64ReduceMinMaxShapes covers types with VSMAXV/VUMAXV/VFMAXV reduce (no 64-bit types).
+var arm64ReduceMinMaxShapes = &shapes{
 	vecs:   []int{128},
 	ints:   []int{8, 16, 32},
 	uints:  []int{8, 16, 32},
 	floats: []int{32},
+}
+
+// arm64ReduceSum64Shapes supports 64-bit ReduceSum via ConcatAddPairs.
+var arm64ReduceSum64Shapes = &shapes{
+	vecs:   []int{128},
+	ints:   []int{64},
+	uints:  []int{64},
+	floats: []int{64},
+}
+
+// arm64ReduceMinMax64Shapes supports 64-bit ReduceMax/Min (only FMAXP/FMINP support 2D).
+var arm64ReduceMinMax64Shapes = &shapes{
+	vecs:   []int{128},
+	floats: []int{64},
 }
 
 // arm64UintToIntShapes maps unsigned shapes to signed output type for mixed-type shift helpers.
@@ -692,7 +706,15 @@ func test{{.VType}}Reduce(t *testing.T, f func(_ archsimd.{{.VType}}) {{.Etype}}
 }
 `
 
-var reduceTestTemplateArm64 = shapedTemplateOf(arm64ReduceAllShapes, "reduce_arm64_helpers", reduceTestTemplateText)
+// arm64ReduceTestShapes covers all types with Reduce test helpers.
+var arm64ReduceTestShapes = &shapes{
+	vecs:   []int{128},
+	ints:   []int{8, 16, 32, 64},
+	uints:  []int{8, 16, 32, 64},
+	floats: []int{32, 64},
+}
+
+var reduceTestTemplateArm64 = shapedTemplateOf(arm64ReduceTestShapes, "reduce_arm64_helpers", reduceTestTemplateText)
 
 func reduceTestPrologue(s, ba string, out io.Writer) {
 	fmt.Fprintf(out,
@@ -951,6 +973,13 @@ func (x {{.VType}}) Neg() {{.VType}} {
 	return zero.Sub(x)
 }
 
+// Not returns the bitwise complement of x.
+//
+// Emulated, CPU Feature: {{.CPUfeature}}
+func (x Mask{{.WxC}}) Not() Mask{{.WxC}} {
+	return x.ToInt{{.WxC}}().Xor(x.Equal(x).ToInt{{.WxC}}()).asMask()
+}
+
 `)
 
 var bitWiseUintTemplate = shapedTemplateOf(uintShapes, "bitwise uint complement", `
@@ -1141,10 +1170,7 @@ func (t templateData) CPUfeatureBC() string {
 	case 256:
 		return "AVX2"
 	case 512:
-		if t.EWidth <= 16 {
-			return "AVX512BW"
-		}
-		return "AVX512F"
+		return "AVX512"
 	}
 	panic(fmt.Errorf("unexpected vector width %d", t.Vwidth))
 }
@@ -1204,25 +1230,50 @@ func (x {{.VType}}) HiToLo() {{.VType}} {
 var reduceSumTemplateArm64 = shapedTemplateOf(arm64ReduceIntegerShapes, "arm64_ReduceSum methods", `
 // ReduceSum reduces x by summing all elements.
 //
-// Emulated, CPU Feature: NEON
+// Emulated
 func (x {{.VType}}) ReduceSum() {{.Etype}} {
 	return x.reduceSum().GetElem(0)
 }
 `)
 
-var reduceMinMaxTemplateArm64 = shapedTemplateOf(arm64ReduceAllShapes, "arm64_ReduceMax/Min methods", `
+var reduceMinMaxTemplateArm64 = shapedTemplateOf(arm64ReduceMinMaxShapes, "arm64_ReduceMax/Min methods", `
 // ReduceMax reduces x by taking the maximum of all elements.
 //
-// Emulated, CPU Feature: NEON
+// Emulated
 func (x {{.VType}}) ReduceMax() {{.Etype}} {
 	return x.reduceMax().GetElem(0)
 }
 
 // ReduceMin reduces x by taking the minimum of all elements.
 //
-// Emulated, CPU Feature: NEON
+// Emulated
 func (x {{.VType}}) ReduceMin() {{.Etype}} {
 	return x.reduceMin().GetElem(0)
+}
+`)
+
+var reduceSum64TemplateArm64 = shapedTemplateOf(arm64ReduceSum64Shapes, "arm64_64bit_ReduceSum methods", `
+// ReduceSum reduces x by summing all elements.
+//
+// Emulated
+func (x {{.VType}}) ReduceSum() {{.Etype}} {
+	return x.ConcatAddPairs(x).GetElem(0)
+}
+`)
+
+var reduceMinMax64TemplateArm64 = shapedTemplateOf(arm64ReduceMinMax64Shapes, "arm64_64bit_ReduceMax/Min methods", `
+// ReduceMax reduces x by taking the maximum of all elements.
+//
+// Emulated
+func (x {{.VType}}) ReduceMax() {{.Etype}} {
+	return x.ConcatMaxPairs(x).GetElem(0)
+}
+
+// ReduceMin reduces x by taking the minimum of all elements.
+//
+// Emulated
+func (x {{.VType}}) ReduceMin() {{.Etype}} {
+	return x.ConcatMinPairs(x).GetElem(0)
 }
 `)
 
@@ -1475,7 +1526,9 @@ func main() {
 			arm64MaskCvtTemplate,
 			shapeAndTemplate{neonUintShiftAllShapes, uintRotateAllTemplate},
 			reduceSumTemplateArm64,
-			reduceMinMaxTemplateArm64)
+			reduceMinMaxTemplateArm64,
+			reduceSum64TemplateArm64,
+			reduceMinMax64TemplateArm64)
 	}
 	if *shArm64 != "" {
 		oneArch(*shArm64, "arm64", curryTestPrologue("shift simd methods"), filterAll,

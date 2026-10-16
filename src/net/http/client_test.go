@@ -103,8 +103,7 @@ func (t *recordingTransport) RoundTrip(req *Request) (resp *Response, err error)
 }
 
 func TestGetRequestFormat(t *testing.T) {
-	setParallel(t)
-	defer afterTest(t)
+	t.Parallel()
 	tr := &recordingTransport{}
 	client := &Client{Transport: tr}
 	url := "http://dummy.faketld/"
@@ -121,7 +120,6 @@ func TestGetRequestFormat(t *testing.T) {
 }
 
 func TestPostRequestFormat(t *testing.T) {
-	defer afterTest(t)
 	tr := &recordingTransport{}
 	client := &Client{Transport: tr}
 
@@ -148,7 +146,6 @@ func TestPostRequestFormat(t *testing.T) {
 }
 
 func TestPostFormRequestFormat(t *testing.T) {
-	defer afterTest(t)
 	tr := &recordingTransport{}
 	client := &Client{Transport: tr}
 
@@ -360,7 +357,7 @@ func TestPostRedirects(t *testing.T) {
 	want := strings.Join(wantSegments, "\n")
 	runSynctest(t, func(t *testing.T, mode testMode) {
 		testRedirectsByMethod(t, mode, "POST", postRedirectTests, want)
-	}, http3SkippedMode)
+	})
 }
 
 func TestDeleteRedirects(t *testing.T) {
@@ -399,7 +396,7 @@ func TestDeleteRedirects(t *testing.T) {
 	want := strings.Join(wantSegments, "\n")
 	runSynctest(t, func(t *testing.T, mode testMode) {
 		testRedirectsByMethod(t, mode, "DELETE", deleteRedirectTests, want)
-	}, http3SkippedMode)
+	})
 }
 
 func TestQueryRedirects(t *testing.T) {
@@ -436,7 +433,7 @@ func TestQueryRedirects(t *testing.T) {
 	want := strings.Join(wantSegments, "\n")
 	runSynctest(t, func(t *testing.T, mode testMode) {
 		testRedirectsByMethod(t, mode, "QUERY", queryRedirectTests, want)
-	}, http3SkippedMode)
+	})
 }
 
 func testRedirectsByMethod(t *testing.T, mode testMode, method string, table []redirectTest, want string) {
@@ -449,7 +446,11 @@ func testRedirectsByMethod(t *testing.T, mode testMode, method string, table []r
 		log.Lock()
 		slurp, _ := io.ReadAll(r.Body)
 		fmt.Fprintf(&log.Buffer, "%s %s %q", r.Method, r.RequestURI, slurp)
-		if cl := r.Header.Get("Content-Length"); r.Method == "GET" && len(slurp) == 0 && (r.ContentLength != 0 || cl != "") {
+		wantCL := int64(0)
+		if mode == http3Mode {
+			wantCL = -1
+		}
+		if cl := r.Header.Get("Content-Length"); r.Method == "GET" && len(slurp) == 0 && (r.ContentLength != wantCL || cl != "") {
 			fmt.Fprintf(&log.Buffer, " (but with body=%T, content-length = %v, %q)", r.Body, r.ContentLength, cl)
 		}
 		log.WriteByte('\n')
@@ -658,7 +659,6 @@ func testHostMismatchCookies(t *testing.T, mode testMode) {
 }
 
 func TestClientSendsCookieFromJar(t *testing.T) {
-	defer afterTest(t)
 	tr := &recordingTransport{}
 	client := &Client{Transport: tr}
 	client.Jar = &TestJar{perURL: make(map[string][]*Cookie)}
@@ -926,7 +926,6 @@ func testClientInsecureTransport(t *testing.T, mode testMode) {
 }
 
 func TestClientErrorWithRequestURI(t *testing.T) {
-	defer afterTest(t)
 	req, _ := NewRequest("GET", "http://localhost:1234/", nil)
 	req.RequestURI = "/this/field/is/illegal/and/should/error/"
 	_, err := DefaultClient.Do(req)
@@ -1125,7 +1124,6 @@ func testEmptyPasswordAuth(t *testing.T, mode testMode) {
 }
 
 func TestBasicAuth(t *testing.T) {
-	defer afterTest(t)
 	tr := &recordingTransport{}
 	client := &Client{Transport: tr}
 
@@ -1159,7 +1157,6 @@ func TestBasicAuth(t *testing.T) {
 }
 
 func TestBasicAuthHeadersPreserved(t *testing.T) {
-	defer afterTest(t)
 	tr := &recordingTransport{}
 	client := &Client{Transport: tr}
 
