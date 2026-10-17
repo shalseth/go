@@ -485,6 +485,10 @@ const (
 	R_SPARC64GDOP2ADD
 	R_SPARC64GDOPNOP
 
+	// R_SPARC64_PCREL resolves the 32-bit offset of a symbol from the
+	// RD %PC instruction just before a SETHI/OR pair, into that pair.
+	R_SPARC64_PCREL
+
 	// R_WEAK marks the relocation as a weak reference.
 	// A weak relocation does not make the symbol it refers to reachable,
 	// and is only honored by the linker if the symbol is in some other way

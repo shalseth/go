@@ -354,6 +354,7 @@ func (s *LSym) checkFIPSReloc(ctxt *Link, rel Reloc) {
 		objabi.R_CALLIND,
 		objabi.R_CALLLOONG64,
 		objabi.R_CALLPOWER,
+		objabi.R_CALLSPARC64,
 		objabi.R_GOTPCREL,
 		objabi.R_LOONG64_ADDR_LO,         // used with PC-relative load
 		objabi.R_LOONG64_ADDR_HI,         // used with PC-relative load
@@ -378,6 +379,8 @@ func (s *LSym) checkFIPSReloc(ctxt *Link, rel Reloc) {
 		objabi.R_POWER_TLS,
 		objabi.R_POWER_TLS_IE_PCREL34,
 		objabi.R_POWER_TLS_LE_TPREL34,
+		objabi.R_SPARC64_PCREL,
+		objabi.R_SPARC64_TLS_LE,
 		objabi.R_RISCV_JAL,
 		objabi.R_RISCV_PCREL_ITYPE,
 		objabi.R_RISCV_PCREL_STYPE,

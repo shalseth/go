@@ -115,12 +115,18 @@ bugs surface only under that kind of load.
   store needs `MEMBAR #StoreLoad`, and a read-modify-write a full
   barrier.
 
+* `-buildmode=pie`, linked externally as on linux/386. SPARC has no
+  PC-relative data addressing, so the assembler forms a symbol's address
+  from `RD %PC` and a sign-extended 32-bit offset (`R_SPARC_PC22/PC10`).
+  That takes five instructions where the `exe` model's 64-bit absolute
+  address takes six, and needs no reserved register. The load address
+  is only randomized on a kernel whose sparc64 ELF loader does so
+  (`ARCH_HAS_ELF_RANDOMIZE`).
+
 ## What is missing
 
-* The `-buildmode` variants beyond `exe`: `pie`, `c-archive` and
-  `c-shared` need a position-independent code model in the compiler,
-  which SPARC makes expensive (no PC-relative addressing; PIC costs a
-  dedicated GOT register and GOT-relative sequences for every global).
+* The `-buildmode` variants `c-archive`, `c-shared`, `shared` and
+  `plugin`.
 
 ## Performance
 

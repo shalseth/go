@@ -15,7 +15,7 @@
 //
 // If !iscgo, this is a no-op.
 //
-// NOTE: setg_gcc<> assume this clobbers only TMP.
+// NOTE: setg_gcc<> assume this clobbers only TMP (and TMP2 in a PIE).
 TEXT runtime·save_g(SB),NOSPLIT|NOFRAME,$0-0
 	MOVB	runtime·iscgo(SB), TMP
 	CMP	TMP, ZR
@@ -34,7 +34,8 @@ nocgo:
 // follow the C ABI), but it may be called from a C context, where the
 // usual Go registers aren't set up.
 //
-// NOTE: _cgo_topofstack assumes this only clobbers g, and TMP.
+// NOTE: _cgo_topofstack assumes this only clobbers g, and TMP (and TMP2
+// in a PIE).
 TEXT runtime·load_g(SB),NOSPLIT|NOFRAME,$0-0
 	MOVB	runtime·iscgo(SB), TMP
 	CMP	TMP, ZR

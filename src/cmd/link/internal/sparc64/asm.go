@@ -178,6 +178,12 @@ func elfreloc1(ctxt *ld.Link, out *ld.OutBuf, ldr *loader.Loader, s loader.Sym, 
 	case objabi.R_SPARC64_TLS_LE:
 		write(elf.R_SPARC_TLS_LE_HIX22, sectoff, elfsym, r.Xadd)
 		write(elf.R_SPARC_TLS_LE_LOX10, sectoff+4, elfsym, r.Xadd)
+
+	// The offset is measured from the RD %PC four bytes before the
+	// SETHI, and ELF measures each piece from its own instruction.
+	case objabi.R_SPARC64_PCREL:
+		write(elf.R_SPARC_PC22, sectoff, elfsym, r.Xadd+4)
+		write(elf.R_SPARC_PC10, sectoff+4, elfsym, r.Xadd+8)
 	}
 
 	return true
@@ -253,7 +259,7 @@ func archreloc(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, r loade
 		switch r.Type() {
 		case objabi.R_CALLSPARC64:
 			return val, 1, true
-		case objabi.R_ADDRSPARC64HI, objabi.R_ADDRSPARC64LO, objabi.R_SPARC64_TLS_LE:
+		case objabi.R_ADDRSPARC64HI, objabi.R_ADDRSPARC64LO, objabi.R_SPARC64_TLS_LE, objabi.R_SPARC64_PCREL:
 			// Two ELF relocations each; see elfreloc1.
 			return val, 2, true
 		}
@@ -335,6 +341,17 @@ func archreloc(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, r loade
 		o1 := uint32(val) | half&0x3ff
 		return int64(o0)<<32 | int64(o1), noExtReloc, isOk
 
+	case objabi.R_SPARC64_PCREL:
+		// A SETHI/OR pair, as above, taking the offset of the target
+		// from the RD %PC just before the SETHI.
+		t := ldr.SymValue(rs) + r.Add() - (ldr.SymValue(s) + int64(r.Off()) - 4)
+		if t != int64(int32(t)) {
+			ldr.Errorf(s, "PC-relative offset out of 32-bit range: %#x", t)
+		}
+		o0 := uint32(val>>32) | uint32(t)>>10&0x3fffff
+		o1 := uint32(val) | uint32(t)&0x3ff
+		return int64(o0)<<32 | int64(o1), noExtReloc, isOk
+
 	case objabi.R_SPARC64_TLS_LE:
 		// Local exec: the offset is relative to the thread pointer in
 		// %g7, which the runtime sets up.
@@ -357,7 +374,7 @@ func extreloc(target *ld.Target, ldr *loader.Loader, r loader.Reloc, s loader.Sy
 	switch r.Type() {
 	case objabi.R_CALLSPARC64, objabi.R_SPARC64_TLS_LE:
 		return ld.ExtrelocSimple(ldr, r), true
-	case objabi.R_ADDRSPARC64HI, objabi.R_ADDRSPARC64LO:
+	case objabi.R_ADDRSPARC64HI, objabi.R_ADDRSPARC64LO, objabi.R_SPARC64_PCREL:
 		return ld.ExtrelocViaOuterSym(ldr, r, s), true
 	}
 	return loader.ExtReloc{}, false

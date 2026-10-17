@@ -461,7 +461,34 @@ func oplook(p *obj.Prog) (Opval, error) {
 	if !ok {
 		return Opval{}, fmt.Errorf("illegal combination %v %v %v %v %v, %d %d %d %d", p, DRconv(o.a1), DRconv(o.a2), DRconv(o.a3), DRconv(o.a4), p.From.Type, p.Reg, type3, p.To.Type)
 	}
+	if p.Ctxt != nil && p.Ctxt.Flag_shared {
+		switch v.op {
+		case 23, 24, 25, 45:
+			// The PC-relative forms; see pcrel.
+			v.size = 20
+		}
+	}
 	return v, nil
+}
+
+// pcrel emits the position-independent address of s+add used under
+// -shared: RD %PC into base, the 32-bit offset from there into off
+// (SETHI/OR, sign-extended by SRA). The caller adds base and off.
+func pcrel(cursym *obj.LSym, pc int64, s *obj.LSym, add int64, base, off int16, o1, o2, o3, o4 *uint32) error {
+	if base == off {
+		return fmt.Errorf("PC-relative address needs two registers, got %v twice", Rconv(int(base)))
+	}
+	*o1 = oprd(ARD) | uint32(REG_RPC&0x1f)<<14 | rd(base)
+	*o2 = opcode(ASETHI) | ir(0, off)
+	*o3 = opalu(AOR) | rsr(off, 0, off)
+	*o4 = opalu(ASRAW) | rsr(off, 0, off)
+	rel := addrel(cursym)
+	rel.Off = int32(pc + 4)
+	rel.Siz = 8
+	rel.Sym = s
+	rel.Add = add
+	rel.Type = objabi.R_SPARC64_PCREL
+	return nil
 }
 
 func ir(imm22 uint32, rd int16) uint32 {
@@ -1384,6 +1411,13 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	// 	OR R, lo($sym), R
 	// 	OR TMP, R, R
 	case 23:
+		if p.Ctxt.Flag_shared {
+			if err := pcrel(cursym, p.Pc, p.From.Sym, p.From.Offset, p.To.Reg, REG_TMP, o1, o2, o3, o4); err != nil {
+				return nil, err
+			}
+			*o5 = opalu(AADD) | rrr(p.To.Reg, 0, REG_TMP, p.To.Reg)
+			break
+		}
 		*o1 = opcode(ASETHI) | ir(0, REG_TMP)
 		*o2 = opalu(AOR) | rsr(REG_TMP, 0, REG_TMP)
 		rel := addrel(cursym)
@@ -1422,6 +1456,17 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 		if ar >= REG_F0 {
 			ar = REG_TMP2
 		}
+		if p.Ctxt.Flag_shared {
+			base := int16(REG_TMP)
+			if ar == REG_TMP {
+				base = REG_TMP2 // load_g and save_g load iscgo into TMP
+			}
+			if err := pcrel(cursym, p.Pc, p.From.Sym, p.From.Offset, base, ar, o1, o2, o3, o4); err != nil {
+				return nil, err
+			}
+			*o5 = opload(p.As) | rrr(base, 0, ar, p.To.Reg)
+			break
+		}
 		*o1 = opcode(ASETHI) | ir(0, REG_TMP)
 		*o2 = opalu(AOR) | rsr(REG_TMP, 0, REG_TMP)
 		rel := addrel(cursym)
@@ -1451,6 +1496,13 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	// 	OR TMP, TMP2, TMP2
 	//	MOV R, (TMP2)
 	case 25:
+		if p.Ctxt.Flag_shared {
+			if err := pcrel(cursym, p.Pc, p.To.Sym, p.To.Offset, REG_TMP, REG_TMP2, o1, o2, o3, o4); err != nil {
+				return nil, err
+			}
+			*o5 = opstore(p.As) | rrr(REG_TMP, 0, REG_TMP2, p.From.Reg)
+			break
+		}
 		*o1 = opcode(ASETHI) | ir(0, REG_TMP)
 		*o2 = opalu(AOR) | rsr(REG_TMP, 0, REG_TMP)
 		rel := addrel(cursym)
@@ -1595,6 +1647,13 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	// 		OR TMP, TMP2, TMP2
 	//	JMPL	TMP2, ZR
 	case 45:
+		if p.Ctxt.Flag_shared {
+			if err := pcrel(cursym, p.Pc, p.To.Sym, p.To.Offset, REG_TMP, REG_TMP2, o1, o2, o3, o4); err != nil {
+				return nil, err
+			}
+			*o5 = opcode(AJMPL) | rrr(REG_TMP, 0, REG_TMP2, REG_ZR)
+			break
+		}
 		*o1 = opcode(ASETHI) | ir(0, REG_TMP)
 		*o2 = opalu(AOR) | rsr(REG_TMP, 0, REG_TMP)
 		rel := addrel(cursym)
