@@ -447,13 +447,28 @@ func elffips(ctxt *Link, exe, fipso string) error {
 	// For non-pie builds, there are no relocations at all:
 	// the data holds the actual pointers.
 	// This code handles both pie and non-pie binaries.
+	// GNU ld for SPARC is such a toolchain: it leaves the data zero and
+	// keeps the value only in the relocation's addend.
+	relative, err := elfRelativeAddends(ef)
+	if err != nil {
+		return err
+	}
+	addr := sect.Addr + fipsMagicLen + fipsSumLen + uint64(ctxt.Arch.PtrSize)
+	ptr := func(x []byte) uint64 {
+		v := uptr(x)
+		if v == 0 {
+			v = relative[addr]
+		}
+		addr += uint64(ctxt.Arch.PtrSize)
+		return v
+	}
 	data = data[fipsMagicLen+fipsSumLen:]
 	data = data[ctxt.Arch.PtrSize:]
 
 Addrs:
 	for i := 0; i < 4; i++ {
-		start := uptr(data[0:])
-		end := uptr(data[ctxt.Arch.PtrSize:])
+		start := ptr(data[0:])
+		end := ptr(data[ctxt.Arch.PtrSize:])
 		data = data[2*ctxt.Arch.PtrSize:]
 		for _, prog := range ef.Progs {
 			if prog.Type == elf.PT_LOAD && prog.Vaddr <= start && start <= end && end <= prog.Vaddr+prog.Filesz {
@@ -474,6 +489,32 @@ Addrs:
 		return err
 	}
 	return f.Close()
+}
+
+// elfRelativeAddends returns the addends of the R_SPARC_RELATIVE
+// relocations in ef, by the address they relocate. Other machines store
+// the value in the data as well, and get an empty map.
+func elfRelativeAddends(ef *elf.File) (map[uint64]uint64, error) {
+	m := make(map[uint64]uint64)
+	if ef.Machine != elf.EM_SPARCV9 || ef.Class != elf.ELFCLASS64 {
+		return m, nil
+	}
+	for _, s := range ef.Sections {
+		if s.Type != elf.SHT_RELA {
+			continue
+		}
+		d, err := s.Data()
+		if err != nil {
+			return nil, err
+		}
+		for ; len(d) >= 24; d = d[24:] {
+			info := ef.ByteOrder.Uint64(d[8:])
+			if elf.R_SPARC(elf.R_TYPE64(info)) == elf.R_SPARC_RELATIVE {
+				m[ef.ByteOrder.Uint64(d)] = ef.ByteOrder.Uint64(d[16:])
+			}
+		}
+	}
+	return m, nil
 }
 
 // pefips updates go:fipsinfo after external linking
