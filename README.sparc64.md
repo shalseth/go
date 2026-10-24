@@ -69,59 +69,20 @@ The gc compiler is one of the heaviest Go workloads there is, so a
 native `go build` doubles as a stress test of the port. Some runtime
 bugs surface only under that kind of load.
 
-## What works
+## What's implemented
 
-* The compiler, assembler and linker, including the SSA backend, the
-  big-endian and 64-bit-address paths, and the delay-slot scheduler.
-* Goroutines, channels, timers, `select`, defer/panic/recover, `Goexit`.
-* Stack growth and copying, cooperative *and* asynchronous preemption.
-* The garbage collector, including the Green Tea span marker
-  (`GOEXPERIMENT=greenteagc`, on by default), verified with
-  `GODEBUG=gccheckmark=1`.
-* Signals: `os/signal`, `signal.NotifyContext`, SIGPIPE semantics,
-  fork/exec, `net`, `net/http`, `os`, `syscall`.
-* The vDSO, for `walltime` and `nanotime`.
-* cgo, in both link modes. Go→C calls, C→Go callbacks, signals and
-  profiling during cgo execution, and thread exit through pthread TSD
-  destructors all work. The port survives the register-window hazards
-  this required: the frame pointer lives in `%l5` rather than `%i6`
-  (which is the hardware's stack pointer for the adjacent window and is
-  walked by the kernel in `clone`), the return-address chain slot sits
-  outside the `%i7` image the hardware spills over during signal
-  handling, and every Go↔C transition opens or flushes register windows
-  explicitly. See the commit history for the full analysis.
-* Internal linking of cgo binaries: the linker consumes host ELF
-  objects, applies the psABI GOTDATA code models, and emits the
-  patched-code PLT with `R_SPARC_JMP_SLOT` and a GOT with
-  `R_SPARC_GLOB_DAT` for dynamic imports; `DT_PLTGOT` names the PLT as
-  the SPARC dynamic linker expects.
-* `TrailingZeros` via the hardware `POPC` instruction, keeping the
-  allocator's hot path inlined.
-* The race detector. ThreadSanitizer grew a SPARC target and a Go
-  mapping (`MappingGoSparc64_52`), and `runtime/race_sparc64.s` is the
-  shim onto it. Two things there are not transliterations of the other
-  ports: it hands C a register window of its own rather than only
-  moving the stack pointer, because C called in the Go window spills
-  that window over live goroutine frames; and a function entry handed
-  to tsan gains eight bytes rather than four, because tsan symbolizes a
-  pc by stepping back a whole call-plus-delay-slot pair. The `.syso`
-  has to be built with gcc - clang emits `R_SPARC_GOT10/GOT22` for the
-  sanitizer globals, which the internal linker does not implement.
-* Atomic intrinsics. `CASW`/`CASD` are SPARC V9's only read-modify-write
-  primitives - there is no atomic add and no LL/SC - so exchange, add,
-  and and or lower to CAS retry loops, and the 8-bit forms use a 32-bit
-  CAS on the containing aligned word. Under TSO a plain load is already
-  acquire and a plain store release; only a sequentially consistent
-  store needs `MEMBAR #StoreLoad`, and a read-modify-write a full
-  barrier.
-
-* `-buildmode=pie`, linked externally as on linux/386. SPARC has no
-  PC-relative data addressing, so the assembler forms a symbol's address
-  from `RD %PC` and a sign-extended 32-bit offset (`R_SPARC_PC22/PC10`).
-  That takes five instructions where the `exe` model's 64-bit absolute
-  address takes six, and needs no reserved register. The load address
-  is only randomized on a kernel whose sparc64 ELF loader does so
-  (`ARCH_HAS_ELF_RANDOMIZE`).
+* The compiler, assembler and linker, with an SSA backend.
+* The runtime: goroutines, the scheduler with cooperative and asynchronous
+  preemption, stack growth, and the garbage collector.
+* Signals, timers, the vDSO clock, fork/exec, and the `os`, `net` and
+  `net/http` packages.
+* cgo, with both internal and external linking.
+* `-buildmode=pie`, linked externally. The load address is only randomized
+  on a kernel whose sparc64 ELF loader does so (`ARCH_HAS_ELF_RANDOMIZE`).
+* The race detector.
+* Atomics.
+* Disassembly in `go tool objdump` and `pprof`.
+* Native builds: the toolchain builds and tests itself on sparc64.
 
 ## What is missing
 
@@ -130,177 +91,23 @@ bugs surface only under that kind of load.
 
 ## Performance
 
-### Carry chains
+Hardware instructions in use:
 
-VIS3's `ADDXC` copies the 64-bit carry out of `xcc` into a register, so
-`bits.Add64` is four instructions - `ADDCC`, `ADDXC`, `ADDCC`, `ADDXC` -
-rather than the two adds plus five logical operations the pure-Go body
-needs to recover the carry bit. `bits.Sub64` is the same shape with
-`SUBCC`, and `bits.Mul64` is `MULD` with `UMULXHI`.
+* VIS3 `ADDXC` and `UMULXHI` for 64-bit carry chains and multiplies, in
+  `math/big` and in the FIPS `bigmod` package: about 3x for RSA-2048
+  against code without them.
+* The T4 `sha256` instruction for SHA-256: 30-45x.
+* `POPC` for counting trailing zeros.
+* `FSQRT` for `math.Sqrt`.
 
-`ADDXCcc` both uses and sets the carry, so a chain in assembly runs one
-instruction per limb with the carry never leaving the condition codes.
-Nothing between the adds may disturb `xcc`, which rules out the usual
-loop-counter compare; `BRZ` and `BRNZ` branch on a register and leave
-the codes alone, so the loops use those. There is no 64-bit
-subtract-with-borrow - VIS3 added `ADDXC` and `ADDXCcc` but no subtract
-counterpart - so borrow chains run as add chains over the complement:
-`x - y - b` is `x + ^y + (1-b)`, and the carry out is one minus the
-borrow out, at one `XNOR` per limb.
+`bytes.Compare`, `bytes.Equal`, `bytes.IndexByte` and `bytes.Count` have
+word-at-a-time assembly. `Compare`, `IndexByte` and `Count` measure 4-15x
+faster than the generic code.
 
-Two files use this:
-
-  - `math/big/arith_sparc64.s` holds `addVV`, `subVV`, `mulAddVWW`,
-    `addMulVVWW`, `lshVU` and `rshVU`, four limbs per iteration. The
-    shifts run descending and ascending respectively so that `z` and `x`
-    may alias.
-  - `crypto/internal/fips140/bigmod/nat_sparc64.s` holds
-    `addMulVVW1024`, `1536` and `2048` as three entry points that set a
-    group count and tail-jump into a shared core. `UMULXHI` and `MULD`
-    give the two halves of each product; the four multiplies of a group
-    are independent and issue together, overlapping the serial carry
-    chain that follows them.
-
-`math/big`'s `internal/asmgen`, which generates `arith_$GOARCH.s` for
-the other architectures, has no sparc64 definition: its model wants a
-single subtract-with-borrow instruction. `arith_sparc64.s` is
-hand-written, and the generator's test only checks the architectures it
-knows, so the file is neither flagged nor kept in step with the
-generator.
-
-### String and byte scanning
-
-SPARC traps on unaligned access, so words are only ever loaded from
-8-aligned addresses. Being big-endian pays off twice over: an unsigned
-comparison of two differing words gives the same answer as comparing
-their first differing byte, and the first match in a word is its most
-significant marked lane. Neither needs the byte swap the little-endian
-ports perform, which matters because SPARC has no byte-swap
-instruction.
-
-  - `internal/bytealg/compare_sparc64.s` holds `Compare` and
-    `runtime.cmpstring`, sharing one body. Operands that share a
-    misalignment are byte-compared up to alignment; operands whose
-    addresses differ mod 8 have one side aligned by hand while the
-    other's words are assembled from two aligned loads and a shift. That
-    path runs only while 16 bytes remain, so the second load cannot
-    reach past the end of the shorter operand.
-  - `internal/bytealg/indexbyte_sparc64.s` and `count_sparc64.s` hold
-    `IndexByte`, `IndexByteString`, `Count` and `CountString`. Xor a
-    word with the byte broadcast across all eight lanes and a match
-    becomes a zero byte, which `(v - 0x01..01) &^ v & 0x80..80` detects.
-    That test is exact as a yes/no answer but not per lane, since the
-    subtraction borrows between lanes, so `IndexByte` finds the lane by
-    rescanning those eight bytes - a few instructions once per call, and
-    no need for `LZD`. `Count` reads the mask itself, so it builds an
-    exact one the other way: masking off each lane's high bit and adding
-    `0x7f` cannot carry out of the lane. Summing the lanes needs no
-    `POPC` either, since shifting the markers down and multiplying by
-    `0x01..01` accumulates them into the top byte.
-
-`bytealg.Index` is not implemented, so `bytes.Index` and `strings.Index`
-use their own loop over `IndexByte` and `Equal`. A real one earns its
-keep only with a vector prefilter, which this port cannot emit.
-
-### SHA-256
-
-`crypto/internal/fips140/sha256/sha256block_sparc64.s` uses the T4's
-`sha256` instruction, which hashes a whole 512-bit block per issue. It
-takes no operands: the eight state words come from `%f0-%f7`, the block
-from `%f8-%f23`, and the result is written back over the state. So the
-assembly loads the state once, loads each block over the same eight
-double registers, and stores the state at the end. SHA-256 defines its
-block as big-endian words, which is how a load already lands them, so
-this too byte-swaps nothing.
-
-The instruction reads its block with `ldd`, which traps on an unaligned
-address, so misaligned input is copied a block at a time through an
-aligned buffer. That buffer is declared as words: a `[64]byte` local
-carries no alignment guarantee.
-
-The path is gated on `SPARC64.HasCrypto`, which `internal/cpu` derives
-from `AT_HWCAP`, and `GODEBUG=cpu.crypto=off` selects the generic
-implementation instead.
-
-### Measurements
-
-Measured on an idle T4-1.
-
-Carry-chain arithmetic gains from both the intrinsics and the assembly.
-The first column is what the generic Go code compiles to without the
-`Add64` and `Sub64` intrinsics, as on a compiler that lacks them; the
-second is the generic path in this toolchain, selected with `purego` and
-`math_big_pure_go`; the third is the assembly.
-
-| | no intrinsics | generic | assembly | |
-|---|---|---|---|---|
-| `addVV`, per limb | 6.20ns | 3.97ns | 1.58ns | 3.9x |
-| `subVV`, per limb | 6.20ns | 3.98ns | 1.69ns | 3.7x |
-| `mulAddVWW`, per limb | 6.10ns | 4.18ns | 1.88ns | 3.2x |
-| `addMulVVWW`, per limb | 8.90ns | 6.32ns | 2.84ns | 3.1x |
-| bigmod `MontgomeryMul` | 24.5us | 19.3us | 7.11us | 3.4x |
-| bigmod `ExpBig` | 54.8ms | 39.3ms | 19.8ms | 2.8x |
-| RSA-2048 sign | 19.66ms | 15.66ms | 6.78ms | 2.9x |
-| RSA-2048 verify | 0.656ms | 0.526ms | 0.211ms | 3.1x |
-
-Scanning and hashing depend only on the assembly, and on the hardware
-instruction for SHA-256, which `GODEBUG=cpu.crypto=off` turns off.
-
-| | generic | assembly | |
-|---|---|---|---|
-| `bytes.Compare`, 64B | 331ns | 32.0ns | 10.4x |
-| `bytes.Compare`, 4KB | 19.6us | 1.29us | 15.2x |
-| `bytes.IndexByte`, 4KB | 14.0us | 1.52us | 9.2x |
-| `bytes.Count`, 4KB | 6.24us | 1.69us | 3.7x |
-| `sha256`, 1KB | 17.9 MB/s | 566 MB/s | 32x |
-| `sha256`, 8KB | 19.2 MB/s | 846 MB/s | 44x |
-
-`bytes.Compare` reaches 3.1 GB/s on 4KB buffers against 197 MB/s for the
-byte-at-a-time generic version, and 2.3 GB/s when the two operands'
-addresses differ mod 8. `bytes.IndexByte` reaches 2.8 GB/s. SHA-256 runs
-at 3.2 cycles per byte against roughly 150 for the Go code, and the
-block loop alone measures 898 MB/s.
-
-Substring search gains less than `IndexByte` alone suggests, because
-`bytes.Index` scans with `IndexByte` and confirms with `Equal`: over a
-5KB block of HTTP headers, a needle that is absent runs 3.9x faster than
-the generic version, `Content-Length` 2.0x, and `\r\n\r\n` - whose first
-byte occurs 160 times in that block - 1.5x, because the confirmations
-dominate. The `bytes` package's own `BenchmarkIndex` shows no difference
-at all: it searches an all-zero buffer for a needle whose leading bytes
-are also zero, so the first-byte test never fails and `IndexByte` is
-never reached.
-
-ECDSA has no assembly here. P-256 and friends use `nistec`'s own field
-arithmetic rather than `bigmod`, and that code is generic Go.
-
-### Hardware left on the table
-
-The T4 reports a good deal more than SHA-256:
-
-```
-aes, des, kasumi, camellia, md5, sha1, sha256, sha512,
-mpmul, montmul, montsqr, crc32c, popc
-```
-
-`montmul` and `montsqr` are the Montgomery multiply and square that
-`bigmod` does in software; `aes` is the equivalent of AES-NI; `crc32c`
-is what `hash/crc32` wants for the Castagnoli polynomial; `md5`, `sha1`
-and `sha512` are single instructions like `sha256`. Going by what
-SHA-256 measures above, and by what OpenSSL gets from the same
-instructions, AES-GCM is worth 10-20x, CRC32C 10x, and Montgomery
-multiply another 3x on top of the assembly above.
-
-Each one needs its opcode in the assembler and the assembly around it;
-the encoding and the `AT_HWCAP` gating are already in place. OpenSSL's
-`aest4-sparcv9.pl` and `sparct4-mont.pl` are working references for the
-sequences.
-
-### Assembly checking
-
-`cmd/vet`'s `asmdecl` pass carries a sparc64 entry, so `go vet` checks
-every `FP` reference in the port's assembly against the Go declaration
-it belongs to.
+Not used yet, although the T4 and later have them: the `aes`, `des`,
+`camellia`, `kasumi`, `md5`, `sha1`, `sha512`, `crc32c`, `mpmul`, `montmul`
+and `montsqr` instructions. There is no dedicated assembly for substring
+search or for the elliptic-curve field arithmetic.
 
 ## Timebase
 
