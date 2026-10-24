@@ -12,7 +12,7 @@ import (
 	"unsafe"
 )
 
-var useSHA256 = cpu.SPARC64HasCrypto
+var useSHA256 = cpu.SPARC64HasSHA256
 
 func init() {
 	impl.Register("sha256", "T4", &useSHA256)

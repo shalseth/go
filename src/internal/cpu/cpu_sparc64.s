@@ -1,0 +1,11 @@
+// Copyright 2026 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+#include "textflag.h"
+
+// func readCFR() uint64
+TEXT ·readCFR(SB),NOSPLIT|NOFRAME,$0-8
+	RD	CFR, R8
+	MOVD	R8, ret+0(FP)
+	RET
