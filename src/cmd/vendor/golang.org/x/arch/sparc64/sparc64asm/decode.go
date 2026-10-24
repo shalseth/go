@@ -149,9 +149,19 @@ var fpop2 = map[uint32]Op{
 	0x051: FCMPs, 0x052: FCMPd, 0x055: FCMPEs, 0x056: FCMPEd,
 }
 
-// impdep1 maps the VIS3 opf values the port actually emits.
+// impdep1 maps the VIS3 and crypto opf values the port actually emits.
 var impdep1 = map[uint32]Op{
-	0x11: ADDXC, 0x13: ADDXCcc, 0x16: UMULXHI, 0x142: SHA256,
+	0x11: ADDXC, 0x13: ADDXCcc, 0x16: UMULXHI, 0x115: XMULX, 0x116: XMULXHI,
+	0x130: AES_KEXPAND0, 0x131: AES_KEXPAND2, 0x141: SHA1, 0x142: SHA256,
+	0x143: SHA512, 0x147: CRC32C,
+	0x110: MOVDTOX, 0x111: MOVSTOUW, 0x118: MOVXTOD, 0x119: MOVWTOS,
+}
+
+// aesop maps the op5 field of the four-operand AES instructions (op3=0x19).
+var aesop = [9]Op{
+	AES_EROUND01, AES_EROUND23, AES_DROUND01, AES_DROUND23,
+	AES_EROUND01_L, AES_EROUND23_L, AES_DROUND01_L, AES_DROUND23_L,
+	AES_KEXPAND1,
 }
 
 // isDoubleOp reports whether the opcode's register operands are
@@ -327,10 +337,16 @@ func decodeFormat3(inst Inst, x uint32) (Inst, error) {
 			inst.Op = RDCCR
 		case 3:
 			inst.Op = RDASI
+		case 4:
+			inst.Op = RDTICK
 		case 5:
 			inst.Op = RDPC
 		case 6:
 			inst.Op = RDFPRS
+		case 24:
+			inst.Op = RDSTICK
+		case 26:
+			inst.Op = RDCFR
 		default:
 			return inst, ErrUnrecognized
 		}
@@ -413,12 +429,43 @@ func decodeFormat3(inst Inst, x uint32) (Inst, error) {
 			return inst, ErrUnrecognized
 		}
 		inst.Op = o
-		if o == SHA256 {
+		switch o {
+		case SHA1, SHA256, SHA512:
+			return inst, nil
+		case CRC32C, AES_KEXPAND0, AES_KEXPAND2:
+			inst.Args[0] = fpReg(uint32(rs1), true)
+			inst.Args[1] = fpReg(uint32(rs2), true)
+			inst.Args[2] = fpReg(uint32(rd), true)
+			return inst, nil
+		case MOVDTOX, MOVSTOUW:
+			inst.Args[0] = fpReg(uint32(rs2), o == MOVDTOX)
+			inst.Args[1] = rd
+			return inst, nil
+		case MOVXTOD, MOVWTOS:
+			inst.Args[0] = rs2
+			inst.Args[1] = fpReg(uint32(rd), o == MOVXTOD)
 			return inst, nil
 		}
 		inst.Args[0] = rs1
 		inst.Args[1] = rs2
 		inst.Args[2] = rd
+		return inst, nil
+
+	case op3 == 0x19: // the four-operand AES instructions
+		op5 := (x >> 5) & 0xf
+		if op5 >= uint32(len(aesop)) {
+			return inst, ErrUnrecognized
+		}
+		inst.Op = aesop[op5]
+		rs3 := (x >> 9) & 0x1f
+		inst.Args[0] = fpReg(uint32(rs1), true)
+		inst.Args[1] = fpReg(uint32(rs2), true)
+		if inst.Op == AES_KEXPAND1 {
+			inst.Args[2] = Imm(rs3)
+		} else {
+			inst.Args[2] = fpReg(rs3, true)
+		}
+		inst.Args[3] = fpReg(uint32(rd), true)
 		return inst, nil
 
 	case op3 == 0x3a: // Tcc

@@ -209,6 +209,29 @@ const (
 	ILLTRAP
 	Tcc
 	SHA256
+	SHA1
+	SHA512
+	CRC32C
+	AES_KEXPAND0
+	AES_KEXPAND1
+	AES_KEXPAND2
+	AES_EROUND01
+	AES_EROUND23
+	AES_DROUND01
+	AES_DROUND23
+	AES_EROUND01_L
+	AES_EROUND23_L
+	AES_DROUND01_L
+	AES_DROUND23_L
+	XMULX
+	XMULXHI
+	MOVDTOX
+	MOVSTOUW
+	MOVXTOD
+	MOVWTOS
+	RDTICK
+	RDSTICK
+	RDCFR
 )
 
 var opstr = [...]string{
@@ -413,6 +436,29 @@ var opstr = [...]string{
 	ILLTRAP: "illtrap",
 	Tcc: "tcc",
 	SHA256: "sha256",
+	SHA1: "sha1",
+	SHA512: "sha512",
+	CRC32C: "crc32c",
+	AES_KEXPAND0: "aes_kexpand0",
+	AES_KEXPAND1: "aes_kexpand1",
+	AES_KEXPAND2: "aes_kexpand2",
+	AES_EROUND01: "aes_eround01",
+	AES_EROUND23: "aes_eround23",
+	AES_DROUND01: "aes_dround01",
+	AES_DROUND23: "aes_dround23",
+	AES_EROUND01_L: "aes_eround01_l",
+	AES_EROUND23_L: "aes_eround23_l",
+	AES_DROUND01_L: "aes_dround01_l",
+	AES_DROUND23_L: "aes_dround23_l",
+	XMULX: "xmulx",
+	XMULXHI: "xmulxhi",
+	MOVDTOX: "movdtox",
+	MOVSTOUW: "movstouw",
+	MOVXTOD: "movxtod",
+	MOVWTOS: "movwtos",
+	RDTICK: "rdtick",
+	RDSTICK: "rdstick",
+	RDCFR: "rdcfr",
 }
 
 func (op Op) String() string {
