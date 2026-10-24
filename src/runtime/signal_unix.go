@@ -475,19 +475,19 @@ func sigFetchG(c *sigctxt) *g {
 		// window does not hold g yet - or holds whatever stale value
 		// the recycled window carried, which can look exactly like an
 		// old g. The wrapper parks g at the base of the gsignal stack
-		// for the duration, so when the register is not a live g,
-		// recover it from there; the handler is already running on
-		// that stack.
-		gp := getg()
-		if gp != nil && sparcPlausibleG(gp) && gp.m != nil {
-			return gp
-		}
+		// for the duration, so while a g of this stack's m is parked
+		// there, trust it over the register.
 		sp := sys.GetCallerSP()
 		s := spanOf(sp)
 		if s != nil && s.state.get() == mSpanManual && s.base() < sp && sp < s.limit {
-			if gp := *(**g)(unsafe.Pointer(s.base())); gp != nil && sparcPlausibleG(gp) {
+			if gp := *(**g)(unsafe.Pointer(s.base())); gp != nil && sparcPlausibleG(gp) && gp.m != nil &&
+				sparcPlausibleG(gp.m.gsignal) && gp.m.gsignal.stack.lo == s.base() {
 				return gp
 			}
+		}
+		gp := getg()
+		if gp != nil && sparcPlausibleG(gp) && gp.m != nil {
+			return gp
 		}
 		return nil
 	}
