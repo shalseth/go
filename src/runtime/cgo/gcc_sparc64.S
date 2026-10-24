@@ -165,6 +165,10 @@ crosscall2:
 	stx	%i7, [%sp + BIAS + 136]
 	mov	%i6, %l5
 
+	/* The way back to C, reloaded before the return below. */
+	stx	%i6, [%sp + BIAS + 176]
+	stx	%i7, [%sp + BIAS + 184]
+
 	/* %i6 must NOT be parked here, unlike crosscall1: this window came
 	   from a save, so %i6 is physically the caller's live %o6 - its
 	   stack pointer - and a restore does not undo a write to it. It
@@ -177,6 +181,16 @@ crosscall2:
 	call	crosscall2_flat
 	 nop
 
+	/*
+	 * A panic that unwinds through a nested callback and is recovered
+	 * in this one comes back here in the nested crosscall2's window,
+	 * whose %i6 and %i7 lead into the C frames the panic abandoned.
+	 * %sp is right either way, so take the way back from this frame.
+	 * The windows beneath were flushed on entry, and the restore
+	 * refills the caller's from its frame.
+	 */
+	ldx	[%sp + BIAS + 176], %i6
+	ldx	[%sp + BIAS + 184], %i7
 	return	%i7 + 8
 	 nop
 .size crosscall2, .-crosscall2
