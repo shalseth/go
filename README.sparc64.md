@@ -96,7 +96,9 @@ Hardware instructions in use:
 * VIS3 `ADDXC` and `UMULXHI` for 64-bit carry chains and multiplies, in
   `math/big` and in the FIPS `bigmod` package: about 3x for RSA-2048
   against code without them.
-* The T4 `sha256` instruction for SHA-256: 30-45x.
+* The T4 `sha1`, `sha256` and `sha512` instructions: 20-45x.
+* The T4 `aes` instructions and VIS3 `XMULX` for AES-GCM: 60-75x.
+* The T4 `crc32c` instruction for CRC-32C: about 14x.
 * `POPC` for counting trailing zeros.
 * `FSQRT` for `math.Sqrt`.
 
@@ -104,10 +106,10 @@ Hardware instructions in use:
 word-at-a-time assembly. `Compare`, `IndexByte` and `Count` measure 4-15x
 faster than the generic code.
 
-Not used yet, although the T4 and later have them: the `aes`, `des`,
-`camellia`, `kasumi`, `md5`, `sha1`, `sha512`, `crc32c`, `mpmul`, `montmul`
-and `montsqr` instructions. There is no dedicated assembly for substring
-search or for the elliptic-curve field arithmetic.
+Not used yet, although the T4 and later have them: the `des`,
+`camellia`, `kasumi`, `md5`, `mpmul`, `montmul` and `montsqr`
+instructions. There is no dedicated assembly for substring search or for
+the elliptic-curve field arithmetic.
 
 ## Timebase
 
