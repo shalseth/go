@@ -174,6 +174,9 @@ const (
 	// cycles and is not synchronised between strands, it is driven
 	// from a system-wide reference.
 	REG_STICK = REG_SPECIAL + 24
+	// The Crypto Function Register, ASR 26: which crypto instructions
+	// the CPU implements.
+	REG_CFR = REG_SPECIAL + 26
 
 	// Biased views of the stack and frame pointers. On SPARC V9 the
 	// 64-bit ABI stores %sp and %fp biased by StackBias; these encode
@@ -541,7 +544,35 @@ const (
 	// registers rather than from the instruction, so these take none.
 	// The family shares op3 0x36 with VIS3 and is selected by opf:
 	// MD5 is 0x140, SHA1 0x141, SHA256 0x142 and SHA512 0x143.
+	ASHA1   // SHA-1 round block: state in %f0-%f4, data in %f8-%f23; clears %f5
 	ASHA256 // SHA-256 round block: state in %f0-%f7, data in %f8-%f23
+	ASHA512 // SHA-512 round block: state in %d0-%d14, data in %d16-%d46
+
+	// CRC32C Ds2, Ds1, Dd folds the eight bytes of Ds2 into the CRC in
+	// the low word of Ds1. The CRC is held byte-swapped and is not
+	// inverted. AESKEXPAND0 and AESKEXPAND2 take their operands in the
+	// same order.
+	ACRC32C
+	AAESKEXPAND0
+	AAESKEXPAND2
+
+	// The AES rounds take SPARC's own operand order: AESEROUND01 Dkey,
+	// Ds2, Ds3, Dd computes columns 0-1 of a round over the state in
+	// Ds2:Ds3. AESKEXPAND1 Ds1, Ds2, $round, Dd.
+	AAESEROUND01
+	AAESEROUND23
+	AAESDROUND01
+	AAESDROUND23
+	AAESEROUND01L
+	AAESEROUND23L
+	AAESDROUND01L
+	AAESDROUND23L
+	AAESKEXPAND1
+
+	// VIS3 carry-less multiply: XMULX gives the low 64 bits of the
+	// product, XMULXHI the high 64 bits.
+	AXMULX
+	AXMULXHI
 
 	// Flush the register windows: every window but the current one is
 	// written to the frame it belongs to. Go code never executes SAVE,

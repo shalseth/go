@@ -922,6 +922,14 @@ func (p *Parser) asmInstruction(op obj.As, cond string, a []obj.Addr) {
 			prog.To = a[3]
 			break
 		}
+		if p.arch.Family == sys.SPARC64 {
+			// "op rs1, rs2, rs3, rd", rs3 possibly an immediate.
+			prog.From = a[0]
+			prog.Reg = p.getRegister(prog, op, &a[1])
+			prog.AddRestSource(a[2])
+			prog.To = a[3]
+			break
+		}
 		if p.arch.Family == sys.S390X {
 			if a[1].Type != obj.TYPE_REG {
 				p.errorf("second operand must be a register in %s instruction", op)

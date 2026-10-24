@@ -220,7 +220,26 @@ var optab = map[Optab]Opval{
 	Optab{AUMULXHI, ClassReg, ClassReg, ClassNone, ClassReg}: {51, 4, 0},
 	Optab{AADDXC, ClassReg, ClassReg, ClassNone, ClassReg}:   {51, 4, 0},
 	Optab{AADDXCCC, ClassReg, ClassReg, ClassNone, ClassReg}: {51, 4, 0},
+	Optab{ASHA1, ClassNone, ClassNone, ClassNone, ClassNone}:   {62, 4, 0},
 	Optab{ASHA256, ClassNone, ClassNone, ClassNone, ClassNone}: {62, 4, 0},
+	Optab{ASHA512, ClassNone, ClassNone, ClassNone, ClassNone}: {62, 4, 0},
+
+	Optab{ACRC32C, ClassDReg, ClassDReg, ClassNone, ClassDReg}:      {64, 4, 0},
+	Optab{AAESKEXPAND0, ClassDReg, ClassDReg, ClassNone, ClassDReg}: {64, 4, 0},
+	Optab{AAESKEXPAND2, ClassDReg, ClassDReg, ClassNone, ClassDReg}: {64, 4, 0},
+
+	Optab{AAESEROUND01, ClassDReg, ClassDReg, ClassDReg, ClassDReg}:   {65, 4, 0},
+	Optab{AAESEROUND23, ClassDReg, ClassDReg, ClassDReg, ClassDReg}:   {65, 4, 0},
+	Optab{AAESDROUND01, ClassDReg, ClassDReg, ClassDReg, ClassDReg}:   {65, 4, 0},
+	Optab{AAESDROUND23, ClassDReg, ClassDReg, ClassDReg, ClassDReg}:   {65, 4, 0},
+	Optab{AAESEROUND01L, ClassDReg, ClassDReg, ClassDReg, ClassDReg}:  {65, 4, 0},
+	Optab{AAESEROUND23L, ClassDReg, ClassDReg, ClassDReg, ClassDReg}:  {65, 4, 0},
+	Optab{AAESDROUND01L, ClassDReg, ClassDReg, ClassDReg, ClassDReg}:  {65, 4, 0},
+	Optab{AAESDROUND23L, ClassDReg, ClassDReg, ClassDReg, ClassDReg}:  {65, 4, 0},
+	Optab{AAESKEXPAND1, ClassDReg, ClassDReg, ClassConst5, ClassDReg}: {65, 4, 0},
+
+	Optab{AXMULX, ClassReg, ClassReg, ClassNone, ClassReg}:     {51, 4, 0},
+	Optab{AXMULXHI, ClassReg, ClassReg, ClassNone, ClassReg}:   {51, 4, 0},
 	Optab{AFLUSHW, ClassNone, ClassNone, ClassNone, ClassNone}: {63, 4, 0},
 
 	Optab{AMOVDTOX, ClassDReg, ClassNone, ClassNone, ClassReg}:  {54, 4, 0},
@@ -1694,11 +1713,65 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	case 54:
 		*o1 = opcode(p.As) | uint32(p.To.Reg&31)<<25 | uint32(p.From.Reg&31)
 
-	// SHA256
+	// SHA1, SHA256, SHA512
 	case 62:
 		// The crypto instructions read fixed floating-point registers,
 		// so every register field is zero and only opf varies.
-		*o1 = op3(2, 0x36) | vis3(0, 0x142, 0, 0)
+		var opf int16
+		switch p.As {
+		case ASHA1:
+			opf = 0x141
+		case ASHA256:
+			opf = 0x142
+		case ASHA512:
+			opf = 0x143
+		}
+		*o1 = op3(2, 0x36) | vis3(0, opf, 0, 0)
+
+	// CRC32C, AESKEXPAND0, AESKEXPAND2 Ds2, Ds1, Dd
+	case 64:
+		var opf int16
+		switch p.As {
+		case ACRC32C:
+			opf = 0x147
+		case AAESKEXPAND0:
+			opf = 0x130
+		case AAESKEXPAND2:
+			opf = 0x131
+		}
+		*o1 = op3(2, 0x36) | vis3(p.Reg, opf, p.From.Reg, p.To.Reg)
+
+	// AESEROUND01 Dkey, Ds2, Ds3, Dd (and the other rounds), and
+	// AESKEXPAND1 Ds1, Ds2, $round, Dd: op3 0x19, with rs3 or a 5-bit
+	// immediate in bits 13-9 and op5 in bits 8-5.
+	case 65:
+		var op5 uint32
+		switch p.As {
+		case AAESEROUND01:
+			op5 = 0
+		case AAESEROUND23:
+			op5 = 1
+		case AAESDROUND01:
+			op5 = 2
+		case AAESDROUND23:
+			op5 = 3
+		case AAESEROUND01L:
+			op5 = 4
+		case AAESEROUND23L:
+			op5 = 5
+		case AAESDROUND01L:
+			op5 = 6
+		case AAESDROUND23L:
+			op5 = 7
+		case AAESKEXPAND1:
+			op5 = 8
+		}
+		f3 := p.GetFrom3()
+		rs3 := uint32(f3.Reg & 31)
+		if p.As == AAESKEXPAND1 {
+			rs3 = uint32(f3.Offset & 31)
+		}
+		*o1 = op3(2, 0x19) | uint32(p.To.Reg&31)<<25 | uint32(p.From.Reg&31)<<14 | rs3<<9 | op5<<5 | uint32(p.Reg&31)
 
 	// FLUSHW
 	case 63:
@@ -1717,6 +1790,10 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 			opf = 0x11
 		case AADDXCCC:
 			opf = 0x13
+		case AXMULX:
+			opf = 0x115
+		case AXMULXHI:
+			opf = 0x116
 		default:
 			return nil, fmt.Errorf("unknown VIS3 three-register opcode in %v", p)
 		}
