@@ -65,6 +65,7 @@ ssh target 'GOROOT_BOOTSTRAP=$HOME/go-linux-sparc64-bootstrap go/src/make.bash'
 * cgo, with both internal and external linking.
 * `-buildmode=pie`, linked externally. The load address is only randomized
   on a kernel whose sparc64 ELF loader does so (`ARCH_HAS_ELF_RANDOMIZE`).
+* `-buildmode=c-archive` and `c-shared`.
 * The race detector.
 * Atomics.
 * Disassembly in `go tool objdump` and `pprof`.
@@ -72,8 +73,7 @@ ssh target 'GOROOT_BOOTSTRAP=$HOME/go-linux-sparc64-bootstrap go/src/make.bash'
 
 ## What is missing
 
-* The `-buildmode` variants `c-archive`, `c-shared`, `shared` and
-  `plugin`.
+* The `-buildmode` variants `shared` and `plugin`.
 
 ## Performance
 

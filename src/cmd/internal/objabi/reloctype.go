@@ -489,6 +489,12 @@ const (
 	// RD %PC instruction just before a SETHI/OR pair, into that pair.
 	R_SPARC64_PCREL
 
+	// R_SPARC64_TLS_IE resolves an initial-exec thread-local offset. It
+	// sits on the SETHI and ADD of the ABI's sequence and stands for the
+	// ELF relocations of all four instructions (sethi, add, ldx from the
+	// GOT, add %g7).
+	R_SPARC64_TLS_IE
+
 	// R_WEAK marks the relocation as a weak reference.
 	// A weak relocation does not make the symbol it refers to reachable,
 	// and is only honored by the linker if the symbol is in some other way

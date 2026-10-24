@@ -184,6 +184,14 @@ func elfreloc1(ctxt *ld.Link, out *ld.OutBuf, ldr *loader.Loader, s loader.Sym, 
 	case objabi.R_SPARC64_PCREL:
 		write(elf.R_SPARC_PC22, sectoff, elfsym, r.Xadd+4)
 		write(elf.R_SPARC_PC10, sectoff+4, elfsym, r.Xadd+8)
+
+	// Initial exec, one relocation per instruction of the sequence. The
+	// host linker relaxes it to local exec in an executable.
+	case objabi.R_SPARC64_TLS_IE:
+		write(elf.R_SPARC_TLS_IE_HI22, sectoff, elfsym, r.Xadd)
+		write(elf.R_SPARC_TLS_IE_LO10, sectoff+4, elfsym, r.Xadd)
+		write(elf.R_SPARC_TLS_IE_LDX, sectoff+8, elfsym, r.Xadd)
+		write(elf.R_SPARC_TLS_IE_ADD, sectoff+12, elfsym, r.Xadd)
 	}
 
 	return true
@@ -262,6 +270,8 @@ func archreloc(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, r loade
 		case objabi.R_ADDRSPARC64HI, objabi.R_ADDRSPARC64LO, objabi.R_SPARC64_TLS_LE, objabi.R_SPARC64_PCREL:
 			// Two ELF relocations each; see elfreloc1.
 			return val, 2, true
+		case objabi.R_SPARC64_TLS_IE:
+			return val, 4, true
 		}
 		return val, 0, false
 	}
@@ -372,7 +382,7 @@ func archrelocvariant(*ld.Target, *loader.Loader, loader.Reloc, sym.RelocVariant
 
 func extreloc(target *ld.Target, ldr *loader.Loader, r loader.Reloc, s loader.Sym) (loader.ExtReloc, bool) {
 	switch r.Type() {
-	case objabi.R_CALLSPARC64, objabi.R_SPARC64_TLS_LE:
+	case objabi.R_CALLSPARC64, objabi.R_SPARC64_TLS_LE, objabi.R_SPARC64_TLS_IE:
 		return ld.ExtrelocSimple(ldr, r), true
 	case objabi.R_ADDRSPARC64HI, objabi.R_ADDRSPARC64LO, objabi.R_SPARC64_PCREL:
 		return ld.ExtrelocViaOuterSym(ldr, r, s), true

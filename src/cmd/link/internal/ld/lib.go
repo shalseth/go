@@ -964,7 +964,7 @@ func (ctxt *Link) linksetup() {
 	ctxt.loader.SetAttrReachable(moduledata, true)
 	ctxt.Moduledata = moduledata
 
-	if ctxt.Arch == sys.Arch386 && ctxt.HeadType != objabi.Hwindows {
+	if (ctxt.Arch == sys.Arch386 && ctxt.HeadType != objabi.Hwindows) || ctxt.Arch.Family == sys.SPARC64 {
 		if (ctxt.BuildMode == BuildModeCArchive && ctxt.IsELF) || ctxt.BuildMode == BuildModeCShared || ctxt.BuildMode == BuildModePIE || ctxt.DynlinkingGo() {
 			got := ctxt.loader.LookupOrCreateSym("_GLOBAL_OFFSET_TABLE_", 0)
 			sb := ctxt.loader.MakeSymbolUpdater(got)

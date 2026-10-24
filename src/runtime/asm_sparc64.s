@@ -1185,3 +1185,26 @@ TEXT runtime·publicationBarrier(SB),NOSPLIT|NOFRAME,$0-0
 // threads entering from C use a reserved region in crosscall1/crosscall2's
 // frame.
 GLOBL	runtime·m0WindowScratch(SB), NOPTR, $256
+
+// func asmcgocall_no_g(fn, arg unsafe.Pointer)
+// Calls fn(arg) with the C ABI on the current stack, which is a system
+// stack; there may be no g yet. C runs in a register window of its own,
+// as in asmcgocall.
+TEXT ·asmcgocall_no_g(SB),NOSPLIT|NOFRAME,$0-16
+	MOVD	fn+0(FP), R19
+	MOVD	arg+8(FP), R20
+	MOVD	BSP, R13
+	SUB	$208, R13
+	MOVD	R20, O0
+	MOVD	R19, O1
+	SAVE	$-2047, R13, RSP
+	MOVD	R30, (40)(BSP)
+	MOVD	OLR, (120)(BSP)
+	MOVD	OLR, (136)(BSP)
+	MOVD	I0, O0
+	MOVD	I0, FIXED_FRAME(BSP)
+	MOVD	I1, R16
+	CALL	(R16)
+	RNOP
+	RESTORE	ZR, ZR, ZR
+	RET

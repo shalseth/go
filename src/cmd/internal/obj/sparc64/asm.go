@@ -485,6 +485,9 @@ func oplook(p *obj.Prog) (Opval, error) {
 		case 23, 24, 25, 45:
 			// The PC-relative forms; see pcrel.
 			v.size = 20
+		case 50:
+			// Initial exec TLS; see asmout.
+			v.size = 36
 		}
 	}
 	return v, nil
@@ -1237,7 +1240,7 @@ func branchOffset(p *obj.Prog) int64 {
 }
 
 func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
-	out = make([]uint32, 7)
+	out = make([]uint32, 9)
 	o1 := &out[0]
 	o2 := &out[1]
 	o3 := &out[2]
@@ -1245,6 +1248,8 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 	o5 := &out[4]
 	o6 := &out[5]
 	o7 := &out[6]
+	o8 := &out[7]
+	o9 := &out[8]
 	if o.OpInfo == ClobberTMP {
 		if usesTMP(&p.From) {
 			return nil, fmt.Errorf("asmout: %q not allowed: synthetic instruction clobbers temporary registers", obj.Dconv(p, &p.From))
@@ -1812,6 +1817,33 @@ func asmout(p *obj.Prog, o Opval, cursym *obj.LSym) (out []uint32, err error) {
 
 	// MOVD $tlssym, R
 	case 50:
+		if p.Ctxt.Flag_shared {
+			// Initial exec, which a shared object needs: the ABI's
+			// sequence loads the offset from a GOT entry, addressed
+			// from the GOT base. That is built in TMP2 the PC-relative
+			// way, as _GLOBAL_OFFSET_TABLE_ - pc.
+			if p.To.Reg == REG_TMP2 {
+				return nil, fmt.Errorf("%v: initial exec TLS needs %v", p, Rconv(REG_TMP2))
+			}
+			got := p.Ctxt.Lookup("_GLOBAL_OFFSET_TABLE_")
+			if err := pcrel(cursym, p.Pc, got, 0, REG_TMP2, REG_TMP, o1, o2, o3, o4); err != nil {
+				return nil, err
+			}
+			*o5 = opalu(AADD) | rrr(REG_TMP2, 0, REG_TMP, REG_TMP2)
+			*o6 = opcode(ASETHI) | ir(0, p.To.Reg)
+			*o7 = opalu(AADD) | rsr(p.To.Reg, 0, p.To.Reg)
+			*o8 = opload(AMOVD) | rrr(REG_TMP2, 0, p.To.Reg, p.To.Reg)
+			*o9 = opalu(AADD) | rrr(REG_TLS, 0, p.To.Reg, p.To.Reg)
+			rel := addrel(cursym)
+			// The relocation covers the SETHI and the ADD; the linker
+			// writes the ELF relocations for all four.
+			rel.Off = int32(p.Pc + 20)
+			rel.Siz = 8
+			rel.Sym = p.From.Sym
+			rel.Add = p.From.Offset
+			rel.Type = objabi.R_SPARC64_TLS_IE
+			break
+		}
 		*o1 = opcode(ASETHI) | ir(0, p.To.Reg)
 		*o2 = opalu(AXOR) | rsr(p.To.Reg, 0, p.To.Reg)
 		rel := addrel(cursym)
