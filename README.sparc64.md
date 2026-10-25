@@ -6,7 +6,7 @@ developed on an UltraSPARC T4-1 running Gentoo. This branch adds
 `master` branch tracks upstream unchanged.
 
 The full test suite passes, with cgo. Known to work: Docker (dockerd,
-containerd, runc), the Forgejo runner and Grafana Alloy.
+containerd, runc), Forgejo and its runner, and Grafana Alloy.
 
 ## Provenance
 
