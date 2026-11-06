@@ -195,21 +195,6 @@ func mulSaturatedUSS64(x uint64, y int64) int64 {
 	}
 }
 
-func rotateRight[T Ints | Uints](x T, dist uint64) T {
-	k := int(dist % uint64(elemBits[T]()))
-	switch any(x).(type) {
-	case int8, uint8:
-		return T(bits.RotateLeft8(uint8(x), -k))
-	case int16, uint16:
-		return T(bits.RotateLeft16(uint16(x), -k))
-	case int32, uint32:
-		return T(bits.RotateLeft32(uint32(x), -k))
-	case int64, uint64:
-		return T(bits.RotateLeft64(uint64(x), -k))
-	}
-	panic("unreachable")
-}
-
 // clmul computes the carryless multiplication of a and b, returning the result
 // split into high and low halves.
 func clmul[E Uints](a, b E) (hi, lo E) {

@@ -58,6 +58,25 @@ func (t netHTTPTransport) RoundTrip(*http.Request) (*http.Response, error) {
 	panic("netHTTPTransport.RoundTrip should never be called")
 }
 
+// DialClientConn creates a new client connection to address.
+//
+// If proxy is non-nil, the connection should use the provided proxy.
+// If HTTP/3 proxies are not supported, DialClientConn should return
+// an error wrapping [errors.ErrUnsupported].
+//
+// The RoundTripper returned by DialClientConn must also implement the
+// http.genericClientConn interface.
+//
+// The client connection should arrange to call internalStateHook
+// when the connection closes, when requests complete, and when the
+// connection concurrency limit changes.
+//
+// The client connection must call the internal state hook when
+// the connection state changes asynchronously, such as when a request completes.
+//
+// The internal state hook need not be called after synchronous changes
+// to the state: Close, Reserve, Release, and RoundTrip calls
+// which don't start a request do not need to call the hook.
 func (t netHTTPTransport) DialClientConn(ctx context.Context, addr string, _ *url.URL, tlsConfig *tls.Config, stateHook func()) (http.RoundTripper, error) {
 	return t.transport.dial(ctx, addr, tlsConfig, stateHook)
 }
@@ -219,8 +238,10 @@ func (tr *transport) registerConn(cc *clientConn) {
 func (tr *transport) unregisterConn(cc *clientConn) {
 	tr.mu.Lock()
 	defer tr.mu.Unlock()
-	delete(tr.activeConns, cc)
-	close(cc.unregistered)
+	if _, ok := tr.activeConns[cc]; ok {
+		delete(tr.activeConns, cc)
+		close(cc.unregistered)
+	}
 }
 
 func (tr *transport) maxResponseHeaderBytes() int64 {
@@ -251,11 +272,7 @@ func (tr *transport) newClientConn(ctx context.Context, qconn *quic.Conn, stateH
 
 	go func() {
 		cc.acceptStreams(qconn, cc)
-		cc.mu.Lock()
-		cc.closed = true
-		cc.mu.Unlock()
-		cc.maybeCallStateHook()
-		tr.unregisterConn(cc)
+		cc.handleClose()
 	}()
 	return cc, nil
 }
@@ -269,6 +286,26 @@ func (cc *clientConn) Close() error {
 	// thinking that there is still an active cc.
 	<-cc.unregistered
 	return err
+}
+
+func (cc *clientConn) Proto() int {
+	return 3
+}
+
+func (cc *clientConn) IsAlt() bool {
+	return true
+}
+
+func (cc *clientConn) IsReused() bool {
+	return false
+}
+
+func (cc *clientConn) NetConn() net.Conn {
+	return nil
+}
+
+func (cc *clientConn) CloseWithError(err error) {
+	cc.Close()
 }
 
 func (cc *clientConn) Err() error {
@@ -325,6 +362,27 @@ func (cc *clientConn) InFlight() int {
 	return cc.reserved + cc.active
 }
 
+func (cc *clientConn) handleClose() {
+	cc.mu.Lock()
+	alreadyClosed := cc.closed
+	cc.closed = true
+	cc.mu.Unlock()
+	if !alreadyClosed {
+		cc.tr.unregisterConn(cc)
+		cc.maybeCallStateHook()
+	}
+}
+
+func (cc *clientConn) decrActiveAndCallStateHook() {
+	cc.mu.Lock()
+	cc.active--
+	closed := cc.closed
+	cc.mu.Unlock()
+	if !closed {
+		cc.maybeCallStateHook()
+	}
+}
+
 func (cc *clientConn) maybeCallStateHook() {
 	if cc.stateHook != nil {
 		cc.stateHook()
@@ -367,6 +425,7 @@ func (cc *clientConn) handleControlStream(st *stream) error {
 			}
 		case frameTypeGoaway:
 			// TODO: Wait for requests to complete before closing connection.
+			// TODO: Mark connection as unavailable / reject new reservations.
 			return errH3NoError
 		default:
 			// Unknown frames are ignored.
@@ -417,4 +476,5 @@ func (cc *clientConn) abort(err error) {
 	} else {
 		cc.qconn.Abort(err)
 	}
+	cc.handleClose()
 }

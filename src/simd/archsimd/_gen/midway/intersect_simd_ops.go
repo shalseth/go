@@ -35,9 +35,8 @@ type MethodSet map[string]*ast.FuncDecl
 type TypeMethods map[string]MethodSet
 
 type Comments struct {
-	Types     map[string]string            `yaml:"types"`
-	Functions map[string]string            `yaml:"functions"`
-	Methods   map[string]map[string]string `yaml:"methods"`
+	Types     map[string]string `yaml:"types"`
+	Functions map[string]string `yaml:"functions"`
 }
 
 var genFlags = gentools.RegisterFlags(nil)
@@ -137,9 +136,9 @@ func main() {
 	amd64Files := []string{"ops_amd64.go", "compare_gen_amd64.go", "types_amd64.go",
 		"other_gen_amd64.go", "extra_amd64.go", "maskmerge_gen_amd64.go",
 		"shuffles_amd64.go", "slice_gen_amd64.go", "slicepart_amd64.go",
-		"slicepart_128.go", "string.go", "ops_emulated_amd64.go", "maskrange_amd64.go"}
+		"slicepart_128.go", "ops_emulated_amd64.go", "maskrange_amd64.go"}
 	wasmFiles := []string{"ops_wasm.go", "types_wasm.go", "slicepart_wasm.go",
-		"string.go", "slicepart_128.go", "ops_emulated_wasm.go", "maskrange_128.go"}
+		"slicepart_128.go", "ops_emulated_wasm.go", "maskrange_128.go"}
 	neonFiles := []string{"clmul_arm64.go", "compare_gen_arm64.go",
 		"maskmerge_gen_arm64.go", "ops_arm64.go", "slicepart_128.go",
 		"ops_internal_arm64.go", "other_gen_arm64.go", "slice_gen_arm64.go",
@@ -522,15 +521,7 @@ package simd
 			for _, m := range intersection {
 				fd := signatureByElemMethod[ElemMethod{elem, m}]
 				elems := elem + "s"
-				methodComment := ""
-				if typeMethods, ok := comments.Methods[elem+"s"]; ok {
-					methodComment = typeMethods[m]
-				}
-				if methodComment != "" {
-					pf("// %s\n", methodComment)
-				} else {
-					checkSpec(elems, m)
-				}
+				checkSpec(elems, m)
 				pf("func (x %s) %s(", elems, m)
 
 				if !emulated[TypeMethod{elems, m}] {

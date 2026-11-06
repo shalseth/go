@@ -47,9 +47,11 @@ func cmdtest() {
 	flag.BoolVar(&t.asan, "asan", false, "run in address sanitizer builder mode")
 	flag.BoolVar(&t.json, "json", false, "report test results in JSON")
 	flag.StringVar(&t.artifactsDir, "artifacts-dir", "", "save test artifacts in the specified directory")
+	flag.StringVar(&debugTrace, "debug-trace", debugTrace, "write a merged trace of the test run to `file`")
 
 	xflagparse(-1) // any number of args
 	if noRebuild {
+		debugTraceAppend = true
 		t.rebuild = false
 	}
 
@@ -115,6 +117,7 @@ type distTest struct {
 
 func (t *tester) run() {
 	timelog("start", "dist test")
+	distSpan := startSpan("dist test")
 
 	os.Setenv("PATH", fmt.Sprintf("%s%c%s", gorootBin, os.PathListSeparator, os.Getenv("PATH")))
 
@@ -163,7 +166,9 @@ func (t *tester) run() {
 	if t.rebuild {
 		t.out("Building packages and commands.")
 		// Force rebuild the whole toolchain.
-		goInstall(toolenv(), gorootBinGo, append([]string{"-a"}, toolchain...)...)
+		rebuildSpan := startSpan("rebuild toolchain")
+		goInstall(toolenv(), gorootBinGo, append(append(maybeTraceFlag("rebuildToolchain"), "-a"), toolchain...)...)
+		rebuildSpan.done()
 	}
 
 	if !t.listMode {
@@ -180,9 +185,15 @@ func (t *tester) run() {
 			// and virtualization we usually start with a clean GOCACHE, so we would
 			// end up rebuilding large parts of the standard library that aren't
 			// otherwise relevant to the actual set of packages under test.
-			goInstall(toolenv(), gorootBinGo, toolchain...)
-			goInstall(toolenv(), gorootBinGo, toolchain...)
-			goInstall(toolenv(), gorootBinGo, toolsToInstall...)
+			toolchain1Span := startSpan("toolchain1")
+			goInstall(toolenv(), gorootBinGo, append(maybeTraceFlag("toolchain1"), toolchain...)...)
+			toolchain1Span.done()
+			toolchain2Span := startSpan("toolchain2")
+			goInstall(toolenv(), gorootBinGo, append(maybeTraceFlag("toolchain2"), toolchain...)...)
+			toolchain2Span.done()
+			toolsSpan := startSpan("tools")
+			goInstall(toolenv(), gorootBinGo, append(maybeTraceFlag("tools"), toolsToInstall...)...)
+			toolsSpan.done()
 		}
 	}
 
@@ -259,6 +270,10 @@ func (t *tester) run() {
 	}
 	t.runPending(nil)
 	timelog("end", "dist test")
+	distSpan.done()
+	if debugTrace != "" {
+		writeTrace()
+	}
 
 	if !t.json {
 		if t.failed {
@@ -353,6 +368,7 @@ type goTest struct {
 	pkg  string   // A single package to test
 
 	testFlags []string // Additional flags accepted by this test
+	trace     string   // If non-empty, write go test -debug-trace output to <workdir>/<trace>.trace
 }
 
 // compileOnly reports whether this test is only for compiling,
@@ -477,7 +493,7 @@ func (opts *goTest) buildArgs(t *tester) (build, run, pkgs, testFlags []string, 
 		run = append(run, "-skip="+opts.skip)
 	}
 	if t.json {
-		run = append(run, "-json")
+		build = append(build, "-json")
 	}
 	if t.artifactsDir != "" {
 		run = append(run, "-artifacts", "-outputdir="+t.artifactsDir)
@@ -494,6 +510,9 @@ func (opts *goTest) buildArgs(t *tester) (build, run, pkgs, testFlags []string, 
 	}
 	if opts.buildmode != "" {
 		build = append(build, "-buildmode="+opts.buildmode)
+	}
+	if opts.trace != "" {
+		build = append(build, maybeTraceFlag(opts.trace)...)
 	}
 
 	pkgs = opts.packages()
@@ -583,9 +602,13 @@ func (t *tester) registerStdTest(pkg string) {
 		defer timelog("end", dt.name)
 		ranGoTest = true
 
+		stdSpan := startSpan("go test std cmd")
+		defer stdSpan.done()
+
 		return (&goTest{
 			gcflags: gcflags,
 			pkgs:    stdMatches,
+			trace:   "std",
 		}).run(t)
 	})
 }
@@ -619,21 +642,6 @@ func (t *tester) registerRaceBenchTest(pkg string) {
 }
 
 func (t *tester) registerTests() {
-	// registerStdTestSpecially tracks import paths in the standard library
-	// whose test registration happens in a special way.
-	//
-	// These tests *must* be able to run normally as part of "go test std cmd",
-	// even if they are also registered separately by dist, because users often
-	// run go test directly. Use skips or build tags in preference to expanding
-	// this list.
-	registerStdTestSpecially := map[string]bool{
-		// testdir can run normally as part of "go test std cmd", but because
-		// it's a very large test, we register is specially as several shards to
-		// enable better load balancing on sharded builders. Ideally the build
-		// system would know how to shard any large test package.
-		"cmd/internal/testdir": true,
-	}
-
 	// Fast path to avoid the ~1 second of `go list std cmd` when
 	// the caller lists specific tests to run. (as the continuous
 	// build coordinator does).
@@ -671,9 +679,6 @@ func (t *tester) registerTests() {
 		}
 		pkgs := strings.Fields(string(all))
 		for _, pkg := range pkgs {
-			if registerStdTestSpecially[pkg] {
-				continue
-			}
 			if t.short && (strings.HasPrefix(pkg, "vendor/") || strings.HasPrefix(pkg, "cmd/vendor/")) {
 				// Vendored code has no tests, and we don't care too much about vet errors
 				// since we can't modify the code, so skip the tests in short mode.
@@ -965,7 +970,7 @@ func (t *tester) registerTests() {
 	}
 
 	// sync tests
-	if t.hasParallelism() {
+	if !t.compileOnly && t.hasParallelism() {
 		t.registerTest("sync -cpu=10",
 			&goTest{
 				variant: "cpu10",
@@ -986,20 +991,6 @@ func (t *tester) registerTests() {
 				pkg:       "internal/runtime/wasitest",
 				runOnHost: true,
 			})
-	}
-
-	// Only run the API check on fast development platforms.
-	// Every platform checks the API on every GOOS/GOARCH/CGO_ENABLED combination anyway,
-	// so we really only need to run this check once anywhere to get adequate coverage.
-	// To help developers avoid trybot-only failures, we try to run on typical developer machines
-	// which is darwin,linux,windows/amd64 and darwin/arm64.
-	//
-	// The same logic applies to the release notes that correspond to each api/next file.
-	//
-	// TODO: remove the exclusion of goexperiment simd right before dev.simd branch is merged to master.
-	if goos == "darwin" || ((goos == "linux" || goos == "windows") && (goarch == "amd64" && !strings.Contains(goexperiment, "simd"))) {
-		t.registerTest("API release note check", &goTest{variant: "check", pkg: "cmd/relnote", testFlags: []string{"-check"}})
-		t.registerTest("API check", &goTest{variant: "check", pkg: "cmd/api", testFlags: []string{"-check"}})
 	}
 
 	// Runtime CPU tests.
@@ -1025,31 +1016,16 @@ func (t *tester) registerTests() {
 		t.registerRaceTests()
 	}
 
-	if goos != "android" && !t.iOS() {
-		// Only start multiple test dir shards on builders,
-		// where they get distributed to multiple machines.
-		// See issues 20141 and 31834.
-		nShards := 1
-		if os.Getenv("GO_BUILDER_NAME") != "" {
-			nShards = 10
-		}
-		if n, err := strconv.Atoi(os.Getenv("GO_TEST_SHARDS")); err == nil {
-			nShards = n
-		}
-		for shard := 0; shard < nShards; shard++ {
-			id := fmt.Sprintf("%d_%d", shard, nShards)
-			t.registerTest("../test",
-				&goTest{
-					// Include the variant even though there's no overlap in test names.
-					// This makes the test target more clearly distinct in our build
-					// results and is important for load-balancing test shards.
-					variant:   id,
-					pkg:       "cmd/internal/testdir",
-					testFlags: []string{fmt.Sprintf("-shard=%d", shard), fmt.Sprintf("-shards=%d", nShards)},
-					runOnHost: true,
-				},
-			)
-		}
+	// These tests will be skipped as part of the initial go test std cmd invocation for
+	// js and wasip1 and need to be run on the host. Register them specially here.
+	if goos == "js" || goos == "wasip1" {
+		t.registerTest("../test",
+			&goTest{
+				variant:   "host",
+				pkg:       "cmd/internal/testdir",
+				runOnHost: true,
+			},
+		)
 	}
 }
 
@@ -1246,6 +1222,7 @@ func (t *tester) internalLinkPIE() bool {
 	}
 	switch goos + "-" + goarch {
 	case "darwin-amd64", "darwin-arm64",
+		"freebsd-amd64",
 		"linux-amd64", "linux-arm64", "linux-loong64", "linux-ppc64", "linux-ppc64le", "linux-s390x",
 		"android-arm64",
 		"windows-amd64", "windows-386", "windows-arm64":
@@ -1431,7 +1408,12 @@ func (t *tester) registerCgoTests(heading string) {
 func (t *tester) runPending(nextTest *distTest) {
 	worklist := t.worklist
 	t.worklist = nil
-	for _, w := range worklist {
+	var pendingSpan span
+	if len(worklist) > 0 {
+		pendingSpan = startSpan("runPending")
+	}
+	maxbg := runtime.GOMAXPROCS(0)
+	for i, w := range worklist {
 		w.start = make(chan bool)
 		w.end = make(chan struct{})
 		// w.cmd must be set up to write to w.out. We can't check that, but we
@@ -1445,10 +1427,12 @@ func (t *tester) runPending(nextTest *distTest) {
 				w.printSkip(t, "skipped due to earlier error")
 			} else {
 				timelog("start", w.dt.name)
+				s := startSpanTID(w.dt.name, uint64(i%maxbg+1))
 				w.err = w.cmd.Run()
 				if w.flush != nil {
 					w.flush()
 				}
+				s.done()
 				if w.err != nil {
 					if isUnsupportedVMASize(w) {
 						timelog("skip", w.dt.name)
@@ -1461,23 +1445,6 @@ func (t *tester) runPending(nextTest *distTest) {
 			timelog("end", w.dt.name)
 			w.end <- struct{}{}
 		}(w)
-	}
-
-	maxbg := maxbg
-	// for runtime.NumCPU() < 4 ||  runtime.GOMAXPROCS(0) == 1, do not change maxbg.
-	// Because there is not enough CPU to parallel the testing of multiple packages.
-	if runtime.NumCPU() > 4 && runtime.GOMAXPROCS(0) != 1 {
-		for _, w := range worklist {
-			// See go.dev/issue/65164
-			// because GOMAXPROCS=2 runtime CPU usage is low,
-			// so increase maxbg to avoid slowing down execution with low CPU usage.
-			// This makes testing a single package slower,
-			// but testing multiple packages together faster.
-			if strings.Contains(w.dt.heading, "GOMAXPROCS=2 runtime") {
-				maxbg = runtime.NumCPU()
-				break
-			}
-		}
 	}
 
 	started := 0
@@ -1515,6 +1482,7 @@ func (t *tester) runPending(nextTest *distTest) {
 			t.failed = true
 		}
 	}
+	pendingSpan.done()
 	if t.failed && !t.keepGoing {
 		fatalf("FAILED")
 	}
@@ -1888,13 +1856,6 @@ func fips140Versions() []string {
 	}
 	for _, zip := range zips {
 		versions = append(versions, strings.TrimSuffix(filepath.Base(zip), ".zip"))
-	}
-	txts, err := filepath.Glob(filepath.Join(goroot, "lib/fips140/*.txt"))
-	if err != nil {
-		fatalf("%v", err)
-	}
-	for _, txt := range txts {
-		versions = append(versions, strings.TrimSuffix(filepath.Base(txt), ".txt"))
 	}
 	return versions
 }

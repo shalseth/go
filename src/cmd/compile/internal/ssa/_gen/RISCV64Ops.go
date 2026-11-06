@@ -216,8 +216,6 @@ func init() {
 		{name: "MOVHUreg", argLength: 1, reg: gp11, asm: "MOVHU", earlyOk: true}, // move from arg0, unsign-extended from half
 		{name: "MOVWUreg", argLength: 1, reg: gp11, asm: "MOVWU", earlyOk: true}, // move from arg0, unsign-extended from word
 
-		{name: "MOVDnop", argLength: 1, reg: regInfo{inputs: []regMask{gpMask}, outputs: []regMask{gpMask}}, resultInArg0: true, earlyOk: true}, // nop, return arg0 in same register
-
 		// Shift ops
 		{name: "SLL", argLength: 2, reg: gp21, asm: "SLL", earlyOk: true},                   // arg0 << (aux1 & 63), logical left shift
 		{name: "SLLW", argLength: 2, reg: gp21, asm: "SLLW", earlyOk: true},                 // arg0 << (aux1 & 31), logical left shift of 32 bit value, sign extended to 64 bits
@@ -268,6 +266,10 @@ func init() {
 		{name: "MAX", argLength: 2, reg: gp21, asm: "MAX", commutative: true, earlyOk: true},   // max(arg0,arg1), signed
 		{name: "MINU", argLength: 2, reg: gp21, asm: "MINU", commutative: true, earlyOk: true}, // min(arg0,arg1), unsigned
 		{name: "MAXU", argLength: 2, reg: gp21, asm: "MAXU", commutative: true, earlyOk: true}, // max(arg0,arg1), unsigned
+
+		// Single bit operations
+		{name: "BEXT", argLength: 2, reg: gp21, asm: "BEXT", earlyOk: true},                 // (arg0 >> (arg1 & 63)) & 1
+		{name: "BEXTI", argLength: 1, reg: gp11, asm: "BEXTI", aux: "Int64", earlyOk: true}, // (arg0 >> index) & 1
 
 		// Generate boolean values
 		{name: "SEQZ", argLength: 1, reg: gp11, asm: "SEQZ", earlyOk: true},                 // arg0 == 0, result is 0 or 1

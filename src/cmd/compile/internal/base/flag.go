@@ -181,7 +181,7 @@ func ParseFlags() {
 
 	Debug.ConcurrentOk = true
 	Debug.CompressInstructions = 1
-	Debug.MaxShapeLen = 500
+	Debug.MaxShapeLen = 100
 	Debug.AlignHot = 1
 	Debug.InlFuncsWithClosures = 1
 	Debug.InlStaticInit = 1
@@ -507,8 +507,8 @@ func concurrentBackendAllowed() bool {
 	if buildcfg.Experiment.FieldTrack {
 		return false
 	}
-	// TODO: fix races and enable the following flags
-	if Ctxt.Flag_dynlink || Flag.Race {
+	// TODO: fix races and enable the following flag
+	if Ctxt.Flag_dynlink {
 		return false
 	}
 	return true

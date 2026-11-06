@@ -1514,13 +1514,6 @@ func testSetsRemoteAddr(t *testing.T, mode testMode) {
 	// Relying on it here isn't particularly principled,
 	// but we don't have a good way to get the address out at the moment.
 	want := "192.0.2.1"
-	if mode == http3Mode {
-		// HTTP/3 does not yet use a TEST-NET-1 address. This is also not
-		// particularly principled, but just do this for now instead of
-		// half-heartedly trying to match minute internal details, and causing
-		// larger churns such as updating test TLS certs to include 192.0.2.1.
-		want = "127.0.0.1"
-	}
 	if !strings.HasPrefix(ip, want+":") && !strings.HasPrefix(ip, "[::1]:") {
 		t.Fatalf("got RemoteAddr %q, want %q", ip, want)
 	}
@@ -2987,7 +2980,7 @@ func TestTimeoutHandlerPanicRecovery(t *testing.T) {
 	}
 	runNoSynctest(t, func(t *testing.T, mode testMode) {
 		testHandlerPanic(t, false, mode, wrapper, ErrAbortHandler)
-	}, testNotParallel, http3SkippedMode)
+	}, testNotParallel)
 }
 
 func TestRedirectBadPath(t *testing.T) {
@@ -3160,13 +3153,13 @@ func testZeroLengthPostAndResponse(t *testing.T, mode testMode) {
 func TestHandlerPanicNil(t *testing.T) {
 	runNoSynctest(t, func(t *testing.T, mode testMode) {
 		testHandlerPanic(t, false, mode, nil, nil)
-	}, testNotParallel, http3SkippedMode)
+	}, testNotParallel)
 }
 
 func TestHandlerPanic(t *testing.T) {
 	runNoSynctest(t, func(t *testing.T, mode testMode) {
 		testHandlerPanic(t, false, mode, nil, "intentional death for testing")
-	}, testNotParallel, http3SkippedMode)
+	}, testNotParallel)
 }
 
 func TestHandlerPanicWithHijack(t *testing.T) {
@@ -3338,7 +3331,7 @@ func TestStripPrefixNotModifyRequest(t *testing.T) {
 	}
 }
 
-func TestRequestLimit(t *testing.T) { runSynctest(t, testRequestLimit, http3SkippedMode) }
+func TestRequestLimit(t *testing.T) { runSynctest(t, testRequestLimit) }
 func testRequestLimit(t *testing.T, mode testMode) {
 	bytesPerHeader := len("header12345: val12345\r\n")
 	numHeaders := ((DefaultMaxHeaderBytes + 4096) / bytesPerHeader) + 1
@@ -5259,7 +5252,7 @@ func TestServerValidatesHeaders(t *testing.T) {
 }
 
 func TestServerRequestContextCancel_ServeHTTPDone(t *testing.T) {
-	runSynctest(t, testServerRequestContextCancel_ServeHTTPDone, http3SkippedMode)
+	runSynctest(t, testServerRequestContextCancel_ServeHTTPDone)
 }
 func testServerRequestContextCancel_ServeHTTPDone(t *testing.T, mode testMode) {
 	ctxc := make(chan context.Context, 1)
@@ -5286,11 +5279,10 @@ func testServerRequestContextCancel_ServeHTTPDone(t *testing.T, mode testMode) {
 }
 
 // Tests that the Request.Context available to the Handler is canceled
-// if the peer closes their TCP connection. This requires that the server
-// is always blocked in a Read call so it notices the EOF from the client.
+// if the peer closes their connection.
 // See issues 15927 and 15224.
 func TestServerRequestContextCancel_ConnClose(t *testing.T) {
-	runSynctest(t, testServerRequestContextCancel_ConnClose, []testMode{http1Mode})
+	runSynctest(t, testServerRequestContextCancel_ConnClose)
 }
 func testServerRequestContextCancel_ConnClose(t *testing.T, mode testMode) {
 	inHandler := make(chan struct{})
@@ -5300,11 +5292,24 @@ func testServerRequestContextCancel_ConnClose(t *testing.T, mode testMode) {
 		<-r.Context().Done()
 		close(handlerDone)
 	}))
-	c, _ := cst.dialNettest()
-	defer c.Close()
-	io.WriteString(c, "GET / HTTP/1.1\r\nHost: foo\r\n\r\n")
+	cc, err := cst.tr.NewClientConn(t.Context(), mode.Scheme(), "example.tld:80")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cc.Close()
+
+	req, err := NewRequest("GET", cst.ts.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		cc.RoundTrip(req)
+	})
+	defer wg.Wait()
+
 	<-inHandler
-	c.Close() // this should trigger the context being done
+	cc.Close() // this should trigger the context being done
 	<-handlerDone
 }
 
@@ -5327,7 +5332,7 @@ func testServerContext_ServerContextKey(t *testing.T, mode testMode) {
 }
 
 func TestServerContext_LocalAddrContextKey(t *testing.T) {
-	runNoSynctest(t, testServerContext_LocalAddrContextKey, http3SkippedMode)
+	runNoSynctest(t, testServerContext_LocalAddrContextKey)
 }
 func testServerContext_LocalAddrContextKey(t *testing.T, mode testMode) {
 	ch := make(chan any, 1)
@@ -6918,7 +6923,13 @@ func testDisableKeepAliveUpgrade(t *testing.T, mode testMode) {
 	cl := s.Client()
 	cl.Transport.(*Transport).DisableKeepAlives = true
 
-	resp, err := cl.Get(s.URL)
+	req, err := NewRequest("GET", s.URL, nil)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+	req.Header.Set("Connection", "Upgrade")
+	req.Header.Set("Upgrade", "someProto")
+	resp, err := cl.Do(req)
 	if err != nil {
 		t.Fatalf("failed to perform request: %v", err)
 	}
@@ -7894,6 +7905,35 @@ func TestServerRequestBodyLength(t *testing.T) {
 		wantBodyLength:    5,
 		wantClose:         true, // RFC 9112 6.1
 	}, {
+		// RFC 9112 6.1
+		name: "HTTP/1.0 TE and CL with keep-alive",
+		message: joinCRLF(
+			"POST / HTTP/1.0",
+			"Host: example.tld",
+			"Connection: keep-alive",
+			"Transfer-Encoding: chunked",
+			"Content-Length: 5",
+			"",
+			"hello",
+		),
+		wantContentLength: 5,
+		wantBodyLength:    5,
+		wantClose:         true,
+	}, {
+		// RFC 9112 6.1
+		name: "HTTP/1.0 TE only with keep-alive",
+		message: joinCRLF(
+			"POST / HTTP/1.0",
+			"Host: example.tld",
+			"Connection: keep-alive",
+			"Transfer-Encoding: chunked",
+			"",
+			"",
+		),
+		wantContentLength: 0,
+		wantBodyLength:    0,
+		wantClose:         true,
+	}, {
 		// RFC 9112 6.3.4 paragraph 1
 		name: "TE only",
 		message: joinCRLF(
@@ -8419,5 +8459,78 @@ func TestServerCONNECTFailure(t *testing.T) {
 		}
 		conn.wantBytes(body)
 		conn.wantClosed()
+	})
+}
+
+func TestHandleRequest(t *testing.T) {
+	setup := func(h HandlerFunc) (*Server, *httptest.ResponseRecorder, *bytes.Buffer) {
+		var logBuf bytes.Buffer
+		s := &Server{
+			ErrorLog: log.New(&logBuf, "", 0),
+		}
+		if h != nil {
+			s.Handler = h
+		}
+		return s, httptest.NewRecorder(), &logBuf
+	}
+
+	t.Run("regular handle", func(t *testing.T) {
+		s, w, _ := setup(func(w ResponseWriter, r *Request) {
+			w.WriteHeader(200)
+		})
+		if err := s.HandleRequest(w, httptest.NewRequest(MethodGet, "/", nil)); err != nil {
+			t.Fatalf("HandleRequest = %v, want nil", err)
+		}
+		if w.Code != 200 {
+			t.Errorf("status = %d, want 200", w.Code)
+		}
+	})
+	t.Run("ErrAbortHandler panic", func(t *testing.T) {
+		s, w, logBuf := setup(func(w ResponseWriter, r *Request) {
+			panic(ErrAbortHandler)
+		})
+		if err := s.HandleRequest(w, httptest.NewRequest(MethodGet, "/", nil)); err != ErrAbortHandler {
+			t.Fatalf("HandleRequest = %v, want ErrAbortHandler", err)
+		}
+		if logBuf.Len() != 0 {
+			t.Errorf("unexpected log output: %s", logBuf.String())
+		}
+	})
+	t.Run("other panic", func(t *testing.T) {
+		s, w, logBuf := setup(func(w ResponseWriter, r *Request) {
+			panic("boom")
+		})
+		if err := s.HandleRequest(w, httptest.NewRequest(MethodGet, "/", nil)); err == nil {
+			t.Fatal("HandleRequest = nil, want error")
+		}
+		if !strings.Contains(logBuf.String(), "boom") {
+			t.Errorf("log output %q does not contain panic value", logBuf.String())
+		}
+	})
+	t.Run("OPTIONS *", func(t *testing.T) {
+		s, w, _ := setup(func(w ResponseWriter, r *Request) {
+			panic("boom")
+		})
+		if err := s.HandleRequest(w, httptest.NewRequest(MethodOptions, "*", nil)); err != nil {
+			t.Fatalf("OPTIONS * HandleRequest = %v, want nil", err)
+		}
+		s.DisableGeneralOptionsHandler = true
+		if err := s.HandleRequest(w, httptest.NewRequest(MethodOptions, "*", nil)); err == nil {
+			t.Fatal("OPTIONS * HandleRequest = nil, want error")
+		}
+	})
+	t.Run("DefaultServeMux", func(t *testing.T) {
+		defer func(orig *ServeMux) { DefaultServeMux = orig }(DefaultServeMux)
+		DefaultServeMux = NewServeMux()
+		DefaultServeMux.HandleFunc("/", func(w ResponseWriter, r *Request) {
+			w.WriteHeader(200)
+		})
+		s, w, _ := setup(nil)
+		if err := s.HandleRequest(w, httptest.NewRequest(MethodGet, "/", nil)); err != nil {
+			t.Fatalf("HandleRequest = %v, want nil", err)
+		}
+		if w.Code != 200 {
+			t.Errorf("status = %d, want 200", w.Code)
+		}
 	})
 }

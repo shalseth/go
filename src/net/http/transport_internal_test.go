@@ -41,11 +41,12 @@ func TestTransportPersistConnReadLoopEOF(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	treq := &transportRequest{Request: req, ctx: ctx, cancel: cancel}
 	cm := connectMethod{targetScheme: "http", targetAddr: ln.Addr().String()}
-	pc, err := tr.getConn(treq, cm)
+	pconn, err := tr.getConn(ctx, cm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pc.close(errors.New("test over"))
+	pc := pconn.cc.(*persistConn)
+	defer pc.CloseWithError(errors.New("test over"))
 
 	conn := <-connc
 	if conn == nil {
@@ -119,74 +120,76 @@ func TestTransportShouldRetryRequest(t *testing.T) {
 		pc  *persistConn
 		req *Request
 
-		err  error
-		want bool
+		err         error
+		wantRetry   bool
+		wantBackoff bool
 	}{
 		0: {
-			pc:   &persistConn{reused: false},
-			req:  dummyRequest("POST"),
-			err:  nothingWrittenError{},
-			want: false,
+			pc:        &persistConn{reused: false},
+			req:       dummyRequest("POST"),
+			err:       nothingWrittenError{},
+			wantRetry: false,
 		},
 		1: {
-			pc:   &persistConn{reused: true},
-			req:  dummyRequest("POST"),
-			err:  nothingWrittenError{},
-			want: true,
+			pc:        &persistConn{reused: true},
+			req:       dummyRequest("POST"),
+			err:       nothingWrittenError{},
+			wantRetry: true,
 		},
 		2: {
-			pc:   &persistConn{reused: true},
-			req:  dummyRequest("POST"),
-			err:  http2.ErrNoCachedConn,
-			want: true,
+			pc:        &persistConn{reused: true},
+			req:       dummyRequest("POST"),
+			err:       http2.ErrNoCachedConn,
+			wantRetry: true,
 		},
 		3: {
-			pc:   nil,
-			req:  nil,
-			err:  issue22091Error{}, // like an external http2ErrNoCachedConn
-			want: true,
+			pc:        nil,
+			req:       nil,
+			err:       issue22091Error{}, // like an external http2ErrNoCachedConn
+			wantRetry: true,
 		},
 		4: {
-			pc:   &persistConn{reused: true},
-			req:  dummyRequest("POST"),
-			err:  errMissingHost,
-			want: false,
+			pc:        &persistConn{reused: true},
+			req:       dummyRequest("POST"),
+			err:       errMissingHost,
+			wantRetry: false,
 		},
 		5: {
-			pc:   &persistConn{reused: true},
-			req:  dummyRequest("POST"),
-			err:  transportReadFromServerError{},
-			want: false,
+			pc:        &persistConn{reused: true},
+			req:       dummyRequest("POST"),
+			err:       transportReadFromServerError{},
+			wantRetry: false,
 		},
 		6: {
-			pc:   &persistConn{reused: true},
-			req:  dummyRequest("GET"),
-			err:  transportReadFromServerError{},
-			want: true,
+			pc:        &persistConn{reused: true},
+			req:       dummyRequest("GET"),
+			err:       transportReadFromServerError{},
+			wantRetry: true,
 		},
 		7: {
-			pc:   &persistConn{reused: true},
-			req:  dummyRequest("GET"),
-			err:  errServerClosedIdle,
-			want: true,
+			pc:        &persistConn{reused: true},
+			req:       dummyRequest("GET"),
+			err:       errServerClosedIdle,
+			wantRetry: true,
 		},
 		8: {
-			pc:   &persistConn{reused: true},
-			req:  dummyRequestWithBody("POST"),
-			err:  nothingWrittenError{},
-			want: true,
+			pc:        &persistConn{reused: true},
+			req:       dummyRequestWithBody("POST"),
+			err:       nothingWrittenError{},
+			wantRetry: true,
 		},
 		9: {
-			pc:   &persistConn{reused: true},
-			req:  dummyRequestWithBodyNoGetBody("POST"),
-			err:  nothingWrittenError{},
-			want: false,
+			pc:        &persistConn{reused: true},
+			req:       dummyRequestWithBodyNoGetBody("POST"),
+			err:       nothingWrittenError{},
+			wantRetry: false,
 		},
 	}
 	for i, tt := range tests {
-		got := tt.pc.shouldRetryRequest(tt.req, tt.err)
-		if got != tt.want {
-			t.Errorf("%d. shouldRetryRequest = %v; want %v", i, got, tt.want)
+		pconn := &poolConn{cc: tt.pc}
+		gotRetry, gotBackoff := shouldRetryRequest(0, pconn, tt.req, tt.err)
+		if gotRetry != tt.wantRetry || gotBackoff != tt.wantBackoff {
+			t.Errorf("%d. shouldRetryRequest = retry:%v, backoff:%v; want %v, %v", i, gotRetry, tt.wantRetry, gotBackoff, tt.wantBackoff)
 		}
 	}
 }

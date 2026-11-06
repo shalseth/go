@@ -99,11 +99,11 @@ func (f fact) archMethodKey() archMethodKey { return archMethodKey{f.target, f.p
 func (f fact) tool() string { t, _, _ := strings.Cut(f.gen, "/"); return t }
 
 // nonSpecOp reports whether name is an operation that will never come from spec:
-// they are Go conventions (String, Len) or architecture bridge operations
-// (ToArch, FromArch). They are excluded from the fact table, and
+// specifically architecture bridge operations ToArch and FromArch.
+// They are excluded from the fact table, and
 // so from every denominator. See SPEC-TRANSITION.md §2.7.
 func nonSpecOp(name string) bool {
-	return name == "String" || name == "Len" || name == "ToArch" || strings.HasSuffix(name, "FromArch")
+	return name == "ToArch" || strings.HasSuffix(name, "FromArch")
 }
 
 // loadOverlay builds a packages.Config.Overlay map from the scratch overlay
@@ -305,9 +305,9 @@ func readYAML(path string) *yaml.Node {
 // eachEntry calls fn for every key/value pair of every mapping under n, depth
 // first.
 //
-// It does not follow aliases. comments.yaml merges a shared block into fourteen
-// receivers with "<<: *common_methods", and those entries are counted where
-// they are defined; expanding the merge would count them fifteen times over.
+// It does not follow aliases, so an entry merged into several mappings with
+// "<<: *anchor" is counted once, where it is defined, rather than once per
+// merge.
 func eachEntry(n *yaml.Node, fn func(key, val *yaml.Node)) {
 	if n == nil || n.Kind == yaml.AliasNode {
 		return

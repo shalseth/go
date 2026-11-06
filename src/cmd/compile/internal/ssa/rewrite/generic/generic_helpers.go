@@ -78,7 +78,7 @@ func canLoadUnaligned(c *ssa.Config) bool {
 // canRotate reports whether the architecture supports
 // rotates of integer registers with the given number of bits.
 func canRotate(c *ssa.Config, bits int64) bool {
-	if bits > c.PtrSize*8 {
+	if bits > c.RegSize*8 {
 		// Don't rewrite to rotates bigger than the machine word.
 		return false
 	}
@@ -286,6 +286,10 @@ func isInlinableMemclr(c *ssa.Config, sz int64) bool {
 		return true
 	case "ppc64le", "ppc64", "loong64":
 		return sz < 512
+	case "riscv64":
+		// For small size, zeroing byte-by-byte is faster than a function call.
+		// Larger sizes still benefit from alignment and larger stores.
+		return sz <= 4
 	}
 	return false
 }

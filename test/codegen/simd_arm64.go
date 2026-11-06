@@ -36,6 +36,18 @@ var (
 	sinkM16 archsimd.Mask16x8
 	sinkM32 archsimd.Mask32x4
 	sinkM64 archsimd.Mask64x2
+
+	sinkScalarI8  int8
+	sinkScalarI8b int8
+	sinkScalarI64 int64
+	sinkScalarU64 uint64
+	sinkI64a      int64
+	sinkI64b      int64
+	sinkI64c      int64
+	sinkI64d      int64
+	sinkU64b      uint64
+	sinkU64c      uint64
+	sinkU64d      uint64
 )
 
 func broadcastConstImmFold(k int) {
@@ -73,11 +85,42 @@ func broadcastConstImmFold(k int) {
 func shiftAllImmFold(k int) {
 	switch k {
 	case 100:
-		// arm64:`VMOVI [$]100,` `VSSHL` -`VDUP`
+		// arm64:`VMOVI [$]0,` -`VSSHL` -`VDUP`
 		sinkI8 = sinkI8.ShiftAllLeft(100)
-		// arm64:`VMOVI [$]156,` `VUSHL` -`VDUP`
+		// arm64:`VUSHR [$]8,` -`VUSHL` -`VDUP`
 		sinkU8 = sinkU8.ShiftAllRight(100)
 	}
+}
+
+// Shifts by a constant use the immediate forms.
+func shiftAllLeftConst8(x archsimd.Int8x16) archsimd.Int8x16 {
+	// arm64:`VSHL [$]3, V\d+.B16` -`VSSHL`
+	return x.ShiftAllLeft(3)
+}
+
+func shiftAllRightConst16(x archsimd.Int16x8) archsimd.Int16x8 {
+	// arm64:`VSSHR [$]7, V\d+.H8` -`VSSHL`
+	return x.ShiftAllRight(7)
+}
+
+func shiftAllRightConst32(x archsimd.Int32x4) archsimd.Int32x4 {
+	// arm64:`VSSHR [$]24, V\d+.S4` -`VSSHL`
+	return x.ShiftAllRight(24)
+}
+
+func shiftAllRightConstHuge32(x archsimd.Int32x4) archsimd.Int32x4 {
+	// arm64:`VSSHR [$]32, V\d+.S4` -`VSSHL`
+	return x.ShiftAllRight(1000)
+}
+
+func shiftAllRightConstWidth64(x archsimd.Uint64x2) archsimd.Uint64x2 {
+	// arm64:`VUSHR [$]64, V\d+.D2` -`VUSHL`
+	return x.ShiftAllRight(64)
+}
+
+func shiftAllLeftConst64(x archsimd.Uint64x2) archsimd.Uint64x2 {
+	// arm64:`VSHL [$]63, V\d+.D2` -`VUSHL`
+	return x.ShiftAllLeft(63)
 }
 
 func setHiUint32(x, lo archsimd.Uint32x4) {
@@ -98,6 +141,31 @@ func getHiFloat32(x archsimd.Float32x4) {
 func getHiFloat64(x archsimd.Float64x2) {
 	// arm64:`VDUP V0.D\[1\],`
 	sinkF64 = x.HiToLo()
+}
+
+func getElemExtFold(x8 archsimd.Int8x16, u8 archsimd.Uint8x16, x16 archsimd.Int16x8, x32 archsimd.Int32x4, u16 archsimd.Uint16x8, u32 archsimd.Uint32x4) {
+	// arm64:`VSMOV V0.B\[3\],` -`MOVB`
+	sinkI64a = int64(x8.GetElem(3))
+	// arm64:`VSMOV V0.B\[5\],`
+	sinkScalarI8 = x8.GetElem(5)
+	// arm64:`VSMOV V[0-9]+.H\[5\],` -`MOVH`
+	sinkI64b = int64(x16.GetElem(5))
+	// arm64:`VSMOV V[0-9]+.S\[2\],` -`MOVW`
+	sinkI64c = int64(x32.GetElem(2))
+	// arm64:`VMOV V1.B\[7\],` -`MOVBU`
+	sinkScalarU64 = uint64(u8.GetElem(7))
+	// arm64:`VMOV V[0-9]+.H\[3\],` -`MOVHU`
+	sinkU64b = uint64(u16.GetElem(3))
+	// arm64:`VMOV V[0-9]+.S\[1\],` -`MOVWU`
+	sinkU64c = uint64(u32.GetElem(1))
+	// arm64:`VSMOV V1.B\[7\],` -`MOVB`
+	sinkI64d = int64(int8(u8.GetElem(7)))
+	// arm64:`VMOV V0.B\[6\],` -`VSMOV`
+	sinkU64d = uint64(uint8(x8.GetElem(6)))
+	// arm64:`VSMOV V0.B\[4\],`
+	e := x8.GetElem(4)
+	sinkScalarI64 = int64(e)
+	sinkScalarI8b = e
 }
 
 // does x.And(y).Equal(zero) peephole to the expected cmtst?
@@ -307,8 +375,8 @@ func sveShiftAllLeftVar64(x archsimd.Uint64s, s uint64) archsimd.Uint64s {
 
 // The zero value of a mask is an all-false predicate.
 func sveZeroMask() archsimd.Mask8s {
-	// arm64:`PPFALSE` -`ZDUP`
 	var m archsimd.Mask8s
+	// arm64:`PPFALSE` -`ZDUP`
 	return m
 }
 
@@ -376,4 +444,3 @@ func sveBroadcastFloatIfElse(x float32, m archsimd.Mask32s, z archsimd.Float32s)
 	// arm64:`ZCPYS\s+V[0-9]+, P[0-9]+\.M, Z[0-9]+\.S` -`ZDUP` -`ZSEL`
 	return archsimd.BroadcastFloat32s(x).IfElse(m, z)
 }
-

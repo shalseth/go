@@ -7988,6 +7988,52 @@ func TestConvertibleTo(t *testing.T) {
 	}
 }
 
+type sameMethodSet1 interface{ M() }
+type sameMethodSet2 interface{ M() }
+type sameMethodSetEmbed interface{ sameMethodSet1 }
+type otherMethodSet interface{ N() }
+
+type sameMethodSetImpl struct{ x int }
+
+func (sameMethodSetImpl) M() {}
+
+// Two defined interface types with the same method set have identical
+// underlying types, so unnamed pointers to them convert to one another,
+// as the compiler also accepts. See issue 82470.
+func TestConvertibleToIdenticalInterface(t *testing.T) {
+	type emptyIface interface{}
+
+	for _, tt := range []struct {
+		from, to Type
+		want     bool
+	}{
+		{TypeFor[*sameMethodSet1](), TypeFor[*sameMethodSet2](), true},
+		{TypeFor[*sameMethodSet1](), TypeFor[*sameMethodSetEmbed](), true},
+		{TypeFor[*sameMethodSet1](), TypeFor[*interface{ M() }](), true},
+		{TypeFor[*sameMethodSet1](), TypeFor[*otherMethodSet](), false},
+		{TypeFor[*emptyIface](), TypeFor[*any](), true},
+		// The element types of a slice have to be identical, and two
+		// different defined types never are.
+		{TypeFor[[]sameMethodSet1](), TypeFor[[]sameMethodSet2](), false},
+	} {
+		if got := tt.from.ConvertibleTo(tt.to); got != tt.want {
+			t.Errorf("(%s).ConvertibleTo(%s) = %v, want %v", tt.from, tt.to, got, tt.want)
+		}
+		// None of these are assignable, convertible or not.
+		if tt.from.AssignableTo(tt.to) {
+			t.Errorf("(%s).AssignableTo(%s) = true, want false", tt.from, tt.to)
+		}
+	}
+
+	// The converted pointer has to read as a value of the destination
+	// interface type, equal to the one built for that type directly.
+	var v sameMethodSet1 = sameMethodSetImpl{1}
+	var want sameMethodSet2 = sameMethodSetImpl{1}
+	if got := *ValueOf(&v).Convert(TypeFor[*sameMethodSet2]()).Interface().(*sameMethodSet2); got != want {
+		t.Errorf("value read through *sameMethodSet2 = %v, want %v", got, want)
+	}
+}
+
 func TestSetIter(t *testing.T) {
 	data := map[string]int{
 		"foo": 1,
@@ -8074,6 +8120,42 @@ func TestSetIter(t *testing.T) {
 		shouldPanic("using value obtained using unexported field", func() {
 			v.SetIterValue(iter)
 		})
+	}
+}
+
+// Issue 82373.
+func TestSetIterCopy(t *testing.T) {
+	const key, val = "key", "val"
+	m1 := map[string]string{key: val}
+	iter := ValueOf(m1).MapRange()
+	iter.Next()
+
+	var dst any
+	ValueOf(&dst).Elem().SetIterValue(iter)
+	if dst != val {
+		t.Errorf("SetIterValue set to %q, want %q", dst, val)
+	}
+	m1[key] = "val2"
+	if dst != val {
+		t.Errorf("SetIterValue aliased: is %q, want %q", dst, val)
+	}
+
+	ValueOf(&dst).Elem().SetIterKey(iter)
+	if dst != key {
+		t.Errorf("SetIterKey set to %q, want %q", dst, key)
+	}
+	delete(m1, key)
+	m1["key2"] = "val2"
+	if dst != key {
+		t.Errorf("SetIterKey aliased: is %q, want %q", dst, key)
+	}
+
+	m2 := map[string]error{key: nil}
+	iter = ValueOf(m2).MapRange()
+	iter.Next()
+	ValueOf(&dst).Elem().SetIterValue(iter)
+	if dst != nil {
+		t.Errorf("SetIterValue any set to %v (type %T), want nil", dst, dst)
 	}
 }
 

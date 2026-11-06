@@ -4,6 +4,8 @@
 
 package archsimd
 
+import "simd/internal/simdfmt"
+
 // Abs returns the elementwise absolute value of x.
 //
 // Asm: I8x16Abs
@@ -951,12 +953,44 @@ func (x Uint32x4) Max(y Uint32x4) (z Uint32x4)
 //
 //	z[i] = max(x[i], y[i])
 //
+// The handling of NaN and signed zeroes is architecture-dependent. ARM64 and
+// WASM follow the IEEE 754-2019 maximum algorithm, which also agrees with Go's
+// max built-in. AMD64 handles these differently. Notably, AMD64 is
+// non-commutative.
+//
+//	x     y     IEEE  AMD64
+//	----- ----- ----- -----
+//	NaN   y     NaN   y
+//	x     NaN   NaN   NaN
+//	-Inf  y     y     y
+//	x     -Inf  x     x
+//	+Inf  y     +Inf  +Inf
+//	x     +Inf  +Inf  +Inf
+//	+0    -0    +0    -0
+//	-0    +0    +0    +0
+//
 // Asm: F32x4Max
 func (x Float32x4) Max(y Float32x4) (z Float32x4)
 
 // Max returns the elementwise maximum of x and y.
 //
 //	z[i] = max(x[i], y[i])
+//
+// The handling of NaN and signed zeroes is architecture-dependent. ARM64 and
+// WASM follow the IEEE 754-2019 maximum algorithm, which also agrees with Go's
+// max built-in. AMD64 handles these differently. Notably, AMD64 is
+// non-commutative.
+//
+//	x     y     IEEE  AMD64
+//	----- ----- ----- -----
+//	NaN   y     NaN   y
+//	x     NaN   NaN   NaN
+//	-Inf  y     y     y
+//	x     -Inf  x     x
+//	+Inf  y     +Inf  +Inf
+//	x     +Inf  +Inf  +Inf
+//	+0    -0    +0    -0
+//	-0    +0    +0    +0
 //
 // Asm: F64x2Max
 func (x Float64x2) Max(y Float64x2) (z Float64x2)
@@ -1007,12 +1041,44 @@ func (x Uint32x4) Min(y Uint32x4) (z Uint32x4)
 //
 //	z[i] = min(x[i], y[i])
 //
+// The handling of NaN and signed zeroes is architecture-dependent. ARM64 and
+// WASM follow the IEEE 754-2019 minimum algorithm, which also agrees with Go's
+// min built-in. AMD64 handles these differently. Notably, AMD64 is
+// non-commutative.
+//
+//	x     y     IEEE  AMD64
+//	----- ----- ----- -----
+//	NaN   y     NaN   y
+//	x     NaN   NaN   NaN
+//	-Inf  y     -Inf  -Inf
+//	x     -Inf  -Inf  -Inf
+//	+Inf  y     y     y
+//	x     +Inf  x     x
+//	+0    -0    -0    -0
+//	-0    +0    -0    +0
+//
 // Asm: F32x4Min
 func (x Float32x4) Min(y Float32x4) (z Float32x4)
 
 // Min returns the elementwise minimum of x and y.
 //
 //	z[i] = min(x[i], y[i])
+//
+// The handling of NaN and signed zeroes is architecture-dependent. ARM64 and
+// WASM follow the IEEE 754-2019 minimum algorithm, which also agrees with Go's
+// min built-in. AMD64 handles these differently. Notably, AMD64 is
+// non-commutative.
+//
+//	x     y     IEEE  AMD64
+//	----- ----- ----- -----
+//	NaN   y     NaN   y
+//	x     NaN   NaN   NaN
+//	-Inf  y     -Inf  -Inf
+//	x     -Inf  -Inf  -Inf
+//	+Inf  y     y     y
+//	x     +Inf  x     x
+//	+0    -0    -0    -0
+//	-0    +0    -0    +0
 //
 // Asm: F64x2Min
 func (x Float64x2) Min(y Float64x2) (z Float64x2)
@@ -1673,12 +1739,20 @@ func (x Uint64x2) ShiftAllRight(shift uint64) (z Uint64x2)
 //
 //	z[i] = sqrt(x[i])
 //
+// The result is correctly rounded. Sqrt(+Inf) = +Inf, Sqrt(±0) = ±0, and
+// Sqrt(x) is NaN if x < 0 or x is NaN. The sign and payload of a NaN result
+// are unspecified.
+//
 // Asm: F32x4Sqrt
 func (x Float32x4) Sqrt() (z Float32x4)
 
 // Sqrt returns the elementwise square root of x.
 //
 //	z[i] = sqrt(x[i])
+//
+// The result is correctly rounded. Sqrt(+Inf) = +Inf, Sqrt(±0) = ±0, and
+// Sqrt(x) is NaN if x < 0 or x is NaN. The sign and payload of a NaN result
+// are unspecified.
 //
 // Asm: F64x2Sqrt
 func (x Float64x2) Sqrt() (z Float64x2)
@@ -2095,102 +2169,106 @@ func (x Float64x2) IfElse(mask Mask64x2, y Float64x2) (z Float64x2) {
 	return ix.BitSelect(iy, im).BitsToFloat64()
 }
 
-// String returns a string representation of SIMD vector x.
+// String returns x in the form "{x[0],x[1],...}".
 func (x Int8x16) String() string {
 	var s [16]int8
 	x.StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD vector x.
+// String returns x in the form "{x[0],x[1],...}".
 func (x Int16x8) String() string {
 	var s [8]int16
 	x.StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD vector x.
+// String returns x in the form "{x[0],x[1],...}".
 func (x Int32x4) String() string {
 	var s [4]int32
 	x.StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD vector x.
+// String returns x in the form "{x[0],x[1],...}".
 func (x Int64x2) String() string {
 	var s [2]int64
 	x.StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD vector x.
+// String returns x in the form "{x[0],x[1],...}".
 func (x Uint8x16) String() string {
 	var s [16]uint8
 	x.StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD vector x.
+// String returns x in the form "{x[0],x[1],...}".
 func (x Uint16x8) String() string {
 	var s [8]uint16
 	x.StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD vector x.
+// String returns x in the form "{x[0],x[1],...}".
 func (x Uint32x4) String() string {
 	var s [4]uint32
 	x.StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD vector x.
+// String returns x in the form "{x[0],x[1],...}".
 func (x Uint64x2) String() string {
 	var s [2]uint64
 	x.StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD vector x.
+// String returns x in the form "{x[0],x[1],...}".
 func (x Float32x4) String() string {
 	var s [4]float32
 	x.StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD vector x.
+// String returns x in the form "{x[0],x[1],...}".
 func (x Float64x2) String() string {
 	var s [2]float64
 	x.StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD mask x.
+// String returns x in the form "{x[0],x[1],...}", where 0 means false and 1
+// means true.
 func (x Mask8x16) String() string {
 	var s [16]int8
 	x.ToInt8x16().Neg().StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD mask x.
+// String returns x in the form "{x[0],x[1],...}", where 0 means false and 1
+// means true.
 func (x Mask16x8) String() string {
 	var s [8]int16
 	x.ToInt16x8().Neg().StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD mask x.
+// String returns x in the form "{x[0],x[1],...}", where 0 means false and 1
+// means true.
 func (x Mask32x4) String() string {
 	var s [4]int32
 	x.ToInt32x4().Neg().StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
-// String returns a string representation of SIMD mask x.
+// String returns x in the form "{x[0],x[1],...}", where 0 means false and 1
+// means true.
 func (x Mask64x2) String() string {
 	var s [2]int64
 	x.ToInt64x2().Neg().StoreArray(&s)
-	return sliceToString(s[:])
+	return simdfmt.SliceToString(s[:])
 }
 
 // BitsToFloat32 reinterprets the bits of each element of x as type float32.
@@ -2209,9 +2287,13 @@ func (x Float64x2) ToBits() (z Uint64x2)
 func (x Uint8x16) BitsToInt8() (z Int8x16)
 
 // ConvertToInt8 converts each element of x to int8.
+//
+// This wraps unrepresentable values.
 func (x Uint8x16) ConvertToInt8() (z Int8x16)
 
 // ConvertToUint8 converts each element of x to uint8.
+//
+// This wraps unrepresentable values.
 func (x Int8x16) ConvertToUint8() (z Uint8x16)
 
 // ToBits reinterprets the bits of each element of x as type uint8.
@@ -2221,9 +2303,13 @@ func (x Int8x16) ToBits() (z Uint8x16)
 func (x Uint16x8) BitsToInt16() (z Int16x8)
 
 // ConvertToInt16 converts each element of x to int16.
+//
+// This wraps unrepresentable values.
 func (x Uint16x8) ConvertToInt16() (z Int16x8)
 
 // ConvertToUint16 converts each element of x to uint16.
+//
+// This wraps unrepresentable values.
 func (x Int16x8) ConvertToUint16() (z Uint16x8)
 
 // ToBits reinterprets the bits of each element of x as type uint16.
@@ -2233,9 +2319,13 @@ func (x Int16x8) ToBits() (z Uint16x8)
 func (x Uint32x4) BitsToInt32() (z Int32x4)
 
 // ConvertToInt32 converts each element of x to int32.
+//
+// This wraps unrepresentable values.
 func (x Uint32x4) ConvertToInt32() (z Int32x4)
 
 // ConvertToUint32 converts each element of x to uint32.
+//
+// This wraps unrepresentable values.
 func (x Int32x4) ConvertToUint32() (z Uint32x4)
 
 // ToBits reinterprets the bits of each element of x as type uint32.
@@ -2245,9 +2335,13 @@ func (x Int32x4) ToBits() (z Uint32x4)
 func (x Uint64x2) BitsToInt64() (z Int64x2)
 
 // ConvertToInt64 converts each element of x to int64.
+//
+// This wraps unrepresentable values.
 func (x Uint64x2) ConvertToInt64() (z Int64x2)
 
 // ConvertToUint64 converts each element of x to uint64.
+//
+// This wraps unrepresentable values.
 func (x Int64x2) ConvertToUint64() (z Uint64x2)
 
 // ToBits reinterprets the bits of each element of x as type uint64.

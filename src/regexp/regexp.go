@@ -1272,20 +1272,25 @@ func extract(str string) (name string, num int, rest string, ok bool) {
 	return
 }
 
-func (re Regexp) splitSeq(s string, n int) iter.Seq[string] {
+func (re *Regexp) splitSeq(s string, n int) iter.Seq[string] {
 	return func(yield func(string) bool) {
 		if len(re.expr) > 0 && len(s) == 0 {
 			yield("")
 			return
 		}
 
-		var beg, end int
-		for match := range re.allStringIndex(s, n-1) {
+		var beg, end, count int
+		for match := range re.allStringIndex(s, n) {
+			if n > 0 && count >= n-1 {
+				break
+			}
+
 			end = match[0]
 			if match[1] != 0 {
 				if !yield(s[beg:end]) {
 					return
 				}
+				count++
 			}
 			beg = match[1]
 		}
@@ -1320,21 +1325,35 @@ func (re *Regexp) Split(s string, n int) []string {
 	if n == 0 {
 		return nil
 	}
+	if s == "" && re.expr == "" {
+		return []string{} // non-nil, like strings.SplitN
+	}
 	return collect(re.splitSeq(s, n), n)
 }
 
+// collect returns the elements of seq, which yields at most n of them
+// if n >= 0, or nil if there are none.
+// collect inlines, so seq does not escape, and it allocates only
+// once seq yields an element.
 func collect[T any](seq iter.Seq[T], n int) []T {
-	if n < 0 {
-		n = 8
-	} else if n > 256 {
-		n = 256
-	}
-	s := make([]T, 0, n)
-	s = slices.AppendSeq(s, seq)
-	if len(s) == 0 {
-		return nil
+	var s []T
+	for v := range seq {
+		if s == nil {
+			s = make([]T, 0, collectCap(n))
+		}
+		s = append(s, v)
 	}
 	return s
+}
+
+// collectCap returns the initial capacity for collect.
+// It is bounded because n may be far larger than the number of elements.
+// collectCap is split out to keep collect inlineable.
+func collectCap(n int) int {
+	if n < 0 {
+		return 8
+	}
+	return min(n, 256)
 }
 
 // AppendText implements [encoding.TextAppender]. The output

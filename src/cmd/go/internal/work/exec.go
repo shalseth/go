@@ -47,8 +47,6 @@ import (
 	"cmd/internal/buildid"
 	"cmd/internal/quoted"
 	"cmd/internal/sys"
-
-	"golang.org/x/tools/go/analysis"
 )
 
 const DefaultCFlags = "-O2 -g"
@@ -725,6 +723,7 @@ func (b *Builder) buildExport(ctx context.Context, a *Action) (err error) {
 	if p.Internal.Cover.Mode != "" {
 		gofiles = coverPr.goSources
 	}
+	gofiles = slices.Clip(gofiles)
 
 	if p.UsesCgo() || p.UsesSwig() {
 		if runCgoPr == nil {
@@ -738,14 +737,10 @@ func (b *Builder) buildExport(ctx context.Context, a *Action) (err error) {
 		cfiles = nil
 		if p.Standard && p.ImportPath == "runtime/cgo" {
 			// filter to the non-gcc files.
-			i := 0
-			for _, f := range sfiles {
-				if !strings.HasPrefix(f, "gcc_") {
-					sfiles[i] = f
-					i++
-				}
-			}
-			sfiles = sfiles[:i]
+			sfiles = slices.Clone(sfiles)
+			sfiles = slices.DeleteFunc(sfiles, func(f string) bool {
+				return strings.HasPrefix(f, "gcc_")
+			})
 		} else {
 			sfiles = nil
 		}
@@ -1538,7 +1533,7 @@ type vetConfig struct {
 	NonGoFiles   []string // absolute paths to package non-Go files
 	IgnoredFiles []string // absolute paths to ignored source files
 
-	Module      *analysis.Module  // module information, if any
+	Module      *vetModule        // module information, if any
 	ImportMap   map[string]string // map import path in source code to package path
 	PackageFile map[string]string // map package path to .a file with export data
 	Standard    map[string]bool   // map package path to whether it's in the standard library
@@ -1560,14 +1555,38 @@ type exportConfig struct {
 	ImportMap   map[string]string // maps import path to package path
 	PackageFile map[string]string // maps package path to file of type information
 	Output      string            // where to write file of type information
+	TrimPath    string            // rewrites for source file paths, as in -trimpath
 }
 
-// analysisModuleFromModulePublic converts a modinfo.ModulePublic to a analysis.Module.
-func analysisModuleFromModulePublic(m *modinfo.ModulePublic) *analysis.Module {
+// A vetModule describes the module to which a package belongs, in the
+// configuration of a vet tool. Its JSON encoding must match that of
+// golang.org/x/tools/go/analysis.Module, which the tool decodes.
+//
+// TODO(adonovan): reunify the types when x/tools/go/analysis moves to std (#82465).
+type vetModule struct {
+	Path      string          // module path
+	Version   string          // module version ("" if unknown, such as for workspace modules)
+	Replace   *vetModule      // replaced by this module
+	Time      *time.Time      // time version was created
+	Main      bool            // is this the main module?
+	Indirect  bool            // is this module only an indirect dependency of main module?
+	Dir       string          // directory holding files for this module, if any
+	GoMod     string          // path to go.mod file used when loading this module, if any
+	GoVersion string          // go version used in module (e.g. "go1.22.0")
+	Error     *vetModuleError // error loading module
+}
+
+// A vetModuleError holds errors loading a module; see [vetModule].
+type vetModuleError struct {
+	Err string // the error itself
+}
+
+// analysisModuleFromModulePublic converts a modinfo.ModulePublic to a vetModule.
+func analysisModuleFromModulePublic(m *modinfo.ModulePublic) *vetModule {
 	if m == nil {
 		return nil
 	}
-	vm := &analysis.Module{
+	vm := &vetModule{
 		Path:      m.Path,
 		Version:   m.Version,
 		Replace:   analysisModuleFromModulePublic(m.Replace),
@@ -1579,7 +1598,7 @@ func analysisModuleFromModulePublic(m *modinfo.ModulePublic) *analysis.Module {
 		GoVersion: m.GoVersion,
 	}
 	if m.Error != nil {
-		vm.Error = &analysis.ModuleError{Err: m.Error.Err}
+		vm.Error = &vetModuleError{Err: m.Error.Err}
 	}
 	return vm
 }
@@ -1785,9 +1804,9 @@ func (b *Builder) vet(ctx context.Context, a *Action) error {
 		// We need to retrieve them all, or none:
 		// the effect must be transactional.
 		var (
-			vetxFile   string                           // name of cached .vetx file
-			fixArchive string                           // name of cached .fix.zip file
-			stdout     io.Reader = bytes.NewReader(nil) // cached stdout stream
+			vetxFile   string    // name of cached .vetx file
+			fixArchive string    // name of cached .fix.zip file
+			stdout     io.Reader // cached stdout stream
 		)
 
 		// Obtain location of cached .vetx file.
@@ -1806,14 +1825,16 @@ func (b *Builder) vet(ctx context.Context, a *Action) error {
 		}
 
 		// Copy cached .stdout file to stdout.
-		if file, _, err := cache.GetFile(c, stdoutKey); err == nil {
-			f, err := os.Open(file)
-			if err != nil {
-				goto cachemiss
-			}
-			defer f.Close() // ignore error (can't fail)
-			stdout = f
+		file, _, err := cache.GetFile(c, stdoutKey)
+		if err != nil {
+			goto cachemiss
 		}
+		f, err := os.Open(file)
+		if err != nil {
+			goto cachemiss
+		}
+		defer f.Close() // ignore error (can't fail)
+		stdout = f
 
 		// Cache hit: commit transaction.
 		a.built = vetxFile
@@ -1861,12 +1882,10 @@ cachemiss:
 	// The principled fix is for 'go test' to run vet in -json mode (like
 	// 'go vet' does), where exit code 0 unambiguously indicates a clean
 	// run (with diagnostics in stdout), while non-zero indicates tool failure.
-	if f, err := os.Open(vcfg.VetxOutput); err == nil {
-		defer f.Close() // ignore error
+	vetx, vetxErr := os.Open(vcfg.VetxOutput)
+	if vetxErr == nil {
+		defer vetx.Close() // ignore error
 		a.built = vcfg.VetxOutput
-		if runErr == nil {
-			cache.Default().Put(id, f) // ignore error
-		}
 	}
 
 	if runErr != nil {
@@ -1890,6 +1909,12 @@ cachemiss:
 		}
 		f.Seek(0, io.SeekStart)           // ignore error
 		cache.Default().Put(stdoutKey, f) // ignore error
+	}
+
+	// Save facts last so that a cache hit on id implies fixArchiveKey
+	// and stdoutKey have already been written.
+	if vetxErr == nil {
+		cache.Default().Put(id, vetx) // ignore error
 	}
 
 	return nil
@@ -1973,6 +1998,7 @@ func (b *Builder) buildExportConfig(a *Action) *exportConfig {
 		ImportMap:   make(map[string]string),
 		PackageFile: make(map[string]string),
 		Output:      a.Target,
+		TrimPath:    a.trimpath(),
 	}
 	for i, s := range a.Package.Internal.RawImports {
 		if s != "C" {
@@ -2000,6 +2026,11 @@ func (b *Builder) exportActionID(a *Action, ecfg *exportConfig) cache.ActionID {
 	// Flags.
 	fmt.Fprintf(h, "importPath %s\n", ecfg.ImportPath)
 	fmt.Fprintf(h, "goVersion %s\n", ecfg.GoVersion)
+	// The type checker's sizes depend on the target architecture.
+	fmt.Fprintf(h, "goos %s goarch %s\n", cfg.Goos, cfg.Goarch)
+	if cfg.BuildTrimpath {
+		fmt.Fprintln(h, "trimpath")
+	}
 	// Source file contents.
 	for _, file := range ecfg.GoFiles {
 		fmt.Fprintf(h, "goFile %s %s\n", file, b.fileHash(file))

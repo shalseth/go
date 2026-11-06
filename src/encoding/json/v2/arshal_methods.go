@@ -67,6 +67,7 @@ type Marshaler interface {
 // the Encoder. The "json" package calling the method will
 // use the next available JSON representation for the receiver type,
 // as described in [Marshal].
+//
 // Implementations must not retain the pointer to [jsontext.Encoder].
 //
 // If the returned error is a [SemanticError], then unpopulated fields
@@ -133,7 +134,9 @@ type Unmarshaler interface {
 // Alternatively, it may return [errors.ErrUnsupported] without mutating
 // the Decoder. The "json" package calling the method will
 // use the next available JSON representation for the receiver type.
-// Implementations must not retain the pointer to [jsontext.Decoder].
+//
+// Implementations of UnmarshalJSONFrom must not retain the method receiver
+// or the pointer to [jsontext.Decoder].
 //
 // If the returned error is a [SemanticError], then unpopulated fields
 // of the error may be populated by [json] with additional context.
@@ -176,23 +179,23 @@ func makeMethodMarshaler(fncs *marshaler, t reflect.Type) *marshaler {
 	if needAddr, ok := implements(t, textMarshalerType); ok {
 		fncs.nonDefault = true
 		prevMarshal := fncs.fnc
-		fncs.fnc = func(enc *jsontext.Encoder, va addressableValue, mo *jsonopts.Struct) error {
+		fncs.fnc = func(enc *jsontext.Encoder, vm maybeAddressableValue, mo *jsonopts.Struct) error {
 			if mo.Flags.Get(jsonflags.CallMethodsWithLegacySemantics) &&
-				((needAddr && va.forcedAddr) ||
-					(va.forcedAddr && export.Encoder(enc).Tokens.Last.NeedObjectName() && t.Kind() == reflect.String)) {
+				((needAddr && vm.legacyNotAddressable) ||
+					(vm.legacyNotAddressable && export.Encoder(enc).Tokens.Last.NeedObjectName() && t.Kind() == reflect.String)) {
 				// Do not call MarshalText on unaddressable values and map keys of string kind.
 				// A map key of pointer kind is dereferenced before reaching here,
-				// in which case va.forcedAddr is false and MarshalText is still called.
-				return prevMarshal(enc, va, mo)
+				// in which case vm.legacyNotAddressable is false and MarshalText is still called.
+				return prevMarshal(enc, vm, mo)
 			}
-			marshaler, _ := reflect.TypeAssert[encoding.TextMarshaler](va.Addr())
+			marshaler := vm.typeAssertInterface[encoding.TextMarshaler](needAddr)
 			if err := export.Encoder(enc).AppendRaw('"', false, func(b []byte) ([]byte, error) {
 				b2, err := marshaler.MarshalText()
 				return append(b, b2...), err
 			}); err != nil {
 				err = wrapErrUnsupported(err, "MarshalText method")
 				if mo.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-					return internal.NewMarshalerError(va.Addr().Interface(), err, "MarshalText") // unlike unmarshal, always wrapped
+					return internal.NewMarshalerError(vm.ensureAddr().Addr().Interface(), err, "MarshalText") // unlike unmarshal, always wrapped
 				}
 				if !isSemanticError(err) && !export.IsIOError(err) {
 					err = newMarshalErrorBefore(enc, t, err)
@@ -206,20 +209,20 @@ func makeMethodMarshaler(fncs *marshaler, t reflect.Type) *marshaler {
 	if needAddr, ok := implements(t, textAppenderType); ok {
 		fncs.nonDefault = true
 		prevMarshal := fncs.fnc
-		fncs.fnc = func(enc *jsontext.Encoder, va addressableValue, mo *jsonopts.Struct) (err error) {
+		fncs.fnc = func(enc *jsontext.Encoder, vm maybeAddressableValue, mo *jsonopts.Struct) (err error) {
 			if mo.Flags.Get(jsonflags.CallMethodsWithLegacySemantics) &&
-				((needAddr && va.forcedAddr) ||
-					(va.forcedAddr && export.Encoder(enc).Tokens.Last.NeedObjectName() && t.Kind() == reflect.String)) {
+				((needAddr && vm.legacyNotAddressable) ||
+					(vm.legacyNotAddressable && export.Encoder(enc).Tokens.Last.NeedObjectName() && t.Kind() == reflect.String)) {
 				// Do not call AppendText on unaddressable values and map keys of string kind.
 				// A map key of pointer kind is dereferenced before reaching here,
-				// in which case va.forcedAddr is false and AppendText is still called.
-				return prevMarshal(enc, va, mo)
+				// in which case vm.legacyNotAddressable is false and AppendText is still called.
+				return prevMarshal(enc, vm, mo)
 			}
-			appender, _ := reflect.TypeAssert[encoding.TextAppender](va.Addr())
+			appender := vm.typeAssertInterface[encoding.TextAppender](needAddr)
 			if err := export.Encoder(enc).AppendRaw('"', false, appender.AppendText); err != nil {
 				err = wrapErrUnsupported(err, "AppendText method")
 				if mo.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-					return internal.NewMarshalerError(va.Addr().Interface(), err, "AppendText") // unlike unmarshal, always wrapped
+					return internal.NewMarshalerError(vm.ensureAddr().Addr().Interface(), err, "AppendText") // unlike unmarshal, always wrapped
 				}
 				if !isSemanticError(err) && !export.IsIOError(err) {
 					err = newMarshalErrorBefore(enc, t, err)
@@ -233,25 +236,25 @@ func makeMethodMarshaler(fncs *marshaler, t reflect.Type) *marshaler {
 	if needAddr, ok := implements(t, jsonMarshalerType); ok {
 		fncs.nonDefault = true
 		prevMarshal := fncs.fnc
-		fncs.fnc = func(enc *jsontext.Encoder, va addressableValue, mo *jsonopts.Struct) error {
+		fncs.fnc = func(enc *jsontext.Encoder, vm maybeAddressableValue, mo *jsonopts.Struct) error {
 			if mo.Flags.Get(jsonflags.CallMethodsWithLegacySemantics) &&
-				((needAddr && va.forcedAddr) || export.Encoder(enc).Tokens.Last.NeedObjectName()) {
+				((needAddr && vm.legacyNotAddressable) || export.Encoder(enc).Tokens.Last.NeedObjectName()) {
 				// Do not call MarshalJSON on unaddressable values and map keys.
-				return prevMarshal(enc, va, mo)
+				return prevMarshal(enc, vm, mo)
 			}
-			marshaler, _ := reflect.TypeAssert[Marshaler](va.Addr())
+			marshaler := vm.typeAssertInterface[Marshaler](needAddr)
 			val, err := marshaler.MarshalJSON()
 			if err != nil {
 				err = wrapErrUnsupported(err, "MarshalJSON method")
 				if mo.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-					return internal.NewMarshalerError(va.Addr().Interface(), err, "MarshalJSON") // unlike unmarshal, always wrapped
+					return internal.NewMarshalerError(vm.ensureAddr().Addr().Interface(), err, "MarshalJSON") // unlike unmarshal, always wrapped
 				}
 				err = newMarshalErrorBefore(enc, t, err)
 				return collapseSemanticErrors(err)
 			}
 			if err := enc.WriteValue(val); err != nil {
 				if mo.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-					return internal.NewMarshalerError(va.Addr().Interface(), err, "MarshalJSON") // unlike unmarshal, always wrapped
+					return internal.NewMarshalerError(vm.ensureAddr().Addr().Interface(), err, "MarshalJSON") // unlike unmarshal, always wrapped
 				}
 				if isSyntacticError(err) {
 					err = newMarshalErrorBefore(enc, t, err)
@@ -265,16 +268,16 @@ func makeMethodMarshaler(fncs *marshaler, t reflect.Type) *marshaler {
 	if needAddr, ok := implements(t, jsonMarshalerToType); ok {
 		fncs.nonDefault = true
 		prevMarshal := fncs.fnc
-		fncs.fnc = func(enc *jsontext.Encoder, va addressableValue, mo *jsonopts.Struct) error {
+		fncs.fnc = func(enc *jsontext.Encoder, vm maybeAddressableValue, mo *jsonopts.Struct) error {
 			if mo.Flags.Get(jsonflags.CallMethodsWithLegacySemantics) &&
-				((needAddr && va.forcedAddr) || export.Encoder(enc).Tokens.Last.NeedObjectName()) {
+				((needAddr && vm.legacyNotAddressable) || export.Encoder(enc).Tokens.Last.NeedObjectName()) {
 				// Do not call MarshalJSONTo on unaddressable values and map keys.
-				return prevMarshal(enc, va, mo)
+				return prevMarshal(enc, vm, mo)
 			}
 			xe := export.Encoder(enc)
 			prevDepth, prevLength := xe.Tokens.DepthLength()
 			xe.Flags.Set(jsonflags.WithinArshalCall | 1)
-			marshaler, _ := reflect.TypeAssert[MarshalerTo](va.Addr())
+			marshaler := vm.typeAssertInterface[MarshalerTo](needAddr)
 			err := marshaler.MarshalJSONTo(enc)
 			xe.Flags.Set(jsonflags.WithinArshalCall | 0)
 			currDepth, currLength := xe.Tokens.DepthLength()
@@ -284,12 +287,12 @@ func makeMethodMarshaler(fncs *marshaler, t reflect.Type) *marshaler {
 			if err != nil {
 				if errors.Is(err, errors.ErrUnsupported) {
 					if prevDepth == currDepth && prevLength == currLength {
-						return prevMarshal(enc, va, mo)
+						return prevMarshal(enc, vm, mo)
 					}
 					err = errUnsupportedMutation
 				}
 				if mo.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-					return internal.NewMarshalerError(va.Addr().Interface(), err, "MarshalJSONTo") // unlike unmarshal, always wrapped
+					return internal.NewMarshalerError(vm.ensureAddr().Addr().Interface(), err, "MarshalJSONTo") // unlike unmarshal, always wrapped
 				}
 				if !export.IsIOError(err) {
 					err = newSemanticErrorWithPosition(enc, t, prevDepth, prevLength, err)
@@ -313,7 +316,7 @@ func makeMethodUnmarshaler(fncs *unmarshaler, t reflect.Type) *unmarshaler {
 
 	if _, ok := implements(t, textUnmarshalerType); ok {
 		fncs.nonDefault = true
-		fncs.fnc = func(dec *jsontext.Decoder, va addressableValue, uo *jsonopts.Struct) error {
+		fncs.fnc = func(dec *jsontext.Decoder, va alwaysAddressableValue, uo *jsonopts.Struct) error {
 			xd := export.Decoder(dec)
 			var flags jsonwire.ValueFlags
 			val, err := xd.ReadValue(&flags)
@@ -348,7 +351,7 @@ func makeMethodUnmarshaler(fncs *unmarshaler, t reflect.Type) *unmarshaler {
 	if _, ok := implements(t, jsonUnmarshalerType); ok {
 		fncs.nonDefault = true
 		prevUnmarshal := fncs.fnc
-		fncs.fnc = func(dec *jsontext.Decoder, va addressableValue, uo *jsonopts.Struct) error {
+		fncs.fnc = func(dec *jsontext.Decoder, va alwaysAddressableValue, uo *jsonopts.Struct) error {
 			if uo.Flags.Get(jsonflags.CallMethodsWithLegacySemantics) &&
 				export.Decoder(dec).Tokens.Last.NeedObjectName() {
 				// Do not call UnmarshalJSON on map keys.
@@ -374,7 +377,7 @@ func makeMethodUnmarshaler(fncs *unmarshaler, t reflect.Type) *unmarshaler {
 	if _, ok := implements(t, jsonUnmarshalerFromType); ok {
 		fncs.nonDefault = true
 		prevUnmarshal := fncs.fnc
-		fncs.fnc = func(dec *jsontext.Decoder, va addressableValue, uo *jsonopts.Struct) error {
+		fncs.fnc = func(dec *jsontext.Decoder, va alwaysAddressableValue, uo *jsonopts.Struct) error {
 			if uo.Flags.Get(jsonflags.CallMethodsWithLegacySemantics) &&
 				export.Decoder(dec).Tokens.Last.NeedObjectName() {
 				// Do not call UnmarshalJSONFrom on map keys.

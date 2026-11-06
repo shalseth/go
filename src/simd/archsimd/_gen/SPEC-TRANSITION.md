@@ -342,8 +342,8 @@ decay.
   tolerated-miss list converge: all three `ops_internal_*.go` files (amd64,
   arm64, sve) contain zero exported declarations, so every compiler-only
   operation falls outside `specfill`'s view without needing a category. The
-  permanent residue is small and enumerable: the `String`, `Len`, `ToArch`
-  methods and `xFromArch` functions.
+  permanent residue is small and enumerable: the `ToArch` methods and
+  `xFromArch` functions.
 
 ## 1.8 Named results
 
@@ -457,23 +457,23 @@ wherever its prerequisites and track allow.
 | [ ] | A | `compiler-ops` | Compiler-only ops decision | — | — |
 | [ ] | A | `convert-lo` | `ExtendLo*`/`ConvertLo*` shape and naming | — | `width` |
 | [ ] | A | `mask-bits` | Mask bitmap load/store shape and naming | — | `width` |
-| [ ] | A | `impl-defined` | Implementation-defined behavior policy | — | — |
+| [x] | A | `impl-defined` | Implementation-defined behavior policy | — | — |
 | [x] | B | `specfill` | API walker + report mode | — | — |
 | [x] | B | `fill-gen` | Wire `specfill` into the generators | `specfill` | — |
 | [x] | B | `named-results` | Reconcile parameter and result names with spec | `fill-gen` | — |
 | [x] | B | `gen-docs` | Inject spec docs into generated output | `fill-gen` | `named-results` |
 | [x] | B | `fill-enforce` | Signature + name mismatch becomes an error | `named-results` | — |
 | [x] | C | `ci-audit` | CI/hardware audit | — | — |
-| [ ] | C | `conform-fixed` | Conformance harness, fixed-width types | `ci-audit` | `specfill` |
+| [ ] | C | `conform-fixed` | Conformance harness, fixed-width types | `ci-audit`, `impl-defined` | `specfill` |
 | [ ] | C | `conform-scalable` | Conformance harness, scalable types | `width`, `conform-fixed` | — |
 | [x] | D | `doc-explore` | Doc-mechanism exploration on a hard family | — | — |
 | [x] | D | `spec-common` | Spec the common operations | `width`, `doc-explore` | `specfill` |
-| [ ] | C | `validate-amd64` | Validate spec bodies against amd64 | `conform-fixed`, `spec-common`, `impl-defined` | — |
+| [ ] | C | `validate-amd64` | Validate spec bodies against amd64 | `conform-fixed`, `spec-common` | — |
 | [ ] | C | `conform-flip` | Flip conformance direction | `validate-amd64`, `conform-scalable` | — |
 | [ ] | D | `spec-all` | Bulk spec migration | `spec-common`, `convert-lo`, `mask-bits` | `specfill`, `fill-enforce` |
-| [ ] | E | `doc-triage` | Hand-written doc conflict triage | `specfill` | `spec-common` |
+| [x] | E | `doc-triage` | Hand-written doc conflict triage | `specfill` | `spec-common` |
 | [x] | E | `comments-yaml` | Drop spec-covered docs from `midway/comments.yaml` | `gen-docs`, `spec-common` | `fill-enforce` |
-| [ ] | E | `handwritten-fill` | Enable `-w` on hand-written files | `gen-docs`, `doc-triage` | — |
+| [x] | E | `handwritten-fill` | Enable `-w` on hand-written files | `gen-docs`, `doc-triage` | — |
 | [ ] | E | `template-docs` | Retire generator-supplied API docs | `gen-docs`, `spec-all` | — |
 | [ ] | E | `cat-rehome` | Re-home `categories.yaml` non-doc fields | `template-docs` | — |
 | [ ] | E | `compiler-ops-impl` | Implement compiler-only ops representation | `compiler-ops`, `cat-rehome` | — |
@@ -694,7 +694,7 @@ the API name changes, land the rename through the generators as its own CL.
 recorded in `internal/spec/doc.go`.
 
 ### `impl-defined` — Implementation-defined behavior policy
-**Done:** [ ] · **Needs:** — · **Blocks:** `validate-amd64` · **Risk:** `risk-impl-defined-behavior`
+**Done:** [x] · **Needs:** — · **Blocks:** `conform-fixed` · **Risk:** `risk-impl-defined-behavior`
 
 Decide what counts as implementation-defined behavior in the SIMD API, and how
 spec expresses it so conformance testing stays meaningful. Architectures
@@ -726,11 +726,12 @@ conversion rounding, shuffle index out of range, saturation edges, NaN/±0
 handling — classifying each as specified, implementation-defined, or undefined.
 (2) Choose and document the spec vocabulary in `internal/spec/doc.go`. (3)
 Implement it far enough that one operation with a genuinely
-implementation-defined corner round-trips through `refgen` and the harness.
+implementation-defined corner round-trips through `refgen`.
 
 **Done when** an operation with an architecture-dependent corner can be written
-in spec, generated into `simdref`, and conformance-tested without a false failure
-on any supported target.
+in spec, generated into `simdref`. If this is done in conjunction with
+`conform-fixed`, also check that variations can be conformance-tested without a
+false failure on any supported target.
 
 ## Track B — Instrumentation and enforcement
 
@@ -986,53 +987,20 @@ knows which targets it is writing tests for.
 
 **Results**
 
-| amd64            | gotip-linux-amd64 | gotip-linux-amd64_avx512 |
-| ---------------- | ----------------- | ------------------------ |
-| AVX              | ✔                 | ✔                        |
-| AVX2             | ✔                 | ✔                        |
-| AVX512           | ✘                 | ✔                        |
-| AVX512BITALG     | ✘                 | ✔                        |
-| AVX512GFNI       | ✘                 | ✔                        |
-| AVX512VAES       | ✘                 | ✔                        |
-| AVX512VBMI       | ✘                 | ✔                        |
-| AVX512VBMI2      | ✘                 | ✔                        |
-| AVX512VNNI       | ✘                 | ✔                        |
-| AVX512VPCLMULQDQ | ✘                 | ✔                        |
-| AVX512VPOPCNTDQ  | ✘                 | ✔                        |
-| AVXAES           | ✔                 | ✔                        |
-| AVXPCLMULQDQ     | ✔                 | ✔                        |
-| AVXVNNI          | ✘                 | ✔                        |
-| FMA              | ✔                 | ✔                        |
-| SHA              | ✘                 | ✔                        |
-| VAES             | ✘                 | ✔                        |
-| VPCLMULQDQ       | ✘                 | ✔                        |
+Every configuration can be tested fully and practically: amd64 including
+AVX512 on the gotip-linux-amd64 gomote, NEON on the gotip-linux-arm64
+gomote (or `qemu-aarch64 -cpu neoverse-n1`), SVE with `qemu-aarch64 -cpu
+neoverse-n2` (128-bit) and `-cpu neoverse-v1` (256-bit), and wasm with `node`.
+See "Testing on other platforms" in [README.md](README.md) for the per-builder
+feature tables, commands, and known emulator limitations.
 
-For amd64, use the gotip-linux-amd64_avx512 gomote for testing.
-
-| arm64           | gotip-linux-arm64 | qemu-aarch64 -cpu neoverse-n2 | qemu-aarch64 -cpu neoverse-v1 |
-| --------------- | ----------------- | ----------------------------- | ----------------------------- |
-| PMULL           | ✔                 | ✔                             | ✔                             |
-| SVE             | ✘                 | ✔                             | ✔                             |
-| SVE2            | ✘                 | ✔                             | ✔                             |
-| SVE vector size | n/a               | 128                           | 256                           |
-
-`qemu-aarch64 -cpu neoverse-n1` (which matches the capabilities of
-gotip-linux-arm64) is roughly 7x slower than `gotip-linux-arm64`, so well within
-the range of practical conformance testing.
-
-For NEON, use the gotip-linux-arm64 gomote for testing. For SVE, use
-`qemu-aarch64 -cpu neoverse-v1`.
-
-| wasm    | js-node | wasip1-wazero |
-| ------- | ------- | ------------- |
-| SIMD128 | ✔       | ✔             |
-
-`node` is about 3x faster than `wazero`.
-
-For wasm, use `node` for testing.
+Emulation is fast enough for the conformance suite: each package's conformance
+tests take seconds under `qemu-aarch64`. `qemu-aarch64 -cpu neoverse-n1` is
+roughly 7x slower than the gotip-linux-arm64 builder, and node is about 3x
+faster than wazero.
 
 ### `conform-fixed` — Conformance harness, fixed-width types
-**Done:** [ ] · **Needs:** `ci-audit` · **Blocks:** `validate-amd64`, `conform-scalable` · **Prefers:** `specfill`
+**Done:** [ ] · **Needs:** `ci-audit`, `impl-defined` · **Blocks:** `validate-amd64`, `conform-scalable` · **Prefers:** `specfill`
 
 Generated tests comparing `archsimd` against `internal/simdref`. The generator's
 input is spec (hand-written source), so this is not a generator reading another
@@ -1066,7 +1034,7 @@ suite, gated on SVE availability per `ci-audit`.
 the hardware's actual vector length.
 
 ### `validate-amd64` — Validate spec bodies against amd64
-**Done:** [ ] · **Needs:** `conform-fixed`, `spec-common`, `impl-defined` · **Blocks:** `conform-flip`
+**Done:** [ ] · **Needs:** `conform-fixed`, `spec-common` · **Blocks:** `conform-flip`
 
 Run conformance with amd64 as the oracle. Every failure is a spec bug until
 proven otherwise. See §1.9.
@@ -1193,9 +1161,9 @@ other than the permanent residue named in §1.7 (`String`, `Len`).
 Retiring the other documentation sources, then `categories.yaml` itself.
 
 ### `doc-triage` — Hand-written doc conflict triage
-**Done:** [ ] · **Needs:** `specfill` · **Prefers:** `spec-common` · **Blocks:** `handwritten-fill` · **Risk:** `risk-silent-doc-loss`
+**Done:** [x] · **Needs:** `specfill` · **Prefers:** `spec-common` · **Blocks:** `handwritten-fill` · **Risk:** `risk-silent-doc-loss`
 
-Make it safe for `handwritten-fill` to rewrite hand-written files, by emptying
+Make it safe for `handwritten-fill` to rewrite hand-written files, by triaging
 the conflict set first.
 
 A conflict is a declaration where spec has a doc *and* the hand-written file has
@@ -1220,8 +1188,9 @@ The `slicepart_*.go` files matter most: they declare the `Load*Part` family spec
 *already* covers via `LoadZPart`, so their prose conflicts on day one — and one
 of them documents `LoadUint32x4Part` as loading "a Int32x4".
 
-**Done when** `specfill -no-fill-names -diff` is empty and `specfill` reports
-zero check (a) violations.
+**Done when** every conflict in `specfill -diff` has been triaged so rewriting
+with `specfill -w` loses no useful documentation, and `specfill` reports zero
+check (a) violations.
 
 ### `comments-yaml` — Drop spec-covered docs from `midway/comments.yaml`
 **Done:** [x] · **Needs:** `gen-docs`, `spec-common` · **Prefers:** `fill-enforce`
@@ -1242,21 +1211,21 @@ sources those docs through `specfill`, and `simd_stubs.go` and
 `simd_emulated.go` carry identical spec-derived docs for them.
 
 ### `handwritten-fill` — Enable `-w` on hand-written files
-**Done:** [ ] · **Needs:** `gen-docs`, `doc-triage` · **Risk:** `risk-silent-doc-loss`
+**Done:** [x] · **Needs:** `gen-docs`, `doc-triage` · **Risk:** `risk-silent-doc-loss`
 
-Turn on doc rewriting for hand-written files, once `doc-triage` has emptied the
-conflict set — at which point `-w` rewrites only docs that already match what it
-would write.
+Run `specfill -w` across all hand-written files once `doc-triage` has triaged
+the conflict set, and drop `NoFillDoc: !isGen` from `TestFill` in
+`cmd/specfill` so CI enforces spec-filled doc comments on hand-written files as
+well as generated files.
 
-Two guards, both on `cmd/specfill` only. This does **not** change `gentools`'
-shared `-w`, which every generator uses:
+Two guards on `cmd/specfill` (implemented during `specfill`) protect `-w`:
 
 - `specfill -w` refuses to run when the report has any findings, or if there are
   uncommitted changes, so its diff is the complete story of what it did.
-- `specfill -w` never runs in CI; CI runs report mode (`fill-enforce`).
+- `specfill -w` never runs in CI; CI runs `TestFill` (`fill-enforce`).
 
 **Done when** `specfill -w` over the hand-written files is a no-op on a clean
-tree.
+tree and `TestFill` checks doc comments on hand-written files.
 
 ### `template-docs` — Retire generator-supplied API docs
 **Done:** [ ] · **Needs:** `gen-docs`, `spec-all` · **Blocks:** `cat-rehome`
@@ -1394,12 +1363,12 @@ each is far cheaper to settle before the bodies are written than after.
 |---|---|---|---|
 | **[ ]** | `risk-spec-defects` | Known spec defects | `convert-lo`, `mask-bits` |
 | **[x]** | `risk-concrete-width` | Executing spec at a concrete width | `width` |
-| **[ ]** | `risk-impl-defined-behavior` | Implementation-defined behavior | `impl-defined` |
+| **[x]** | `risk-impl-defined-behavior` | Implementation-defined behavior | `impl-defined` |
 | **[x]** | `risk-doc-template-ceiling` | Doc-template ceiling — the fallback is a mechanism change affecting every doc written so far | `doc-explore` |
 | **[ ]** | `risk-ref-impl-effort` | Reference-implementation effort — every migrated operation needs a body that is *correct*, because conformance tests against it; the distribution of difficulty is unknown | `spec-common`, `spec-all` |
 | **[x]** | `risk-conformance-env` | Conformance execution environment — can CI run arm64/SVE/wasm, and at what cost? | `ci-audit` |
 | **[ ]** | `risk-sig-refactor-convergence` | `sig-refactor` may not converge — if it does not, §1.1 needs revisiting | `sig-refactor` |
-| **[ ]** | `risk-silent-doc-loss` | Silent doc loss — under §1.6, text without a note prefix is spec-owned, so implementation text nobody prefixed is dropped on the first rewrite; the guards are review of every rewrite's `-diff` and, once generators emit no prose of their own, `AllowDocRewrite` | `gen-docs`, `doc-triage`, `handwritten-fill` |
+| **[x]** | `risk-silent-doc-loss` | Silent doc loss — under §1.6, text without a note prefix is spec-owned, so implementation text nobody prefixed is dropped on the first rewrite; the guards are review of every rewrite's `-diff` and, once generators emit no prose of their own, `AllowDocRewrite` | `gen-docs`, `doc-triage`, `handwritten-fill` |
 | **[ ]** | `risk-cat-unknowns` | Unknown unknowns in `categories.yaml` — the field audit was static | `cat-rehome` |
 
 ---

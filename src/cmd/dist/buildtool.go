@@ -119,7 +119,6 @@ var bootstrapDirs = []string{
 	"cmd/vendor/golang.org/x/mod/sumdb/dirhash",
 	"cmd/vendor/golang.org/x/mod/zip",
 	"cmd/vendor/golang.org/x/sync/semaphore",
-	"cmd/vendor/golang.org/x/tools/go/analysis",
 	"compress/flate",
 	"compress/zlib",
 	"container/heap",
@@ -211,6 +210,16 @@ func bootstrapBuildTools() {
 			}
 		}
 	}
+
+	// Unset GOWASM before invoking the bootstrap toolchain, which may not
+	// recognize newly added GOWASM features.
+	// This must happen before the "go env GOVERSION" check below (rather than
+	// in the os.Setenv block further down) because cmd/go eagerly parses
+	// GOWASM in internal/buildcfg at startup and "go env" calls
+	// buildcfg.Check(), which exits with a fatal error on unknown GOWASM
+	// values.
+	defer os.Setenv("GOWASM", os.Getenv("GOWASM"))
+	os.Setenv("GOWASM", "")
 
 	// check bootstrap version.
 	ver := run(pathf("%s/bin", goroot_bootstrap), CheckExit, pathf("%s/bin/go", goroot_bootstrap), "env", "GOVERSION")

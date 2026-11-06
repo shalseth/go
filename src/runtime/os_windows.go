@@ -789,6 +789,70 @@ func newosproc(mp *m) {
 	stdcall(_CloseHandle, thandle)
 }
 
+// poll_runtime_startThread starts fn on a new OS thread, locked for the entire
+// lifetime of fn. The thread never runs another goroutine and exits when fn
+// returns. fn must not call UnlockOSThread.
+//
+// Unlike a Windows callback, this can run before package initialization has
+// finished. Unlike go followed by LockOSThread, it cannot acquire an existing
+// thread with outstanding I/O from an earlier goroutine.
+//
+//go:linkname poll_runtime_startThread internal/poll.runtime_startThread
+func poll_runtime_startThread(fn func()) {
+	// A locked worker may need the template thread to replace its M when it
+	// parks. Set this up before publishing a worker, as LockOSThread does.
+	if atomic.Load(&newmHandoff.haveTemplateThread) == 0 {
+		startTemplateThread()
+	}
+	gp := getg()
+	pc := sys.GetCallerPC()
+	systemstack(func() {
+		mp := acquirem()
+		worker := newproc1(*(**funcval)(unsafe.Pointer(&fn)), gp, pc, false, waitReasonZero)
+		// A shared worker must not retain its creator's profiling labels.
+		worker.labels = nil
+		thread := allocm(nil, pollStartThread, -1)
+		thread.syncIOWorker = true
+		thread.sigmask = initSigmask
+		thread.lockedExt = 1
+		thread.lockedg.set(worker)
+		worker.lockedm.set(thread)
+		newm1(thread)
+		releasem(mp)
+	})
+}
+
+// poll_runtime_threadHandle lends the current worker's thread handle to poll.
+// minit initialized it before the worker started. The worker is permanently
+// locked to its thread, so unminit cannot close the handle until it returns.
+//
+//go:linkname poll_runtime_threadHandle internal/poll.runtime_threadHandle
+//go:nosplit
+func poll_runtime_threadHandle() uintptr {
+	gp := getg()
+	if !gp.m.syncIOWorker || gp.lockedm.ptr() != gp.m {
+		throw("runtime: not a synchronous I/O worker")
+	}
+	return gp.m.thread
+}
+
+// pollStartThread starts without a P. Publish the locked goroutine and wait
+// for the scheduler to hand a P to this thread, as in stoplockedm.
+func pollStartThread() {
+	mp := getg().m
+	lock(&sched.lock)
+	// No checkdead is needed: this balances the increase in mcount from
+	// allocating this M, so there is no net decrease in running Ms.
+	sched.nmidlelocked++
+	globrunqput(mp.lockedg.ptr())
+	startm(nil, false, true)
+	unlock(&sched.lock)
+	mPark()
+	acquirep(mp.nextp.ptr())
+	mp.nextp = 0
+	execute(mp.lockedg.ptr(), false)
+}
+
 // Used by the C library build mode. On Linux this function would allocate a
 // stack, but that's not necessary for Windows. No stack guards are present
 // and the GC has not been initialized, so write barriers will fail.
@@ -1165,12 +1229,32 @@ func setProcessCPUProfiler(hz int32) {
 		var timer uintptr
 		if haveHighResTimer {
 			timer = createHighResTimer()
-		} else {
+			if timer != 0 && !profileTimerSupportsPeriod(timer) {
+				// Some Windows builds (10 1803/1809, Server 2019) create
+				// CREATE_WAITABLE_TIMER_HIGH_RESOLUTION timers but reject
+				// a periodic SetWaitableTimer on them with
+				// ERROR_INVALID_PARAMETER. setThreadCPUProfiler needs a
+				// periodic timer; without the fallback profileLoop never
+				// wakes and CPU profiles contain no samples.
+				stdcall(_CloseHandle, timer)
+				timer = 0
+			}
+		}
+		if timer == 0 {
 			timer = stdcall(_CreateWaitableTimerA, 0, 0, 0)
 		}
 		atomic.Storeuintptr(&profiletimer, timer)
 		newm(profileLoop, nil, -1)
 	}
+}
+
+// profileTimerSupportsPeriod reports whether timer accepts a periodic
+// SetWaitableTimer, which the CPU profiler relies on. On success the
+// timer is left armed with a 1ms period; setThreadCPUProfiler re-arms
+// it with the real period right after.
+func profileTimerSupportsPeriod(timer uintptr) bool {
+	due := int64(-10000) // 1ms, relative
+	return stdcall(_SetWaitableTimer, timer, uintptr(unsafe.Pointer(&due)), 1, 0, 0, 0) != 0
 }
 
 func setThreadCPUProfiler(hz int32) {

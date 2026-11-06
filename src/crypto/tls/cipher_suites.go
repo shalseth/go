@@ -364,9 +364,10 @@ var (
 	hasGCMAsmARM64   = cpu.ARM64.HasAES && cpu.ARM64.HasPMULL
 	hasGCMAsmS390X   = cpu.S390X.HasAES && cpu.S390X.HasAESCTR && cpu.S390X.HasGHASH
 	hasGCMAsmPPC64   = runtime.GOARCH == "ppc64" || runtime.GOARCH == "ppc64le"
+	hasGCMAsmLOONG64 = cpu.Loong64.HasLSX
 	hasGCMAsmSPARC64 = cpu.SPARC64.HasCrypto && cpu.SPARC64.HasAES
 
-	hasAESGCMHardwareSupport = hasGCMAsmAMD64 || hasGCMAsmARM64 || hasGCMAsmS390X || hasGCMAsmPPC64 || hasGCMAsmSPARC64
+	hasAESGCMHardwareSupport = hasGCMAsmAMD64 || hasGCMAsmARM64 || hasGCMAsmS390X || hasGCMAsmPPC64 || hasGCMAsmLOONG64 || hasGCMAsmSPARC64
 )
 
 var aesgcmCiphers = map[uint16]bool{
