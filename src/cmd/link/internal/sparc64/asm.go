@@ -133,6 +133,17 @@ func adddynrel(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, s loade
 	return false
 }
 
+// TLS relocation types from the SPARC V9 ABI, which debug/elf does not
+// define.
+const (
+	r_SPARC_TLS_IE_HI22  elf.R_SPARC = 67
+	r_SPARC_TLS_IE_LO10  elf.R_SPARC = 68
+	r_SPARC_TLS_IE_LDX   elf.R_SPARC = 70
+	r_SPARC_TLS_IE_ADD   elf.R_SPARC = 71
+	r_SPARC_TLS_LE_HIX22 elf.R_SPARC = 72
+	r_SPARC_TLS_LE_LOX10 elf.R_SPARC = 73
+)
+
 func elfreloc1(ctxt *ld.Link, out *ld.OutBuf, ldr *loader.Loader, s loader.Sym, r loader.ExtReloc, ri int, sectoff int64) bool {
 	// One Elf64_Rela entry.
 	write := func(rtyp elf.R_SPARC, offset int64, sym int32, addend int64) {
@@ -176,8 +187,8 @@ func elfreloc1(ctxt *ld.Link, out *ld.OutBuf, ldr *loader.Loader, s loader.Sym, 
 	// the ABI defines for these relocations, so the host linker can
 	// fill it in as it stands.
 	case objabi.R_SPARC64_TLS_LE:
-		write(elf.R_SPARC_TLS_LE_HIX22, sectoff, elfsym, r.Xadd)
-		write(elf.R_SPARC_TLS_LE_LOX10, sectoff+4, elfsym, r.Xadd)
+		write(r_SPARC_TLS_LE_HIX22, sectoff, elfsym, r.Xadd)
+		write(r_SPARC_TLS_LE_LOX10, sectoff+4, elfsym, r.Xadd)
 
 	// The offset is measured from the RD %PC four bytes before the
 	// SETHI, and ELF measures each piece from its own instruction.
@@ -188,10 +199,10 @@ func elfreloc1(ctxt *ld.Link, out *ld.OutBuf, ldr *loader.Loader, s loader.Sym, 
 	// Initial exec, one relocation per instruction of the sequence. The
 	// host linker relaxes it to local exec in an executable.
 	case objabi.R_SPARC64_TLS_IE:
-		write(elf.R_SPARC_TLS_IE_HI22, sectoff, elfsym, r.Xadd)
-		write(elf.R_SPARC_TLS_IE_LO10, sectoff+4, elfsym, r.Xadd)
-		write(elf.R_SPARC_TLS_IE_LDX, sectoff+8, elfsym, r.Xadd)
-		write(elf.R_SPARC_TLS_IE_ADD, sectoff+12, elfsym, r.Xadd)
+		write(r_SPARC_TLS_IE_HI22, sectoff, elfsym, r.Xadd)
+		write(r_SPARC_TLS_IE_LO10, sectoff+4, elfsym, r.Xadd)
+		write(r_SPARC_TLS_IE_LDX, sectoff+8, elfsym, r.Xadd)
+		write(r_SPARC_TLS_IE_ADD, sectoff+12, elfsym, r.Xadd)
 	}
 
 	return true
@@ -223,7 +234,7 @@ func addpltsym(target *ld.Target, ldr *loader.Loader, syms *ld.ArchSyms, s loade
 	rela := ldr.MakeSymbolUpdater(syms.RelaPLT)
 	off := plt.Size()
 
-	plt.AddUint32(target.Arch, 0x03000000|uint32(off))                    // sethi %hi(off<<10), %g1
+	plt.AddUint32(target.Arch, 0x03000000|uint32(off))                     // sethi %hi(off<<10), %g1
 	plt.AddUint32(target.Arch, 0x30680000|uint32((0x20-off-4)>>2)&0x7ffff) // ba,a %xcc, .plt+0x20
 	for i := 0; i < 6; i++ {
 		plt.AddUint32(target.Arch, 0x01000000) // nop
