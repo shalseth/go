@@ -1048,7 +1048,7 @@ func (p *_panic) nextFrame() (ok bool) {
 
 		p.pc = u.frame.pc
 		p.sp = unsafe.Pointer(u.frame.sp)
-		p.fp = unsafe.Pointer(u.frame.fp)
+		p.fp = u.frame.fp
 
 		ok = true
 	})
@@ -1106,22 +1106,32 @@ func recoverrangefunc() any {
 		// panic deferred, so nothing in it can recover.
 		return nil
 	}
-	return p
+	if p.recoverAtToken == nil {
+		p.recoverAtToken = abi.Escape(new(recoverAtToken))
+	}
+	return p.recoverAtToken
+}
+
+// A recoverAtToken identifies a panic to gorecoverat. It is on the heap so
+// that it stays valid when the stack is copied.
+type recoverAtToken struct {
+	_ byte // not zero-sized, so that each token has its own address
 }
 
 // gorecoverat is the implementation of the predeclared function recover
 // when it is called in the body of a range-over-func loop. frame is the
 // token recoverrangefunc returned for the function the loop is written in.
 func gorecoverat(frame any) any {
-	p, _ := frame.(*_panic)
-	if p == nil {
+	tok, _ := frame.(*recoverAtToken)
+	if tok == nil {
 		return nil
 	}
 	// The frame was the right one to recover in when the loop started. It
 	// still is, as it is still running the loop, but the panic it was going
 	// to recover must still be the one being processed: the body may have
 	// panicked and recovered in the meantime.
-	if gp := getg(); gp._panic != p || p.goexit || p.recovered {
+	p := getg()._panic
+	if p == nil || p.recoverAtToken != tok || p.goexit || p.recovered {
 		return nil
 	}
 	p.recovered = true
@@ -1381,7 +1391,7 @@ var paniclk mutex
 // defers instead.
 func recovery(gp *g) {
 	p := gp._panic
-	pc, sp, fp := p.retpc, uintptr(p.sp), uintptr(p.fp)
+	pc, sp, fp := p.retpc, uintptr(p.sp), p.fp
 	p0, saveOpenDeferState := p, p.deferBitsPtr != nil && *p.deferBitsPtr != 0
 
 	// The linker records the f-relative address of a call to deferreturn in f's funcInfo.

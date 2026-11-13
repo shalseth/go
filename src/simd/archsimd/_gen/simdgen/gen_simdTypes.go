@@ -173,6 +173,15 @@ func (x simdType) MaskedLoadStoreFilter() bool {
 	return x.Size() == 512 || (x.ElemBits() >= 32 && !x.IsMask())
 }
 
+// MaskedOpSuffix returns the generic SSA op suffix for Masked and IfElse on x.
+func (x simdType) MaskedOpSuffix() string {
+	// AVX1/2 need different operations for masking integer and floating-point vectors.
+	if x.Shape.Elem.Base == "float" {
+		return fmt.Sprintf("Float%d", x.ElemBits())
+	}
+	return fmt.Sprintf("%d", x.ElemBits())
+}
+
 func (x simdType) IntelSizeSuffix() string {
 	switch x.ElemBits() {
 	case 8:
@@ -191,7 +200,7 @@ func (x simdType) MaskedLoadDoc() string {
 	if x.Size() == 512 || x.ElemBits() < 32 {
 		return fmt.Sprintf("// Asm: VMOVDQU%d.Z, CPU Feature: AVX512", x.ElemBits())
 	} else {
-		return fmt.Sprintf("// Asm: VMASKMOV%s, CPU Feature: AVX2", x.IntelSizeSuffix())
+		return fmt.Sprintf("// Asm: %s, CPU Feature: AVX", x.avxMaskMov())
 	}
 }
 
@@ -199,8 +208,22 @@ func (x simdType) MaskedStoreDoc() string {
 	if x.Size() == 512 || x.ElemBits() < 32 {
 		return fmt.Sprintf("// Asm: VMOVDQU%d, CPU Feature: AVX512", x.ElemBits())
 	} else {
-		return fmt.Sprintf("// Asm: VMASKMOV%s, CPU Feature: AVX2", x.IntelSizeSuffix())
+		return fmt.Sprintf("// Asm: %s, CPU Feature: AVX", x.avxMaskMov())
 	}
+}
+
+// avxMaskMov returns the AVX vector-masked move instruction for 32- and
+// 64-bit elements. The compiler uses the floating-point forms for all element
+// types because they move bits without interpreting them and, unlike
+// VPMASKMOVD/Q, require only AVX.
+func (x simdType) avxMaskMov() string {
+	switch x.ElemBits() {
+	case 32:
+		return "VMASKMOVPS"
+	case 64:
+		return "VMASKMOVPD"
+	}
+	panic("no AVX masked move for element size")
 }
 
 func (x simdType) ToBitsDoc() string {
@@ -847,10 +870,6 @@ func (x {{.Name}}) AndNot(y {{.Name}}) {{.Name}}
 
 {{if .VectorCounterpart.CPUFeature}}// CPU Feature: {{.VectorCounterpart.CPUFeature}}
 {{end -}}
-func (x {{.Name}}) Equal(y {{.Name}}) {{.Name}}
-
-{{if .VectorCounterpart.CPUFeature}}// CPU Feature: {{.VectorCounterpart.CPUFeature}}
-{{end -}}
 func (x {{.Name}}) Or(y {{.Name}}) {{.Name}}
 
 {{if .VectorCounterpart.CPUFeature}}// CPU Feature: {{.VectorCounterpart.CPUFeature}}
@@ -913,7 +932,7 @@ func parseSIMDTypes(ops []Operation) simdTypeMap {
 			Base: base,
 			Bits: specexpr.Int(*arg.ElemBits),
 		}
-		width := arg.Bits.Num()
+		width := arg.GoWidth().Num()
 		shape := specexpr.Vector{Elem: elem, Width: width}
 
 		fields := structFields(shape)

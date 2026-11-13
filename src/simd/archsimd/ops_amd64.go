@@ -182,16 +182,6 @@ func (x Int32x16) Abs() (z Uint32x16)
 // Abs returns the elementwise absolute value of x.
 //
 // Asm: VPABSQ, CPU Feature: AVX512
-func (x Int64x2) Abs() (z Uint64x2)
-
-// Abs returns the elementwise absolute value of x.
-//
-// Asm: VPABSQ, CPU Feature: AVX512
-func (x Int64x4) Abs() (z Uint64x4)
-
-// Abs returns the elementwise absolute value of x.
-//
-// Asm: VPABSQ, CPU Feature: AVX512
 func (x Int64x8) Abs() (z Uint64x8)
 
 /* Add */
@@ -900,25 +890,77 @@ func (x Uint16x32) Average(y Uint16x32) (z Uint16x32)
 
 /* Ceil */
 
-// Ceil rounds elements up to the nearest integer.
+// Ceil returns the least integer value greater than or equal to each element
+// of x.
+//
+//	z[i] = ceil(x[i])
+//
+// Special cases follow IEEE 754: Ceil(±0) = ±0, Ceil(±Inf) = ±Inf, Ceil(x) = -0
+// for -1 < x < -0, and Ceil(NaN) = NaN. The sign and payload of a NaN result
+// are unspecified.
 //
 // Asm: VROUNDPS, CPU Feature: AVX
-func (x Float32x4) Ceil() Float32x4
+func (x Float32x4) Ceil() (z Float32x4)
 
-// Ceil rounds elements up to the nearest integer.
+// Ceil returns the least integer value greater than or equal to each element
+// of x.
+//
+//	z[i] = ceil(x[i])
+//
+// Special cases follow IEEE 754: Ceil(±0) = ±0, Ceil(±Inf) = ±Inf, Ceil(x) = -0
+// for -1 < x < -0, and Ceil(NaN) = NaN. The sign and payload of a NaN result
+// are unspecified.
 //
 // Asm: VROUNDPS, CPU Feature: AVX
-func (x Float32x8) Ceil() Float32x8
+func (x Float32x8) Ceil() (z Float32x8)
 
-// Ceil rounds elements up to the nearest integer.
+// Ceil returns the least integer value greater than or equal to each element
+// of x.
+//
+//	z[i] = ceil(x[i])
+//
+// Special cases follow IEEE 754: Ceil(±0) = ±0, Ceil(±Inf) = ±Inf, Ceil(x) = -0
+// for -1 < x < -0, and Ceil(NaN) = NaN. The sign and payload of a NaN result
+// are unspecified.
+//
+// Asm: VRNDSCALEPS, CPU Feature: AVX512
+func (x Float32x16) Ceil() (z Float32x16)
+
+// Ceil returns the least integer value greater than or equal to each element
+// of x.
+//
+//	z[i] = ceil(x[i])
+//
+// Special cases follow IEEE 754: Ceil(±0) = ±0, Ceil(±Inf) = ±Inf, Ceil(x) = -0
+// for -1 < x < -0, and Ceil(NaN) = NaN. The sign and payload of a NaN result
+// are unspecified.
 //
 // Asm: VROUNDPD, CPU Feature: AVX
-func (x Float64x2) Ceil() Float64x2
+func (x Float64x2) Ceil() (z Float64x2)
 
-// Ceil rounds elements up to the nearest integer.
+// Ceil returns the least integer value greater than or equal to each element
+// of x.
+//
+//	z[i] = ceil(x[i])
+//
+// Special cases follow IEEE 754: Ceil(±0) = ±0, Ceil(±Inf) = ±Inf, Ceil(x) = -0
+// for -1 < x < -0, and Ceil(NaN) = NaN. The sign and payload of a NaN result
+// are unspecified.
 //
 // Asm: VROUNDPD, CPU Feature: AVX
-func (x Float64x4) Ceil() Float64x4
+func (x Float64x4) Ceil() (z Float64x4)
+
+// Ceil returns the least integer value greater than or equal to each element
+// of x.
+//
+//	z[i] = ceil(x[i])
+//
+// Special cases follow IEEE 754: Ceil(±0) = ±0, Ceil(±Inf) = ±Inf, Ceil(x) = -0
+// for -1 < x < -0, and Ceil(NaN) = NaN. The sign and payload of a NaN result
+// are unspecified.
+//
+// Asm: VRNDSCALEPD, CPU Feature: AVX512
+func (x Float64x8) Ceil() (z Float64x8)
 
 /* CeilScaled */
 
@@ -1010,185 +1052,425 @@ func (x Float64x8) CeilScaledResidue(prec uint8) Float64x8
 
 /* Compress */
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VCOMPRESSPS, CPU Feature: AVX512
-func (x Float32x4) Compress(mask Mask32x4) Float32x4
+func (x Float32x4) Compress(mask Mask32x4) (z Float32x4)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VCOMPRESSPS, CPU Feature: AVX512
-func (x Float32x8) Compress(mask Mask32x8) Float32x8
+func (x Float32x8) Compress(mask Mask32x8) (z Float32x8)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VCOMPRESSPS, CPU Feature: AVX512
-func (x Float32x16) Compress(mask Mask32x16) Float32x16
+func (x Float32x16) Compress(mask Mask32x16) (z Float32x16)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VCOMPRESSPD, CPU Feature: AVX512
-func (x Float64x2) Compress(mask Mask64x2) Float64x2
+func (x Float64x2) Compress(mask Mask64x2) (z Float64x2)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VCOMPRESSPD, CPU Feature: AVX512
-func (x Float64x4) Compress(mask Mask64x4) Float64x4
+func (x Float64x4) Compress(mask Mask64x4) (z Float64x4)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VCOMPRESSPD, CPU Feature: AVX512
-func (x Float64x8) Compress(mask Mask64x8) Float64x8
+func (x Float64x8) Compress(mask Mask64x8) (z Float64x8)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSB, CPU Feature: AVX512VBMI2
-func (x Int8x16) Compress(mask Mask8x16) Int8x16
+func (x Int8x16) Compress(mask Mask8x16) (z Int8x16)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSB, CPU Feature: AVX512VBMI2
-func (x Int8x32) Compress(mask Mask8x32) Int8x32
+func (x Int8x32) Compress(mask Mask8x32) (z Int8x32)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSB, CPU Feature: AVX512VBMI2
-func (x Int8x64) Compress(mask Mask8x64) Int8x64
+func (x Int8x64) Compress(mask Mask8x64) (z Int8x64)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSW, CPU Feature: AVX512VBMI2
-func (x Int16x8) Compress(mask Mask16x8) Int16x8
+func (x Int16x8) Compress(mask Mask16x8) (z Int16x8)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSW, CPU Feature: AVX512VBMI2
-func (x Int16x16) Compress(mask Mask16x16) Int16x16
+func (x Int16x16) Compress(mask Mask16x16) (z Int16x16)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSW, CPU Feature: AVX512VBMI2
-func (x Int16x32) Compress(mask Mask16x32) Int16x32
+func (x Int16x32) Compress(mask Mask16x32) (z Int16x32)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSD, CPU Feature: AVX512
-func (x Int32x4) Compress(mask Mask32x4) Int32x4
+func (x Int32x4) Compress(mask Mask32x4) (z Int32x4)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSD, CPU Feature: AVX512
-func (x Int32x8) Compress(mask Mask32x8) Int32x8
+func (x Int32x8) Compress(mask Mask32x8) (z Int32x8)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSD, CPU Feature: AVX512
-func (x Int32x16) Compress(mask Mask32x16) Int32x16
+func (x Int32x16) Compress(mask Mask32x16) (z Int32x16)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSQ, CPU Feature: AVX512
-func (x Int64x2) Compress(mask Mask64x2) Int64x2
+func (x Int64x2) Compress(mask Mask64x2) (z Int64x2)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSQ, CPU Feature: AVX512
-func (x Int64x4) Compress(mask Mask64x4) Int64x4
+func (x Int64x4) Compress(mask Mask64x4) (z Int64x4)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSQ, CPU Feature: AVX512
-func (x Int64x8) Compress(mask Mask64x8) Int64x8
+func (x Int64x8) Compress(mask Mask64x8) (z Int64x8)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSB, CPU Feature: AVX512VBMI2
-func (x Uint8x16) Compress(mask Mask8x16) Uint8x16
+func (x Uint8x16) Compress(mask Mask8x16) (z Uint8x16)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSB, CPU Feature: AVX512VBMI2
-func (x Uint8x32) Compress(mask Mask8x32) Uint8x32
+func (x Uint8x32) Compress(mask Mask8x32) (z Uint8x32)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSB, CPU Feature: AVX512VBMI2
-func (x Uint8x64) Compress(mask Mask8x64) Uint8x64
+func (x Uint8x64) Compress(mask Mask8x64) (z Uint8x64)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSW, CPU Feature: AVX512VBMI2
-func (x Uint16x8) Compress(mask Mask16x8) Uint16x8
+func (x Uint16x8) Compress(mask Mask16x8) (z Uint16x8)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSW, CPU Feature: AVX512VBMI2
-func (x Uint16x16) Compress(mask Mask16x16) Uint16x16
+func (x Uint16x16) Compress(mask Mask16x16) (z Uint16x16)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSW, CPU Feature: AVX512VBMI2
-func (x Uint16x32) Compress(mask Mask16x32) Uint16x32
+func (x Uint16x32) Compress(mask Mask16x32) (z Uint16x32)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSD, CPU Feature: AVX512
-func (x Uint32x4) Compress(mask Mask32x4) Uint32x4
+func (x Uint32x4) Compress(mask Mask32x4) (z Uint32x4)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSD, CPU Feature: AVX512
-func (x Uint32x8) Compress(mask Mask32x8) Uint32x8
+func (x Uint32x8) Compress(mask Mask32x8) (z Uint32x8)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSD, CPU Feature: AVX512
-func (x Uint32x16) Compress(mask Mask32x16) Uint32x16
+func (x Uint32x16) Compress(mask Mask32x16) (z Uint32x16)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSQ, CPU Feature: AVX512
-func (x Uint64x2) Compress(mask Mask64x2) Uint64x2
+func (x Uint64x2) Compress(mask Mask64x2) (z Uint64x2)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSQ, CPU Feature: AVX512
-func (x Uint64x4) Compress(mask Mask64x4) Uint64x4
+func (x Uint64x4) Compress(mask Mask64x4) (z Uint64x4)
 
-// Compress packs the masked elements of x into the lower indexed elements of z,
-// zeroing any remaining elements.
+// Compress packs the elements of x where mask is true into the low elements of
+// z, preserving their order. The remaining elements of z are zero.
+//
+//	j := 0
+//	for i := range x {
+//	    if mask[i] {
+//	        z[j] = x[i]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPCOMPRESSQ, CPU Feature: AVX512
-func (x Uint64x8) Compress(mask Mask64x8) Uint64x8
+func (x Uint64x8) Compress(mask Mask64x8) (z Uint64x8)
 
 /* ConcatAddPairs */
 
@@ -1296,307 +1578,277 @@ func (x Int16x8) ConcatAddPairsSaturated(y Int16x8) (z Int16x8)
 // Asm: VPHADDSW, CPU Feature: AVX2
 func (x Int16x16) ConcatAddPairsSaturatedGrouped(y Int16x16) (z Int16x16)
 
-/* ConcatPermute */
+/* ConcatLookupMod */
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2B, CPU Feature: AVX512VBMI
-func (x Int8x16) ConcatPermute(y Int8x16, indices Uint8x16) Int8x16
+func (x Int8x16) ConcatLookupMod(y Int8x16, indices Uint8x16) (z Int8x16)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2B, CPU Feature: AVX512VBMI
-func (x Uint8x16) ConcatPermute(y Uint8x16, indices Uint8x16) Uint8x16
+func (x Uint8x16) ConcatLookupMod(y Uint8x16, indices Uint8x16) (z Uint8x16)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2B, CPU Feature: AVX512VBMI
-func (x Int8x32) ConcatPermute(y Int8x32, indices Uint8x32) Int8x32
+func (x Int8x32) ConcatLookupMod(y Int8x32, indices Uint8x32) (z Int8x32)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2B, CPU Feature: AVX512VBMI
-func (x Uint8x32) ConcatPermute(y Uint8x32, indices Uint8x32) Uint8x32
+func (x Uint8x32) ConcatLookupMod(y Uint8x32, indices Uint8x32) (z Uint8x32)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2B, CPU Feature: AVX512VBMI
-func (x Int8x64) ConcatPermute(y Int8x64, indices Uint8x64) Int8x64
+func (x Int8x64) ConcatLookupMod(y Int8x64, indices Uint8x64) (z Int8x64)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2B, CPU Feature: AVX512VBMI
-func (x Uint8x64) ConcatPermute(y Uint8x64, indices Uint8x64) Uint8x64
+func (x Uint8x64) ConcatLookupMod(y Uint8x64, indices Uint8x64) (z Uint8x64)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2W, CPU Feature: AVX512
-func (x Int16x8) ConcatPermute(y Int16x8, indices Uint16x8) Int16x8
+func (x Int16x8) ConcatLookupMod(y Int16x8, indices Uint16x8) (z Int16x8)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2W, CPU Feature: AVX512
-func (x Uint16x8) ConcatPermute(y Uint16x8, indices Uint16x8) Uint16x8
+func (x Uint16x8) ConcatLookupMod(y Uint16x8, indices Uint16x8) (z Uint16x8)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2W, CPU Feature: AVX512
-func (x Int16x16) ConcatPermute(y Int16x16, indices Uint16x16) Int16x16
+func (x Int16x16) ConcatLookupMod(y Int16x16, indices Uint16x16) (z Int16x16)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2W, CPU Feature: AVX512
-func (x Uint16x16) ConcatPermute(y Uint16x16, indices Uint16x16) Uint16x16
+func (x Uint16x16) ConcatLookupMod(y Uint16x16, indices Uint16x16) (z Uint16x16)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2W, CPU Feature: AVX512
-func (x Int16x32) ConcatPermute(y Int16x32, indices Uint16x32) Int16x32
+func (x Int16x32) ConcatLookupMod(y Int16x32, indices Uint16x32) (z Int16x32)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2W, CPU Feature: AVX512
-func (x Uint16x32) ConcatPermute(y Uint16x32, indices Uint16x32) Uint16x32
+func (x Uint16x32) ConcatLookupMod(y Uint16x32, indices Uint16x32) (z Uint16x32)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2PS, CPU Feature: AVX512
-func (x Float32x4) ConcatPermute(y Float32x4, indices Uint32x4) Float32x4
+func (x Float32x4) ConcatLookupMod(y Float32x4, indices Uint32x4) (z Float32x4)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2D, CPU Feature: AVX512
-func (x Int32x4) ConcatPermute(y Int32x4, indices Uint32x4) Int32x4
+func (x Int32x4) ConcatLookupMod(y Int32x4, indices Uint32x4) (z Int32x4)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2D, CPU Feature: AVX512
-func (x Uint32x4) ConcatPermute(y Uint32x4, indices Uint32x4) Uint32x4
+func (x Uint32x4) ConcatLookupMod(y Uint32x4, indices Uint32x4) (z Uint32x4)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2PS, CPU Feature: AVX512
-func (x Float32x8) ConcatPermute(y Float32x8, indices Uint32x8) Float32x8
+func (x Float32x8) ConcatLookupMod(y Float32x8, indices Uint32x8) (z Float32x8)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2D, CPU Feature: AVX512
-func (x Int32x8) ConcatPermute(y Int32x8, indices Uint32x8) Int32x8
+func (x Int32x8) ConcatLookupMod(y Int32x8, indices Uint32x8) (z Int32x8)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2D, CPU Feature: AVX512
-func (x Uint32x8) ConcatPermute(y Uint32x8, indices Uint32x8) Uint32x8
+func (x Uint32x8) ConcatLookupMod(y Uint32x8, indices Uint32x8) (z Uint32x8)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2PS, CPU Feature: AVX512
-func (x Float32x16) ConcatPermute(y Float32x16, indices Uint32x16) Float32x16
+func (x Float32x16) ConcatLookupMod(y Float32x16, indices Uint32x16) (z Float32x16)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2D, CPU Feature: AVX512
-func (x Int32x16) ConcatPermute(y Int32x16, indices Uint32x16) Int32x16
+func (x Int32x16) ConcatLookupMod(y Int32x16, indices Uint32x16) (z Int32x16)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2D, CPU Feature: AVX512
-func (x Uint32x16) ConcatPermute(y Uint32x16, indices Uint32x16) Uint32x16
+func (x Uint32x16) ConcatLookupMod(y Uint32x16, indices Uint32x16) (z Uint32x16)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2PD, CPU Feature: AVX512
-func (x Float64x2) ConcatPermute(y Float64x2, indices Uint64x2) Float64x2
+func (x Float64x2) ConcatLookupMod(y Float64x2, indices Uint64x2) (z Float64x2)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2Q, CPU Feature: AVX512
-func (x Int64x2) ConcatPermute(y Int64x2, indices Uint64x2) Int64x2
+func (x Int64x2) ConcatLookupMod(y Int64x2, indices Uint64x2) (z Int64x2)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2Q, CPU Feature: AVX512
-func (x Uint64x2) ConcatPermute(y Uint64x2, indices Uint64x2) Uint64x2
+func (x Uint64x2) ConcatLookupMod(y Uint64x2, indices Uint64x2) (z Uint64x2)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2PD, CPU Feature: AVX512
-func (x Float64x4) ConcatPermute(y Float64x4, indices Uint64x4) Float64x4
+func (x Float64x4) ConcatLookupMod(y Float64x4, indices Uint64x4) (z Float64x4)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2Q, CPU Feature: AVX512
-func (x Int64x4) ConcatPermute(y Int64x4, indices Uint64x4) Int64x4
+func (x Int64x4) ConcatLookupMod(y Int64x4, indices Uint64x4) (z Int64x4)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2Q, CPU Feature: AVX512
-func (x Uint64x4) ConcatPermute(y Uint64x4, indices Uint64x4) Uint64x4
+func (x Uint64x4) ConcatLookupMod(y Uint64x4, indices Uint64x4) (z Uint64x4)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2PD, CPU Feature: AVX512
-func (x Float64x8) ConcatPermute(y Float64x8, indices Uint64x8) Float64x8
+func (x Float64x8) ConcatLookupMod(y Float64x8, indices Uint64x8) (z Float64x8)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2Q, CPU Feature: AVX512
-func (x Int64x8) ConcatPermute(y Int64x8, indices Uint64x8) Int64x8
+func (x Int64x8) ConcatLookupMod(y Int64x8, indices Uint64x8) (z Int64x8)
 
-// ConcatPermute performs a full permutation of vector x, y using indices:
+// ConcatLookupMod selects elements from the concatenation of x (low indices)
+// and y (high indices), indexed by indices modulo the combined length.
 //
-//	result = {xy[indices[0]], xy[indices[1]], ..., xy[indices[n]]}
-//
-// where xy is the concatenation of x (lower half) and y (upper half).
-// Only the needed bits to represent xy's index are used in indices' elements.
+//	xy = concat(x, y)
+//	z[i] = xy[indices[i] % len(xy)]
 //
 // Asm: VPERMI2Q, CPU Feature: AVX512
-func (x Uint64x8) ConcatPermute(y Uint64x8, indices Uint64x8) Uint64x8
+func (x Uint64x8) ConcatLookupMod(y Uint64x8, indices Uint64x8) (z Uint64x8)
 
 /* ConcatPermute128Scalars */
 
@@ -1766,57 +2018,53 @@ func (x Uint64x4) ConcatPermute128Scalars(lo, hi uint8, y Uint64x4) Uint64x4
 
 /* ConcatSaturateToInt16 */
 
-// ConcatSaturateToInt16 converts element values to int16 with signed saturation.
-// The converted elements from x will be packed to the lower part of the result vector,
-// the converted elements from y will be packed to the upper part of the result vector.
+// ConcatSaturateToInt16 converts each element of x and y to int16, saturating
+// values that are outside the range of int16, and returns the concatenated
+// result.
+//
+//	z = concat(sat(x[...]), sat(y[...]))
 //
 // Asm: VPACKSSDW, CPU Feature: AVX
-func (x Int32x4) ConcatSaturateToInt16(y Int32x4) Int16x8
+func (x Int32x4) ConcatSaturateToInt16(y Int32x4) (z Int16x8)
 
 /* ConcatSaturateToInt16Grouped */
 
-// ConcatSaturateToInt16Grouped converts element values to int16 with signed saturation.
-// With each 128-bit as a group:
-// The converted elements from x will be packed to the lower part of the group in the result vector,
-// the converted elements from y will be packed to the upper part of the group in the result vector.
+// ConcatSaturateToInt16Grouped divides x, y, and z into groups of 128 bits and
+// performs [ConcatSaturateToInt16] on each group.
 //
 // Asm: VPACKSSDW, CPU Feature: AVX2
-func (x Int32x8) ConcatSaturateToInt16Grouped(y Int32x8) Int16x16
+func (x Int32x8) ConcatSaturateToInt16Grouped(y Int32x8) (z Int16x16)
 
-// ConcatSaturateToInt16Grouped converts element values to int16 with signed saturation.
-// With each 128-bit as a group:
-// The converted elements from x will be packed to the lower part of the group in the result vector,
-// the converted elements from y will be packed to the upper part of the group in the result vector.
+// ConcatSaturateToInt16Grouped divides x, y, and z into groups of 128 bits and
+// performs [ConcatSaturateToInt16] on each group.
 //
 // Asm: VPACKSSDW, CPU Feature: AVX512
-func (x Int32x16) ConcatSaturateToInt16Grouped(y Int32x16) Int16x32
+func (x Int32x16) ConcatSaturateToInt16Grouped(y Int32x16) (z Int16x32)
 
 /* ConcatSaturateToUint16 */
 
-// ConcatSaturateToUint16 converts element values to uint16 with unsigned saturation.
-// The converted elements from x will be packed to the lower part of the result vector,
-// the converted elements from y will be packed to the upper part of the result vector.
+// ConcatSaturateToUint16 converts each element of x and y to uint16,
+// saturating values that are outside the range of uint16, and returns the
+// concatenated result. Negative values become 0.
+//
+//	z = concat(sat(x[...]), sat(y[...]))
 //
 // Asm: VPACKUSDW, CPU Feature: AVX
-func (x Int32x4) ConcatSaturateToUint16(y Int32x4) Uint16x8
+func (x Int32x4) ConcatSaturateToUint16(y Int32x4) (z Uint16x8)
 
 /* ConcatSaturateToUint16Grouped */
 
-// ConcatSaturateToUint16Grouped converts element values to uint16 with unsigned saturation.
-// With each 128-bit as a group:
-// The converted elements from x will be packed to the lower part of the group in the result vector,
-// the converted elements from y will be packed to the upper part of the group in the result vector.
+// ConcatSaturateToUint16Grouped divides x, y, and z into groups of 128 bits
+// and performs [ConcatSaturateToUint16] on each group.
 //
 // Asm: VPACKUSDW, CPU Feature: AVX2
-func (x Int32x8) ConcatSaturateToUint16Grouped(y Int32x8) Uint16x16
+func (x Int32x8) ConcatSaturateToUint16Grouped(y Int32x8) (z Uint16x16)
 
-// ConcatSaturateToUint16Grouped converts element values to uint16 with unsigned saturation.
-// With each 128-bit as a group:
-// The converted elements from x will be packed to the lower part of the group in the result vector,
-// the converted elements from y will be packed to the upper part of the group in the result vector.
+// ConcatSaturateToUint16Grouped divides x, y, and z into groups of 128 bits
+// and performs [ConcatSaturateToUint16] on each group.
 //
 // Asm: VPACKUSDW, CPU Feature: AVX512
-func (x Int32x16) ConcatSaturateToUint16Grouped(y Int32x16) Uint16x32
+func (x Int32x16) ConcatSaturateToUint16Grouped(y Int32x16) (z Uint16x32)
 
 /* ConcatShiftBytesRight */
 
@@ -1958,152 +2206,275 @@ func (x Int16x16) ConcatSubPairsSaturatedGrouped(y Int16x16) (z Int16x16)
 
 // ConvertToFloat32 converts each element of x to float32.
 //
+//	z[i] = float32(x[i])
+//
 // The results are rounded to the nearest representable value, or ±inf if they
 // cannot be represented.
 //
-// The low 2 elements of the result are set. The rest are zero.
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VCVTPD2PSX, CPU Feature: AVX
 func (x Float64x2) ConvertToFloat32() (z Float32x4)
 
 // ConvertToFloat32 converts each element of x to float32.
 //
+//	z[i] = float32(x[i])
+//
 // The results are rounded to the nearest representable value, or ±inf if they
 // cannot be represented.
+//
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VCVTPD2PSY, CPU Feature: AVX
-func (x Float64x4) ConvertToFloat32() (z Float32x4)
+func (x Float64x4) ConvertToFloat32() (z Float32x8)
 
 // ConvertToFloat32 converts each element of x to float32.
+//
+//	z[i] = float32(x[i])
 //
 // The results are rounded to the nearest representable value, or ±inf if they
 // cannot be represented.
 //
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
+//
 // Asm: VCVTPD2PS, CPU Feature: AVX512
-func (x Float64x8) ConvertToFloat32() (z Float32x8)
+func (x Float64x8) ConvertToFloat32() (z Float32x16)
 
 // ConvertToFloat32 converts each element of x to float32.
+//
+//	z[i] = float32(x[i])
 //
 // Asm: VCVTDQ2PS, CPU Feature: AVX
 func (x Int32x4) ConvertToFloat32() (z Float32x4)
 
 // ConvertToFloat32 converts each element of x to float32.
 //
+//	z[i] = float32(x[i])
+//
 // Asm: VCVTDQ2PS, CPU Feature: AVX
 func (x Int32x8) ConvertToFloat32() (z Float32x8)
 
 // ConvertToFloat32 converts each element of x to float32.
+//
+//	z[i] = float32(x[i])
 //
 // Asm: VCVTDQ2PS, CPU Feature: AVX512
 func (x Int32x16) ConvertToFloat32() (z Float32x16)
 
 // ConvertToFloat32 converts each element of x to float32.
 //
-// The low 2 elements of the result are set. The rest are zero.
+//	z[i] = float32(x[i])
+//
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VCVTQQ2PSX, CPU Feature: AVX512
 func (x Int64x2) ConvertToFloat32() (z Float32x4)
 
 // ConvertToFloat32 converts each element of x to float32.
 //
+//	z[i] = float32(x[i])
+//
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
+//
 // Asm: VCVTQQ2PSY, CPU Feature: AVX512
-func (x Int64x4) ConvertToFloat32() (z Float32x4)
+func (x Int64x4) ConvertToFloat32() (z Float32x8)
 
 // ConvertToFloat32 converts each element of x to float32.
 //
+//	z[i] = float32(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
+//
 // Asm: VCVTQQ2PS, CPU Feature: AVX512
-func (x Int64x8) ConvertToFloat32() (z Float32x8)
+func (x Int64x8) ConvertToFloat32() (z Float32x16)
 
 // ConvertToFloat32 converts each element of x to float32.
+//
+//	z[i] = float32(x[i])
 //
 // Asm: VCVTUDQ2PS, CPU Feature: AVX512
 func (x Uint32x4) ConvertToFloat32() (z Float32x4)
 
 // ConvertToFloat32 converts each element of x to float32.
 //
+//	z[i] = float32(x[i])
+//
 // Asm: VCVTUDQ2PS, CPU Feature: AVX512
 func (x Uint32x8) ConvertToFloat32() (z Float32x8)
 
 // ConvertToFloat32 converts each element of x to float32.
+//
+//	z[i] = float32(x[i])
 //
 // Asm: VCVTUDQ2PS, CPU Feature: AVX512
 func (x Uint32x16) ConvertToFloat32() (z Float32x16)
 
 // ConvertToFloat32 converts each element of x to float32.
 //
-// The low 2 elements of the result are set. The rest are zero.
+//	z[i] = float32(x[i])
+//
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VCVTUQQ2PSX, CPU Feature: AVX512
 func (x Uint64x2) ConvertToFloat32() (z Float32x4)
 
 // ConvertToFloat32 converts each element of x to float32.
 //
+//	z[i] = float32(x[i])
+//
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
+//
 // Asm: VCVTUQQ2PSY, CPU Feature: AVX512
-func (x Uint64x4) ConvertToFloat32() (z Float32x4)
+func (x Uint64x4) ConvertToFloat32() (z Float32x8)
 
 // ConvertToFloat32 converts each element of x to float32.
 //
+//	z[i] = float32(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
+//
 // Asm: VCVTUQQ2PS, CPU Feature: AVX512
-func (x Uint64x8) ConvertToFloat32() (z Float32x8)
+func (x Uint64x8) ConvertToFloat32() (z Float32x16)
 
 /* ConvertToFloat64 */
 
 // ConvertToFloat64 converts each element of x to float64.
 //
+//	z[i] = float64(x[i])
+//
+// Only the low 2 elements of x are converted.
+// The remaining elements of x are ignored.
+//
 // Asm: VCVTPS2PD, CPU Feature: AVX
-func (x Float32x4) ConvertToFloat64() (z Float64x4)
+func (x Float32x4) ConvertToFloat64() (z Float64x2)
 
 // ConvertToFloat64 converts each element of x to float64.
+//
+//	z[i] = float64(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VCVTPS2PD, CPU Feature: AVX
+func (x Float32x8) ConvertToFloat64() (z Float64x4)
+
+// ConvertToFloat64 converts each element of x to float64.
+//
+//	z[i] = float64(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VCVTPS2PD, CPU Feature: AVX512
-func (x Float32x8) ConvertToFloat64() (z Float64x8)
+func (x Float32x16) ConvertToFloat64() (z Float64x8)
 
 // ConvertToFloat64 converts each element of x to float64.
+//
+//	z[i] = float64(x[i])
+//
+// Only the low 2 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VCVTDQ2PD, CPU Feature: AVX
-func (x Int32x4) ConvertToFloat64() (z Float64x4)
+func (x Int32x4) ConvertToFloat64() (z Float64x2)
 
 // ConvertToFloat64 converts each element of x to float64.
 //
-// Asm: VCVTDQ2PD, CPU Feature: AVX512
-func (x Int32x8) ConvertToFloat64() (z Float64x8)
+//	z[i] = float64(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VCVTDQ2PD, CPU Feature: AVX
+func (x Int32x8) ConvertToFloat64() (z Float64x4)
 
 // ConvertToFloat64 converts each element of x to float64.
+//
+//	z[i] = float64(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VCVTDQ2PD, CPU Feature: AVX512
+func (x Int32x16) ConvertToFloat64() (z Float64x8)
+
+// ConvertToFloat64 converts each element of x to float64.
+//
+//	z[i] = float64(x[i])
 //
 // Asm: VCVTQQ2PD, CPU Feature: AVX512
 func (x Int64x2) ConvertToFloat64() (z Float64x2)
 
 // ConvertToFloat64 converts each element of x to float64.
 //
+//	z[i] = float64(x[i])
+//
 // Asm: VCVTQQ2PD, CPU Feature: AVX512
 func (x Int64x4) ConvertToFloat64() (z Float64x4)
 
 // ConvertToFloat64 converts each element of x to float64.
+//
+//	z[i] = float64(x[i])
 //
 // Asm: VCVTQQ2PD, CPU Feature: AVX512
 func (x Int64x8) ConvertToFloat64() (z Float64x8)
 
 // ConvertToFloat64 converts each element of x to float64.
 //
+//	z[i] = float64(x[i])
+//
+// Only the low 2 elements of x are converted.
+// The remaining elements of x are ignored.
+//
 // Asm: VCVTUDQ2PD, CPU Feature: AVX512
-func (x Uint32x4) ConvertToFloat64() (z Float64x4)
+func (x Uint32x4) ConvertToFloat64() (z Float64x2)
 
 // ConvertToFloat64 converts each element of x to float64.
 //
+//	z[i] = float64(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
 // Asm: VCVTUDQ2PD, CPU Feature: AVX512
-func (x Uint32x8) ConvertToFloat64() (z Float64x8)
+func (x Uint32x8) ConvertToFloat64() (z Float64x4)
 
 // ConvertToFloat64 converts each element of x to float64.
+//
+//	z[i] = float64(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VCVTUDQ2PD, CPU Feature: AVX512
+func (x Uint32x16) ConvertToFloat64() (z Float64x8)
+
+// ConvertToFloat64 converts each element of x to float64.
+//
+//	z[i] = float64(x[i])
 //
 // Asm: VCVTUQQ2PD, CPU Feature: AVX512
 func (x Uint64x2) ConvertToFloat64() (z Float64x2)
 
 // ConvertToFloat64 converts each element of x to float64.
 //
+//	z[i] = float64(x[i])
+//
 // Asm: VCVTUQQ2PD, CPU Feature: AVX512
 func (x Uint64x4) ConvertToFloat64() (z Float64x4)
 
 // ConvertToFloat64 converts each element of x to float64.
+//
+//	z[i] = float64(x[i])
 //
 // Asm: VCVTUQQ2PD, CPU Feature: AVX512
 func (x Uint64x8) ConvertToFloat64() (z Float64x8)
@@ -2111,6 +2482,8 @@ func (x Uint64x8) ConvertToFloat64() (z Float64x8)
 /* ConvertToInt32 */
 
 // ConvertToInt32 converts each element of x to int32.
+//
+//	z[i] = int32(x[i])
 //
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
@@ -2121,6 +2494,8 @@ func (x Float32x4) ConvertToInt32() (z Int32x4)
 
 // ConvertToInt32 converts each element of x to int32.
 //
+//	z[i] = int32(x[i])
+//
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
@@ -2129,6 +2504,8 @@ func (x Float32x4) ConvertToInt32() (z Int32x4)
 func (x Float32x8) ConvertToInt32() (z Int32x8)
 
 // ConvertToInt32 converts each element of x to int32.
+//
+//	z[i] = int32(x[i])
 //
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
@@ -2139,54 +2516,93 @@ func (x Float32x16) ConvertToInt32() (z Int32x16)
 
 // ConvertToInt32 converts each element of x to int32.
 //
+//	z[i] = int32(x[i])
+//
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
 //
-// The low 2 elements of the result are set. The rest are zero.
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VCVTTPD2DQX, CPU Feature: AVX
 func (x Float64x2) ConvertToInt32() (z Int32x4)
 
 // ConvertToInt32 converts each element of x to int32.
 //
+//	z[i] = int32(x[i])
+//
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
 //
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
+//
 // Asm: VCVTTPD2DQY, CPU Feature: AVX
-func (x Float64x4) ConvertToInt32() (z Int32x4)
+func (x Float64x4) ConvertToInt32() (z Int32x8)
 
 // ConvertToInt32 converts each element of x to int32.
 //
+//	z[i] = int32(x[i])
+//
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
 //
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
+//
 // Asm: VCVTTPD2DQ, CPU Feature: AVX512
-func (x Float64x8) ConvertToInt32() (z Int32x8)
+func (x Float64x8) ConvertToInt32() (z Int32x16)
 
 /* ConvertToInt64 */
 
 // ConvertToInt64 converts each element of x to int64.
 //
-// When a conversion is inexact, this truncates the result (rounds toward zero).
-// If the converted result would be outside the representable range, the result
-// is architecture-dependent.
-//
-// Asm: VCVTTPS2QQ, CPU Feature: AVX512
-func (x Float32x4) ConvertToInt64() (z Int64x4)
-
-// ConvertToInt64 converts each element of x to int64.
+//	z[i] = int64(x[i])
 //
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
 //
+// Only the low 2 elements of x are converted.
+// The remaining elements of x are ignored.
+//
 // Asm: VCVTTPS2QQ, CPU Feature: AVX512
-func (x Float32x8) ConvertToInt64() (z Int64x8)
+func (x Float32x4) ConvertToInt64() (z Int64x2)
 
 // ConvertToInt64 converts each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// When a conversion is inexact, this truncates the result (rounds toward zero).
+// If the converted result would be outside the representable range, the result
+// is architecture-dependent.
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VCVTTPS2QQ, CPU Feature: AVX512
+func (x Float32x8) ConvertToInt64() (z Int64x4)
+
+// ConvertToInt64 converts each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// When a conversion is inexact, this truncates the result (rounds toward zero).
+// If the converted result would be outside the representable range, the result
+// is architecture-dependent.
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VCVTTPS2QQ, CPU Feature: AVX512
+func (x Float32x16) ConvertToInt64() (z Int64x8)
+
+// ConvertToInt64 converts each element of x to int64.
+//
+//	z[i] = int64(x[i])
 //
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
@@ -2197,6 +2613,8 @@ func (x Float64x2) ConvertToInt64() (z Int64x2)
 
 // ConvertToInt64 converts each element of x to int64.
 //
+//	z[i] = int64(x[i])
+//
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
@@ -2205,6 +2623,8 @@ func (x Float64x2) ConvertToInt64() (z Int64x2)
 func (x Float64x4) ConvertToInt64() (z Int64x4)
 
 // ConvertToInt64 converts each element of x to int64.
+//
+//	z[i] = int64(x[i])
 //
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
@@ -2217,6 +2637,8 @@ func (x Float64x8) ConvertToInt64() (z Int64x8)
 
 // ConvertToUint32 converts each element of x to uint32.
 //
+//	z[i] = uint32(x[i])
+//
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
@@ -2225,6 +2647,8 @@ func (x Float64x8) ConvertToInt64() (z Int64x8)
 func (x Float32x4) ConvertToUint32() (z Uint32x4)
 
 // ConvertToUint32 converts each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
 //
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
@@ -2235,6 +2659,8 @@ func (x Float32x8) ConvertToUint32() (z Uint32x8)
 
 // ConvertToUint32 converts each element of x to uint32.
 //
+//	z[i] = uint32(x[i])
+//
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
@@ -2244,54 +2670,93 @@ func (x Float32x16) ConvertToUint32() (z Uint32x16)
 
 // ConvertToUint32 converts each element of x to uint32.
 //
+//	z[i] = uint32(x[i])
+//
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
 //
-// The low 2 elements of the result are set. The rest are zero.
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VCVTTPD2UDQX, CPU Feature: AVX512
 func (x Float64x2) ConvertToUint32() (z Uint32x4)
 
 // ConvertToUint32 converts each element of x to uint32.
 //
+//	z[i] = uint32(x[i])
+//
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
 //
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
+//
 // Asm: VCVTTPD2UDQY, CPU Feature: AVX512
-func (x Float64x4) ConvertToUint32() (z Uint32x4)
+func (x Float64x4) ConvertToUint32() (z Uint32x8)
 
 // ConvertToUint32 converts each element of x to uint32.
 //
+//	z[i] = uint32(x[i])
+//
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
 //
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
+//
 // Asm: VCVTTPD2UDQ, CPU Feature: AVX512
-func (x Float64x8) ConvertToUint32() (z Uint32x8)
+func (x Float64x8) ConvertToUint32() (z Uint32x16)
 
 /* ConvertToUint64 */
 
 // ConvertToUint64 converts each element of x to uint64.
 //
-// When a conversion is inexact, this truncates the result (rounds toward zero).
-// If the converted result would be outside the representable range, the result
-// is architecture-dependent.
-//
-// Asm: VCVTTPS2UQQ, CPU Feature: AVX512
-func (x Float32x4) ConvertToUint64() (z Uint64x4)
-
-// ConvertToUint64 converts each element of x to uint64.
+//	z[i] = uint64(x[i])
 //
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
 //
+// Only the low 2 elements of x are converted.
+// The remaining elements of x are ignored.
+//
 // Asm: VCVTTPS2UQQ, CPU Feature: AVX512
-func (x Float32x8) ConvertToUint64() (z Uint64x8)
+func (x Float32x4) ConvertToUint64() (z Uint64x2)
 
 // ConvertToUint64 converts each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// When a conversion is inexact, this truncates the result (rounds toward zero).
+// If the converted result would be outside the representable range, the result
+// is architecture-dependent.
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VCVTTPS2UQQ, CPU Feature: AVX512
+func (x Float32x8) ConvertToUint64() (z Uint64x4)
+
+// ConvertToUint64 converts each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// When a conversion is inexact, this truncates the result (rounds toward zero).
+// If the converted result would be outside the representable range, the result
+// is architecture-dependent.
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VCVTTPS2UQQ, CPU Feature: AVX512
+func (x Float32x16) ConvertToUint64() (z Uint64x8)
+
+// ConvertToUint64 converts each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
 //
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
@@ -2302,6 +2767,8 @@ func (x Float64x2) ConvertToUint64() (z Uint64x2)
 
 // ConvertToUint64 converts each element of x to uint64.
 //
+//	z[i] = uint64(x[i])
+//
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
 // is architecture-dependent.
@@ -2310,6 +2777,8 @@ func (x Float64x2) ConvertToUint64() (z Uint64x2)
 func (x Float64x4) ConvertToUint64() (z Uint64x4)
 
 // ConvertToUint64 converts each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
 //
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
@@ -2616,405 +3085,949 @@ func (x Float64x8) Equal(y Float64x8) (z Mask64x8)
 
 /* Expand */
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VEXPANDPS, CPU Feature: AVX512
-func (x Float32x4) Expand(mask Mask32x4) Float32x4
+func (x Float32x4) Expand(mask Mask32x4) (z Float32x4)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VEXPANDPS, CPU Feature: AVX512
-func (x Float32x8) Expand(mask Mask32x8) Float32x8
+func (x Float32x8) Expand(mask Mask32x8) (z Float32x8)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VEXPANDPS, CPU Feature: AVX512
-func (x Float32x16) Expand(mask Mask32x16) Float32x16
+func (x Float32x16) Expand(mask Mask32x16) (z Float32x16)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VEXPANDPD, CPU Feature: AVX512
-func (x Float64x2) Expand(mask Mask64x2) Float64x2
+func (x Float64x2) Expand(mask Mask64x2) (z Float64x2)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VEXPANDPD, CPU Feature: AVX512
-func (x Float64x4) Expand(mask Mask64x4) Float64x4
+func (x Float64x4) Expand(mask Mask64x4) (z Float64x4)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VEXPANDPD, CPU Feature: AVX512
-func (x Float64x8) Expand(mask Mask64x8) Float64x8
+func (x Float64x8) Expand(mask Mask64x8) (z Float64x8)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDB, CPU Feature: AVX512VBMI2
-func (x Int8x16) Expand(mask Mask8x16) Int8x16
+func (x Int8x16) Expand(mask Mask8x16) (z Int8x16)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDB, CPU Feature: AVX512VBMI2
-func (x Int8x32) Expand(mask Mask8x32) Int8x32
+func (x Int8x32) Expand(mask Mask8x32) (z Int8x32)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDB, CPU Feature: AVX512VBMI2
-func (x Int8x64) Expand(mask Mask8x64) Int8x64
+func (x Int8x64) Expand(mask Mask8x64) (z Int8x64)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDW, CPU Feature: AVX512VBMI2
-func (x Int16x8) Expand(mask Mask16x8) Int16x8
+func (x Int16x8) Expand(mask Mask16x8) (z Int16x8)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDW, CPU Feature: AVX512VBMI2
-func (x Int16x16) Expand(mask Mask16x16) Int16x16
+func (x Int16x16) Expand(mask Mask16x16) (z Int16x16)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDW, CPU Feature: AVX512VBMI2
-func (x Int16x32) Expand(mask Mask16x32) Int16x32
+func (x Int16x32) Expand(mask Mask16x32) (z Int16x32)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDD, CPU Feature: AVX512
-func (x Int32x4) Expand(mask Mask32x4) Int32x4
+func (x Int32x4) Expand(mask Mask32x4) (z Int32x4)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDD, CPU Feature: AVX512
-func (x Int32x8) Expand(mask Mask32x8) Int32x8
+func (x Int32x8) Expand(mask Mask32x8) (z Int32x8)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDD, CPU Feature: AVX512
-func (x Int32x16) Expand(mask Mask32x16) Int32x16
+func (x Int32x16) Expand(mask Mask32x16) (z Int32x16)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDQ, CPU Feature: AVX512
-func (x Int64x2) Expand(mask Mask64x2) Int64x2
+func (x Int64x2) Expand(mask Mask64x2) (z Int64x2)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDQ, CPU Feature: AVX512
-func (x Int64x4) Expand(mask Mask64x4) Int64x4
+func (x Int64x4) Expand(mask Mask64x4) (z Int64x4)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDQ, CPU Feature: AVX512
-func (x Int64x8) Expand(mask Mask64x8) Int64x8
+func (x Int64x8) Expand(mask Mask64x8) (z Int64x8)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDB, CPU Feature: AVX512VBMI2
-func (x Uint8x16) Expand(mask Mask8x16) Uint8x16
+func (x Uint8x16) Expand(mask Mask8x16) (z Uint8x16)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDB, CPU Feature: AVX512VBMI2
-func (x Uint8x32) Expand(mask Mask8x32) Uint8x32
+func (x Uint8x32) Expand(mask Mask8x32) (z Uint8x32)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDB, CPU Feature: AVX512VBMI2
-func (x Uint8x64) Expand(mask Mask8x64) Uint8x64
+func (x Uint8x64) Expand(mask Mask8x64) (z Uint8x64)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDW, CPU Feature: AVX512VBMI2
-func (x Uint16x8) Expand(mask Mask16x8) Uint16x8
+func (x Uint16x8) Expand(mask Mask16x8) (z Uint16x8)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDW, CPU Feature: AVX512VBMI2
-func (x Uint16x16) Expand(mask Mask16x16) Uint16x16
+func (x Uint16x16) Expand(mask Mask16x16) (z Uint16x16)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDW, CPU Feature: AVX512VBMI2
-func (x Uint16x32) Expand(mask Mask16x32) Uint16x32
+func (x Uint16x32) Expand(mask Mask16x32) (z Uint16x32)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDD, CPU Feature: AVX512
-func (x Uint32x4) Expand(mask Mask32x4) Uint32x4
+func (x Uint32x4) Expand(mask Mask32x4) (z Uint32x4)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDD, CPU Feature: AVX512
-func (x Uint32x8) Expand(mask Mask32x8) Uint32x8
+func (x Uint32x8) Expand(mask Mask32x8) (z Uint32x8)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDD, CPU Feature: AVX512
-func (x Uint32x16) Expand(mask Mask32x16) Uint32x16
+func (x Uint32x16) Expand(mask Mask32x16) (z Uint32x16)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDQ, CPU Feature: AVX512
-func (x Uint64x2) Expand(mask Mask64x2) Uint64x2
+func (x Uint64x2) Expand(mask Mask64x2) (z Uint64x2)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDQ, CPU Feature: AVX512
-func (x Uint64x4) Expand(mask Mask64x4) Uint64x4
+func (x Uint64x4) Expand(mask Mask64x4) (z Uint64x4)
 
-// Expand expands the lower elements of x into the masked elements of z.
+// Expand places the low elements of x, in order, into the elements of z where
+// mask is true. The elements of z where mask is false are zero.
+//
+//	j := 0
+//	for i := range z {
+//	    if mask[i] {
+//	        z[i] = x[j]
+//	        j++
+//	    }
+//	}
 //
 // Asm: VPEXPANDQ, CPU Feature: AVX512
-func (x Uint64x8) Expand(mask Mask64x8) Uint64x8
-
-/* ExtendLo2ToInt64 */
-
-// ExtendLo2ToInt64 sign-extends
-// the lowest 2 vector elements to int64.
-//
-// Asm: VPMOVSXBQ, CPU Feature: AVX
-func (x Int8x16) ExtendLo2ToInt64() (z Int64x2)
-
-// ExtendLo2ToInt64 sign-extends
-// the lowest 2 vector elements to int64.
-//
-// Asm: VPMOVSXWQ, CPU Feature: AVX
-func (x Int16x8) ExtendLo2ToInt64() (z Int64x2)
-
-// ExtendLo2ToInt64 sign-extends
-// the lowest 2 vector elements to int64.
-//
-// Asm: VPMOVSXDQ, CPU Feature: AVX
-func (x Int32x4) ExtendLo2ToInt64() (z Int64x2)
-
-/* ExtendLo2ToUint64 */
-
-// ExtendLo2ToUint64 zero-extends
-// the lowest 2 vector elements to uint64.
-//
-// Asm: VPMOVZXBQ, CPU Feature: AVX
-func (x Uint8x16) ExtendLo2ToUint64() (z Uint64x2)
-
-// ExtendLo2ToUint64 zero-extends
-// the lowest 2 vector elements to uint64.
-//
-// Asm: VPMOVZXWQ, CPU Feature: AVX
-func (x Uint16x8) ExtendLo2ToUint64() (z Uint64x2)
-
-// ExtendLo2ToUint64 zero-extends
-// the lowest 2 vector elements to uint64.
-//
-// Asm: VPMOVZXDQ, CPU Feature: AVX
-func (x Uint32x4) ExtendLo2ToUint64() (z Uint64x2)
-
-/* ExtendLo4ToInt32 */
-
-// ExtendLo4ToInt32 sign-extends
-// the lowest 4 vector elements to int32.
-//
-// Asm: VPMOVSXBD, CPU Feature: AVX
-func (x Int8x16) ExtendLo4ToInt32() (z Int32x4)
-
-// ExtendLo4ToInt32 sign-extends
-// the lowest 4 vector elements to int32.
-//
-// Asm: VPMOVSXWD, CPU Feature: AVX
-func (x Int16x8) ExtendLo4ToInt32() (z Int32x4)
+func (x Uint64x8) Expand(mask Mask64x8) (z Uint64x8)
 
 /* ExtendLo4ToInt64 */
 
-// ExtendLo4ToInt64 sign-extends 4 lowest vector element values to int64.
+// ExtendLo4ToInt64 sign-extends the low 4 elements of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Deprecated: use Int8x32{}.SetLo(x).ExtendToInt64() instead.
 //
 // Asm: VPMOVSXBQ, CPU Feature: AVX2
-func (x Int8x16) ExtendLo4ToInt64() Int64x4
+func (x Int8x16) ExtendLo4ToInt64() (z Int64x4)
 
-// ExtendLo4ToInt64 sign-extends 4 lowest vector element values to int64.
+// ExtendLo4ToInt64 sign-extends the low 4 elements of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Deprecated: use Int16x16{}.SetLo(x).ExtendToInt64() instead.
 //
 // Asm: VPMOVSXWQ, CPU Feature: AVX2
-func (x Int16x8) ExtendLo4ToInt64() Int64x4
-
-/* ExtendLo4ToUint32 */
-
-// ExtendLo4ToUint32 zero-extends
-// the lowest 4 vector elements to uint32.
-//
-// Asm: VPMOVZXBD, CPU Feature: AVX
-func (x Uint8x16) ExtendLo4ToUint32() (z Uint32x4)
-
-// ExtendLo4ToUint32 zero-extends
-// the lowest 4 vector elements to uint32.
-//
-// Asm: VPMOVZXWD, CPU Feature: AVX
-func (x Uint16x8) ExtendLo4ToUint32() (z Uint32x4)
+func (x Int16x8) ExtendLo4ToInt64() (z Int64x4)
 
 /* ExtendLo4ToUint64 */
 
-// ExtendLo4ToUint64 zero-extends 4 lowest vector element values to uint64.
+// ExtendLo4ToUint64 zero-extends the low 4 elements of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Deprecated: use Uint8x32{}.SetLo(x).ExtendToUint64() instead.
 //
 // Asm: VPMOVZXBQ, CPU Feature: AVX2
-func (x Uint8x16) ExtendLo4ToUint64() Uint64x4
+func (x Uint8x16) ExtendLo4ToUint64() (z Uint64x4)
 
-// ExtendLo4ToUint64 zero-extends 4 lowest vector element values to uint64.
+// ExtendLo4ToUint64 zero-extends the low 4 elements of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Deprecated: use Uint16x16{}.SetLo(x).ExtendToUint64() instead.
 //
 // Asm: VPMOVZXWQ, CPU Feature: AVX2
-func (x Uint16x8) ExtendLo4ToUint64() Uint64x4
-
-/* ExtendLo8ToInt16 */
-
-// ExtendLo8ToInt16 sign-extends
-// the lowest 8 vector elements to int16.
-//
-// Asm: VPMOVSXBW, CPU Feature: AVX
-func (x Int8x16) ExtendLo8ToInt16() (z Int16x8)
+func (x Uint16x8) ExtendLo4ToUint64() (z Uint64x4)
 
 /* ExtendLo8ToInt32 */
 
-// ExtendLo8ToInt32 sign-extends 8 lowest vector element values to int32.
+// ExtendLo8ToInt32 sign-extends the low 8 elements of x to int32.
+//
+//	z[i] = int32(x[i])
+//
+// Deprecated: use Int8x32{}.SetLo(x).ExtendToInt32() instead.
 //
 // Asm: VPMOVSXBD, CPU Feature: AVX2
-func (x Int8x16) ExtendLo8ToInt32() Int32x8
+func (x Int8x16) ExtendLo8ToInt32() (z Int32x8)
 
 /* ExtendLo8ToInt64 */
 
-// ExtendLo8ToInt64 sign-extends 8 lowest vector element values to int64.
+// ExtendLo8ToInt64 sign-extends the low 8 elements of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Deprecated: use Int8x64{}.SetLo(Int8x32{}.SetLo(x)).ExtendToInt64() instead.
 //
 // Asm: VPMOVSXBQ, CPU Feature: AVX512
-func (x Int8x16) ExtendLo8ToInt64() Int64x8
-
-/* ExtendLo8ToUint16 */
-
-// ExtendLo8ToUint16 zero-extends
-// the lowest 8 vector elements to uint16.
-//
-// Asm: VPMOVZXBW, CPU Feature: AVX
-func (x Uint8x16) ExtendLo8ToUint16() (z Uint16x8)
+func (x Int8x16) ExtendLo8ToInt64() (z Int64x8)
 
 /* ExtendLo8ToUint32 */
 
-// ExtendLo8ToUint32 zero-extends 8 lowest vector element values to uint32.
+// ExtendLo8ToUint32 zero-extends the low 8 elements of x to uint32.
+//
+//	z[i] = uint32(x[i])
+//
+// Deprecated: use Uint8x32{}.SetLo(x).ExtendToUint32() instead.
 //
 // Asm: VPMOVZXBD, CPU Feature: AVX2
-func (x Uint8x16) ExtendLo8ToUint32() Uint32x8
+func (x Uint8x16) ExtendLo8ToUint32() (z Uint32x8)
 
 /* ExtendLo8ToUint64 */
 
-// ExtendLo8ToUint64 zero-extends 8 lowest vector element values to uint64.
+// ExtendLo8ToUint64 zero-extends the low 8 elements of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Deprecated: use Uint8x64{}.SetLo(Uint8x32{}.SetLo(x)).ExtendToUint64() instead.
 //
 // Asm: VPMOVZXBQ, CPU Feature: AVX512
-func (x Uint8x16) ExtendLo8ToUint64() Uint64x8
+func (x Uint8x16) ExtendLo8ToUint64() (z Uint64x8)
 
 /* ExtendToInt16 */
 
-// ExtendToInt16 sign-extends element values to int16.
+// ExtendToInt16 sign-extends each element of x to int16.
+//
+//	z[i] = int16(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVSXBW, CPU Feature: AVX
+func (x Int8x16) ExtendToInt16() (z Int16x8)
+
+// ExtendToInt16 sign-extends each element of x to int16.
+//
+//	z[i] = int16(x[i])
+//
+// Only the low 16 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVSXBW, CPU Feature: AVX2
-func (x Int8x16) ExtendToInt16() Int16x16
+func (x Int8x32) ExtendToInt16() (z Int16x16)
 
-// ExtendToInt16 sign-extends element values to int16.
+// ExtendToInt16 sign-extends each element of x to int16.
+//
+//	z[i] = int16(x[i])
+//
+// Only the low 32 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVSXBW, CPU Feature: AVX512
-func (x Int8x32) ExtendToInt16() Int16x32
+func (x Int8x64) ExtendToInt16() (z Int16x32)
 
 /* ExtendToInt32 */
 
-// ExtendToInt32 sign-extends element values to int32.
+// ExtendToInt32 sign-extends each element of x to int32.
+//
+//	z[i] = int32(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVSXBD, CPU Feature: AVX
+func (x Int8x16) ExtendToInt32() (z Int32x4)
+
+// ExtendToInt32 sign-extends each element of x to int32.
+//
+//	z[i] = int32(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVSXBD, CPU Feature: AVX2
+func (x Int8x32) ExtendToInt32() (z Int32x8)
+
+// ExtendToInt32 sign-extends each element of x to int32.
+//
+//	z[i] = int32(x[i])
+//
+// Only the low 16 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVSXBD, CPU Feature: AVX512
-func (x Int8x16) ExtendToInt32() Int32x16
+func (x Int8x64) ExtendToInt32() (z Int32x16)
 
-// ExtendToInt32 sign-extends element values to int32.
+// ExtendToInt32 sign-extends each element of x to int32.
+//
+//	z[i] = int32(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVSXWD, CPU Feature: AVX
+func (x Int16x8) ExtendToInt32() (z Int32x4)
+
+// ExtendToInt32 sign-extends each element of x to int32.
+//
+//	z[i] = int32(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVSXWD, CPU Feature: AVX2
-func (x Int16x8) ExtendToInt32() Int32x8
+func (x Int16x16) ExtendToInt32() (z Int32x8)
 
-// ExtendToInt32 sign-extends element values to int32.
+// ExtendToInt32 sign-extends each element of x to int32.
+//
+//	z[i] = int32(x[i])
+//
+// Only the low 16 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVSXWD, CPU Feature: AVX512
-func (x Int16x16) ExtendToInt32() Int32x16
+func (x Int16x32) ExtendToInt32() (z Int32x16)
 
 /* ExtendToInt64 */
 
-// ExtendToInt64 sign-extends element values to int64.
+// ExtendToInt64 sign-extends each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Only the low 2 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVSXBQ, CPU Feature: AVX
+func (x Int8x16) ExtendToInt64() (z Int64x2)
+
+// ExtendToInt64 sign-extends each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVSXBQ, CPU Feature: AVX2
+func (x Int8x32) ExtendToInt64() (z Int64x4)
+
+// ExtendToInt64 sign-extends each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVSXBQ, CPU Feature: AVX512
+func (x Int8x64) ExtendToInt64() (z Int64x8)
+
+// ExtendToInt64 sign-extends each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Only the low 2 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVSXWQ, CPU Feature: AVX
+func (x Int16x8) ExtendToInt64() (z Int64x2)
+
+// ExtendToInt64 sign-extends each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVSXWQ, CPU Feature: AVX2
+func (x Int16x16) ExtendToInt64() (z Int64x4)
+
+// ExtendToInt64 sign-extends each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVSXWQ, CPU Feature: AVX512
-func (x Int16x8) ExtendToInt64() Int64x8
+func (x Int16x32) ExtendToInt64() (z Int64x8)
 
-// ExtendToInt64 sign-extends element values to int64.
+// ExtendToInt64 sign-extends each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Only the low 2 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVSXDQ, CPU Feature: AVX
+func (x Int32x4) ExtendToInt64() (z Int64x2)
+
+// ExtendToInt64 sign-extends each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVSXDQ, CPU Feature: AVX2
-func (x Int32x4) ExtendToInt64() Int64x4
+func (x Int32x8) ExtendToInt64() (z Int64x4)
 
-// ExtendToInt64 sign-extends element values to int64.
+// ExtendToInt64 sign-extends each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVSXDQ, CPU Feature: AVX512
-func (x Int32x8) ExtendToInt64() Int64x8
+func (x Int32x16) ExtendToInt64() (z Int64x8)
 
 /* ExtendToUint16 */
 
-// ExtendToUint16 zero-extends element values to uint16.
+// ExtendToUint16 zero-extends each element of x to uint16.
+//
+//	z[i] = uint16(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVZXBW, CPU Feature: AVX
+func (x Uint8x16) ExtendToUint16() (z Uint16x8)
+
+// ExtendToUint16 zero-extends each element of x to uint16.
+//
+//	z[i] = uint16(x[i])
+//
+// Only the low 16 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVZXBW, CPU Feature: AVX2
-func (x Uint8x16) ExtendToUint16() Uint16x16
+func (x Uint8x32) ExtendToUint16() (z Uint16x16)
 
-// ExtendToUint16 zero-extends element values to uint16.
+// ExtendToUint16 zero-extends each element of x to uint16.
+//
+//	z[i] = uint16(x[i])
+//
+// Only the low 32 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVZXBW, CPU Feature: AVX512
-func (x Uint8x32) ExtendToUint16() Uint16x32
+func (x Uint8x64) ExtendToUint16() (z Uint16x32)
 
 /* ExtendToUint32 */
 
-// ExtendToUint32 zero-extends element values to uint32.
+// ExtendToUint32 zero-extends each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVZXBD, CPU Feature: AVX
+func (x Uint8x16) ExtendToUint32() (z Uint32x4)
+
+// ExtendToUint32 zero-extends each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVZXBD, CPU Feature: AVX2
+func (x Uint8x32) ExtendToUint32() (z Uint32x8)
+
+// ExtendToUint32 zero-extends each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
+//
+// Only the low 16 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVZXBD, CPU Feature: AVX512
-func (x Uint8x16) ExtendToUint32() Uint32x16
+func (x Uint8x64) ExtendToUint32() (z Uint32x16)
 
-// ExtendToUint32 zero-extends element values to uint32.
+// ExtendToUint32 zero-extends each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVZXWD, CPU Feature: AVX
+func (x Uint16x8) ExtendToUint32() (z Uint32x4)
+
+// ExtendToUint32 zero-extends each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVZXWD, CPU Feature: AVX2
-func (x Uint16x8) ExtendToUint32() Uint32x8
+func (x Uint16x16) ExtendToUint32() (z Uint32x8)
 
-// ExtendToUint32 zero-extends element values to uint32.
+// ExtendToUint32 zero-extends each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
+//
+// Only the low 16 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVZXWD, CPU Feature: AVX512
-func (x Uint16x16) ExtendToUint32() Uint32x16
+func (x Uint16x32) ExtendToUint32() (z Uint32x16)
 
 /* ExtendToUint64 */
 
-// ExtendToUint64 zero-extends element values to uint64.
+// ExtendToUint64 zero-extends each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Only the low 2 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVZXBQ, CPU Feature: AVX
+func (x Uint8x16) ExtendToUint64() (z Uint64x2)
+
+// ExtendToUint64 zero-extends each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVZXBQ, CPU Feature: AVX2
+func (x Uint8x32) ExtendToUint64() (z Uint64x4)
+
+// ExtendToUint64 zero-extends each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVZXBQ, CPU Feature: AVX512
+func (x Uint8x64) ExtendToUint64() (z Uint64x8)
+
+// ExtendToUint64 zero-extends each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Only the low 2 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVZXWQ, CPU Feature: AVX
+func (x Uint16x8) ExtendToUint64() (z Uint64x2)
+
+// ExtendToUint64 zero-extends each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVZXWQ, CPU Feature: AVX2
+func (x Uint16x16) ExtendToUint64() (z Uint64x4)
+
+// ExtendToUint64 zero-extends each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVZXWQ, CPU Feature: AVX512
-func (x Uint16x8) ExtendToUint64() Uint64x8
+func (x Uint16x32) ExtendToUint64() (z Uint64x8)
 
-// ExtendToUint64 zero-extends element values to uint64.
+// ExtendToUint64 zero-extends each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Only the low 2 elements of x are converted.
+// The remaining elements of x are ignored.
+//
+// Asm: VPMOVZXDQ, CPU Feature: AVX
+func (x Uint32x4) ExtendToUint64() (z Uint64x2)
+
+// ExtendToUint64 zero-extends each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Only the low 4 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVZXDQ, CPU Feature: AVX2
-func (x Uint32x4) ExtendToUint64() Uint64x4
+func (x Uint32x8) ExtendToUint64() (z Uint64x4)
 
-// ExtendToUint64 zero-extends element values to uint64.
+// ExtendToUint64 zero-extends each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Only the low 8 elements of x are converted.
+// The remaining elements of x are ignored.
 //
 // Asm: VPMOVZXDQ, CPU Feature: AVX512
-func (x Uint32x8) ExtendToUint64() Uint64x8
+func (x Uint32x16) ExtendToUint64() (z Uint64x8)
 
 /* Floor */
 
-// Floor rounds elements down to the nearest integer.
+// Floor returns the greatest integer value less than or equal to each element
+// of x.
+//
+//	z[i] = floor(x[i])
+//
+// Special cases follow IEEE 754: Floor(±0) = ±0, Floor(±Inf) = ±Inf, and
+// Floor(NaN) = NaN. The sign and payload of a NaN result are unspecified.
 //
 // Asm: VROUNDPS, CPU Feature: AVX
-func (x Float32x4) Floor() Float32x4
+func (x Float32x4) Floor() (z Float32x4)
 
-// Floor rounds elements down to the nearest integer.
+// Floor returns the greatest integer value less than or equal to each element
+// of x.
+//
+//	z[i] = floor(x[i])
+//
+// Special cases follow IEEE 754: Floor(±0) = ±0, Floor(±Inf) = ±Inf, and
+// Floor(NaN) = NaN. The sign and payload of a NaN result are unspecified.
 //
 // Asm: VROUNDPS, CPU Feature: AVX
-func (x Float32x8) Floor() Float32x8
+func (x Float32x8) Floor() (z Float32x8)
 
-// Floor rounds elements down to the nearest integer.
+// Floor returns the greatest integer value less than or equal to each element
+// of x.
+//
+//	z[i] = floor(x[i])
+//
+// Special cases follow IEEE 754: Floor(±0) = ±0, Floor(±Inf) = ±Inf, and
+// Floor(NaN) = NaN. The sign and payload of a NaN result are unspecified.
+//
+// Asm: VRNDSCALEPS, CPU Feature: AVX512
+func (x Float32x16) Floor() (z Float32x16)
+
+// Floor returns the greatest integer value less than or equal to each element
+// of x.
+//
+//	z[i] = floor(x[i])
+//
+// Special cases follow IEEE 754: Floor(±0) = ±0, Floor(±Inf) = ±Inf, and
+// Floor(NaN) = NaN. The sign and payload of a NaN result are unspecified.
 //
 // Asm: VROUNDPD, CPU Feature: AVX
-func (x Float64x2) Floor() Float64x2
+func (x Float64x2) Floor() (z Float64x2)
 
-// Floor rounds elements down to the nearest integer.
+// Floor returns the greatest integer value less than or equal to each element
+// of x.
+//
+//	z[i] = floor(x[i])
+//
+// Special cases follow IEEE 754: Floor(±0) = ±0, Floor(±Inf) = ±Inf, and
+// Floor(NaN) = NaN. The sign and payload of a NaN result are unspecified.
 //
 // Asm: VROUNDPD, CPU Feature: AVX
-func (x Float64x4) Floor() Float64x4
+func (x Float64x4) Floor() (z Float64x4)
+
+// Floor returns the greatest integer value less than or equal to each element
+// of x.
+//
+//	z[i] = floor(x[i])
+//
+// Special cases follow IEEE 754: Floor(±0) = ±0, Floor(±Inf) = ±Inf, and
+// Floor(NaN) = NaN. The sign and payload of a NaN result are unspecified.
+//
+// Asm: VRNDSCALEPD, CPU Feature: AVX512
+func (x Float64x8) Floor() (z Float64x8)
 
 /* FloorScaled */
 
@@ -3217,279 +4230,379 @@ func (x Uint8x64) GaloisFieldMul(y Uint8x64) Uint8x64
 
 /* GetElem */
 
-// GetElem returns the index'th element of x.
+// GetElem returns the i'th element x. If i >= 4, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x[i]
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPEXTRD, CPU Feature: AVX
-func (x Float32x4) GetElem(index uint8) float32
+func (x Float32x4) GetElem(i uint8) (z float32)
 
-// GetElem returns the index'th element of x.
+// GetElem returns the i'th element x. If i >= 2, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x[i]
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPEXTRQ, CPU Feature: AVX
-func (x Float64x2) GetElem(index uint8) float64
+func (x Float64x2) GetElem(i uint8) (z float64)
 
-// GetElem returns the index'th element of x.
+// GetElem returns the i'th element x. If i >= 16, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x[i]
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPEXTRB, CPU Feature: AVX
-func (x Int8x16) GetElem(index uint8) int8
+func (x Int8x16) GetElem(i uint8) (z int8)
 
-// GetElem returns the index'th element of x.
+// GetElem returns the i'th element x. If i >= 8, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x[i]
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPEXTRW, CPU Feature: AVX
-func (x Int16x8) GetElem(index uint8) int16
+func (x Int16x8) GetElem(i uint8) (z int16)
 
-// GetElem returns the index'th element of x.
+// GetElem returns the i'th element x. If i >= 4, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x[i]
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPEXTRD, CPU Feature: AVX
-func (x Int32x4) GetElem(index uint8) int32
+func (x Int32x4) GetElem(i uint8) (z int32)
 
-// GetElem returns the index'th element of x.
+// GetElem returns the i'th element x. If i >= 2, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x[i]
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPEXTRQ, CPU Feature: AVX
-func (x Int64x2) GetElem(index uint8) int64
+func (x Int64x2) GetElem(i uint8) (z int64)
 
-// GetElem returns the index'th element of x.
+// GetElem returns the i'th element x. If i >= 16, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x[i]
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPEXTRB, CPU Feature: AVX
-func (x Uint8x16) GetElem(index uint8) uint8
+func (x Uint8x16) GetElem(i uint8) (z uint8)
 
-// GetElem returns the index'th element of x.
+// GetElem returns the i'th element x. If i >= 8, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x[i]
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPEXTRW, CPU Feature: AVX
-func (x Uint16x8) GetElem(index uint8) uint16
+func (x Uint16x8) GetElem(i uint8) (z uint16)
 
-// GetElem returns the index'th element of x.
+// GetElem returns the i'th element x. If i >= 4, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x[i]
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPEXTRD, CPU Feature: AVX
-func (x Uint32x4) GetElem(index uint8) uint32
+func (x Uint32x4) GetElem(i uint8) (z uint32)
 
-// GetElem returns the index'th element of x.
+// GetElem returns the i'th element x. If i >= 2, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x[i]
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPEXTRQ, CPU Feature: AVX
-func (x Uint64x2) GetElem(index uint8) uint64
+func (x Uint64x2) GetElem(i uint8) (z uint64)
 
 /* GetHi */
 
 // GetHi returns the upper half of x.
 //
-// Asm: VEXTRACTF128, CPU Feature: AVX
-func (x Float32x8) GetHi() Float32x4
-
-// GetHi returns the upper half of x.
-//
-// Asm: VEXTRACTF64X4, CPU Feature: AVX512
-func (x Float32x16) GetHi() Float32x8
-
-// GetHi returns the upper half of x.
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 8
 //
 // Asm: VEXTRACTF128, CPU Feature: AVX
-func (x Float64x4) GetHi() Float64x2
+func (x Float32x8) GetHi() (z Float32x4)
 
 // GetHi returns the upper half of x.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 16
 //
 // Asm: VEXTRACTF64X4, CPU Feature: AVX512
-func (x Float64x8) GetHi() Float64x4
+func (x Float32x16) GetHi() (z Float32x8)
 
 // GetHi returns the upper half of x.
+//
+//	z = {x[2], x[3]}
+//
+// Asm: VEXTRACTF128, CPU Feature: AVX
+func (x Float64x4) GetHi() (z Float64x2)
+
+// GetHi returns the upper half of x.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 8
+//
+// Asm: VEXTRACTF64X4, CPU Feature: AVX512
+func (x Float64x8) GetHi() (z Float64x4)
+
+// GetHi returns the upper half of x.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 32
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Int8x32) GetHi() Int8x16
+func (x Int8x32) GetHi() (z Int8x16)
 
 // GetHi returns the upper half of x.
 //
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 64
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Int8x64) GetHi() Int8x32
+func (x Int8x64) GetHi() (z Int8x32)
 
 // GetHi returns the upper half of x.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 16
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Int16x16) GetHi() Int16x8
+func (x Int16x16) GetHi() (z Int16x8)
 
 // GetHi returns the upper half of x.
 //
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 32
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Int16x32) GetHi() Int16x16
+func (x Int16x32) GetHi() (z Int16x16)
 
 // GetHi returns the upper half of x.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 8
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Int32x8) GetHi() Int32x4
+func (x Int32x8) GetHi() (z Int32x4)
 
 // GetHi returns the upper half of x.
 //
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 16
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Int32x16) GetHi() Int32x8
+func (x Int32x16) GetHi() (z Int32x8)
 
 // GetHi returns the upper half of x.
+//
+//	z = {x[2], x[3]}
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Int64x4) GetHi() Int64x2
+func (x Int64x4) GetHi() (z Int64x2)
 
 // GetHi returns the upper half of x.
 //
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 8
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Int64x8) GetHi() Int64x4
+func (x Int64x8) GetHi() (z Int64x4)
 
 // GetHi returns the upper half of x.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 32
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Uint8x32) GetHi() Uint8x16
+func (x Uint8x32) GetHi() (z Uint8x16)
 
 // GetHi returns the upper half of x.
 //
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 64
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Uint8x64) GetHi() Uint8x32
+func (x Uint8x64) GetHi() (z Uint8x32)
 
 // GetHi returns the upper half of x.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 16
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Uint16x16) GetHi() Uint16x8
+func (x Uint16x16) GetHi() (z Uint16x8)
 
 // GetHi returns the upper half of x.
 //
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 32
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Uint16x32) GetHi() Uint16x16
+func (x Uint16x32) GetHi() (z Uint16x16)
 
 // GetHi returns the upper half of x.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 8
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Uint32x8) GetHi() Uint32x4
+func (x Uint32x8) GetHi() (z Uint32x4)
 
 // GetHi returns the upper half of x.
 //
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 16
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Uint32x16) GetHi() Uint32x8
+func (x Uint32x16) GetHi() (z Uint32x8)
 
 // GetHi returns the upper half of x.
+//
+//	z = {x[2], x[3]}
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Uint64x4) GetHi() Uint64x2
+func (x Uint64x4) GetHi() (z Uint64x2)
 
 // GetHi returns the upper half of x.
 //
+//	z = {x[n/2], x[n/2+1], ..., x[n-1]}, where n = 8
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Uint64x8) GetHi() Uint64x4
+func (x Uint64x8) GetHi() (z Uint64x4)
 
 /* GetLo */
 
 // GetLo returns the lower half of x.
 //
-// Asm: VEXTRACTF128, CPU Feature: AVX
-func (x Float32x8) GetLo() Float32x4
-
-// GetLo returns the lower half of x.
-//
-// Asm: VEXTRACTF64X4, CPU Feature: AVX512
-func (x Float32x16) GetLo() Float32x8
-
-// GetLo returns the lower half of x.
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 8
 //
 // Asm: VEXTRACTF128, CPU Feature: AVX
-func (x Float64x4) GetLo() Float64x2
+func (x Float32x8) GetLo() (z Float32x4)
 
 // GetLo returns the lower half of x.
+//
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 16
 //
 // Asm: VEXTRACTF64X4, CPU Feature: AVX512
-func (x Float64x8) GetLo() Float64x4
+func (x Float32x16) GetLo() (z Float32x8)
 
 // GetLo returns the lower half of x.
+//
+//	z = {x[0], x[1]}
+//
+// Asm: VEXTRACTF128, CPU Feature: AVX
+func (x Float64x4) GetLo() (z Float64x2)
+
+// GetLo returns the lower half of x.
+//
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 8
+//
+// Asm: VEXTRACTF64X4, CPU Feature: AVX512
+func (x Float64x8) GetLo() (z Float64x4)
+
+// GetLo returns the lower half of x.
+//
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 32
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Int8x32) GetLo() Int8x16
+func (x Int8x32) GetLo() (z Int8x16)
 
 // GetLo returns the lower half of x.
 //
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 64
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Int8x64) GetLo() Int8x32
+func (x Int8x64) GetLo() (z Int8x32)
 
 // GetLo returns the lower half of x.
+//
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 16
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Int16x16) GetLo() Int16x8
+func (x Int16x16) GetLo() (z Int16x8)
 
 // GetLo returns the lower half of x.
 //
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 32
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Int16x32) GetLo() Int16x16
+func (x Int16x32) GetLo() (z Int16x16)
 
 // GetLo returns the lower half of x.
+//
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 8
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Int32x8) GetLo() Int32x4
+func (x Int32x8) GetLo() (z Int32x4)
 
 // GetLo returns the lower half of x.
 //
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 16
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Int32x16) GetLo() Int32x8
+func (x Int32x16) GetLo() (z Int32x8)
 
 // GetLo returns the lower half of x.
+//
+//	z = {x[0], x[1]}
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Int64x4) GetLo() Int64x2
+func (x Int64x4) GetLo() (z Int64x2)
 
 // GetLo returns the lower half of x.
 //
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 8
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Int64x8) GetLo() Int64x4
+func (x Int64x8) GetLo() (z Int64x4)
 
 // GetLo returns the lower half of x.
+//
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 32
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Uint8x32) GetLo() Uint8x16
+func (x Uint8x32) GetLo() (z Uint8x16)
 
 // GetLo returns the lower half of x.
 //
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 64
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Uint8x64) GetLo() Uint8x32
+func (x Uint8x64) GetLo() (z Uint8x32)
 
 // GetLo returns the lower half of x.
+//
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 16
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Uint16x16) GetLo() Uint16x8
+func (x Uint16x16) GetLo() (z Uint16x8)
 
 // GetLo returns the lower half of x.
 //
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 32
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Uint16x32) GetLo() Uint16x16
+func (x Uint16x32) GetLo() (z Uint16x16)
 
 // GetLo returns the lower half of x.
+//
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 8
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Uint32x8) GetLo() Uint32x4
+func (x Uint32x8) GetLo() (z Uint32x4)
 
 // GetLo returns the lower half of x.
 //
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 16
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Uint32x16) GetLo() Uint32x8
+func (x Uint32x16) GetLo() (z Uint32x8)
 
 // GetLo returns the lower half of x.
+//
+//	z = {x[0], x[1]}
 //
 // Asm: VEXTRACTI128, CPU Feature: AVX2
-func (x Uint64x4) GetLo() Uint64x2
+func (x Uint64x4) GetLo() (z Uint64x2)
 
 // GetLo returns the lower half of x.
 //
+//	z = {x[0], x[1], ..., x[n/2-1]}, where n = 8
+//
 // Asm: VEXTRACTI64X4, CPU Feature: AVX512
-func (x Uint64x8) GetLo() Uint64x4
+func (x Uint64x8) GetLo() (z Uint64x4)
 
 /* Greater */
 
@@ -3765,43 +4878,59 @@ func (x Uint64x8) GreaterEqual(y Uint64x8) (z Mask64x8)
 
 // InterleaveHi interleaves the elements of the high halves of x and y.
 //
-// Asm: VPUNPCKHBW, CPU Feature: AVX
-func (x Int8x16) InterleaveHi(y Int8x16) Int8x16
-
-// InterleaveHi interleaves the elements of the high halves of x and y.
-//
-// Asm: VPUNPCKHWD, CPU Feature: AVX
-func (x Int16x8) InterleaveHi(y Int16x8) Int16x8
-
-// InterleaveHi interleaves the elements of the high halves of x and y.
-//
-// Asm: VPUNPCKHDQ, CPU Feature: AVX
-func (x Int32x4) InterleaveHi(y Int32x4) Int32x4
-
-// InterleaveHi interleaves the elements of the high halves of x and y.
-//
-// Asm: VPUNPCKHQDQ, CPU Feature: AVX
-func (x Int64x2) InterleaveHi(y Int64x2) Int64x2
-
-// InterleaveHi interleaves the elements of the high halves of x and y.
+//	z = {x[n/2], y[n/2], x[n/2+1], y[n/2+1], ..., x[n-1], y[n-1]}, where n = 16
 //
 // Asm: VPUNPCKHBW, CPU Feature: AVX
-func (x Uint8x16) InterleaveHi(y Uint8x16) Uint8x16
+func (x Int8x16) InterleaveHi(y Int8x16) (z Int8x16)
 
 // InterleaveHi interleaves the elements of the high halves of x and y.
+//
+//	z = {x[n/2], y[n/2], x[n/2+1], y[n/2+1], ..., x[n-1], y[n-1]}, where n = 8
 //
 // Asm: VPUNPCKHWD, CPU Feature: AVX
-func (x Uint16x8) InterleaveHi(y Uint16x8) Uint16x8
+func (x Int16x8) InterleaveHi(y Int16x8) (z Int16x8)
 
 // InterleaveHi interleaves the elements of the high halves of x and y.
+//
+//	z = {x[2], y[2], x[3], y[3]}
 //
 // Asm: VPUNPCKHDQ, CPU Feature: AVX
-func (x Uint32x4) InterleaveHi(y Uint32x4) Uint32x4
+func (x Int32x4) InterleaveHi(y Int32x4) (z Int32x4)
 
 // InterleaveHi interleaves the elements of the high halves of x and y.
 //
+//	z = {x[1], y[1]}
+//
 // Asm: VPUNPCKHQDQ, CPU Feature: AVX
-func (x Uint64x2) InterleaveHi(y Uint64x2) Uint64x2
+func (x Int64x2) InterleaveHi(y Int64x2) (z Int64x2)
+
+// InterleaveHi interleaves the elements of the high halves of x and y.
+//
+//	z = {x[n/2], y[n/2], x[n/2+1], y[n/2+1], ..., x[n-1], y[n-1]}, where n = 16
+//
+// Asm: VPUNPCKHBW, CPU Feature: AVX
+func (x Uint8x16) InterleaveHi(y Uint8x16) (z Uint8x16)
+
+// InterleaveHi interleaves the elements of the high halves of x and y.
+//
+//	z = {x[n/2], y[n/2], x[n/2+1], y[n/2+1], ..., x[n-1], y[n-1]}, where n = 8
+//
+// Asm: VPUNPCKHWD, CPU Feature: AVX
+func (x Uint16x8) InterleaveHi(y Uint16x8) (z Uint16x8)
+
+// InterleaveHi interleaves the elements of the high halves of x and y.
+//
+//	z = {x[2], y[2], x[3], y[3]}
+//
+// Asm: VPUNPCKHDQ, CPU Feature: AVX
+func (x Uint32x4) InterleaveHi(y Uint32x4) (z Uint32x4)
+
+// InterleaveHi interleaves the elements of the high halves of x and y.
+//
+//	z = {x[1], y[1]}
+//
+// Asm: VPUNPCKHQDQ, CPU Feature: AVX
+func (x Uint64x2) InterleaveHi(y Uint64x2) (z Uint64x2)
 
 /* InterleaveHiGrouped */
 
@@ -3889,43 +5018,59 @@ func (x Uint64x8) InterleaveHiGrouped(y Uint64x8) Uint64x8
 
 // InterleaveLo interleaves the elements of the low halves of x and y.
 //
-// Asm: VPUNPCKLBW, CPU Feature: AVX
-func (x Int8x16) InterleaveLo(y Int8x16) Int8x16
-
-// InterleaveLo interleaves the elements of the low halves of x and y.
-//
-// Asm: VPUNPCKLWD, CPU Feature: AVX
-func (x Int16x8) InterleaveLo(y Int16x8) Int16x8
-
-// InterleaveLo interleaves the elements of the low halves of x and y.
-//
-// Asm: VPUNPCKLDQ, CPU Feature: AVX
-func (x Int32x4) InterleaveLo(y Int32x4) Int32x4
-
-// InterleaveLo interleaves the elements of the low halves of x and y.
-//
-// Asm: VPUNPCKLQDQ, CPU Feature: AVX
-func (x Int64x2) InterleaveLo(y Int64x2) Int64x2
-
-// InterleaveLo interleaves the elements of the low halves of x and y.
+//	z = {x[0], y[0], x[1], y[1], ..., x[n/2-1], y[n/2-1]}, where n = 16
 //
 // Asm: VPUNPCKLBW, CPU Feature: AVX
-func (x Uint8x16) InterleaveLo(y Uint8x16) Uint8x16
+func (x Int8x16) InterleaveLo(y Int8x16) (z Int8x16)
 
 // InterleaveLo interleaves the elements of the low halves of x and y.
+//
+//	z = {x[0], y[0], x[1], y[1], ..., x[n/2-1], y[n/2-1]}, where n = 8
 //
 // Asm: VPUNPCKLWD, CPU Feature: AVX
-func (x Uint16x8) InterleaveLo(y Uint16x8) Uint16x8
+func (x Int16x8) InterleaveLo(y Int16x8) (z Int16x8)
 
 // InterleaveLo interleaves the elements of the low halves of x and y.
+//
+//	z = {x[0], y[0], x[1], y[1]}
 //
 // Asm: VPUNPCKLDQ, CPU Feature: AVX
-func (x Uint32x4) InterleaveLo(y Uint32x4) Uint32x4
+func (x Int32x4) InterleaveLo(y Int32x4) (z Int32x4)
 
 // InterleaveLo interleaves the elements of the low halves of x and y.
 //
+//	z = {x[0], y[0]}
+//
 // Asm: VPUNPCKLQDQ, CPU Feature: AVX
-func (x Uint64x2) InterleaveLo(y Uint64x2) Uint64x2
+func (x Int64x2) InterleaveLo(y Int64x2) (z Int64x2)
+
+// InterleaveLo interleaves the elements of the low halves of x and y.
+//
+//	z = {x[0], y[0], x[1], y[1], ..., x[n/2-1], y[n/2-1]}, where n = 16
+//
+// Asm: VPUNPCKLBW, CPU Feature: AVX
+func (x Uint8x16) InterleaveLo(y Uint8x16) (z Uint8x16)
+
+// InterleaveLo interleaves the elements of the low halves of x and y.
+//
+//	z = {x[0], y[0], x[1], y[1], ..., x[n/2-1], y[n/2-1]}, where n = 8
+//
+// Asm: VPUNPCKLWD, CPU Feature: AVX
+func (x Uint16x8) InterleaveLo(y Uint16x8) (z Uint16x8)
+
+// InterleaveLo interleaves the elements of the low halves of x and y.
+//
+//	z = {x[0], y[0], x[1], y[1]}
+//
+// Asm: VPUNPCKLDQ, CPU Feature: AVX
+func (x Uint32x4) InterleaveLo(y Uint32x4) (z Uint32x4)
+
+// InterleaveLo interleaves the elements of the low halves of x and y.
+//
+//	z = {x[0], y[0]}
+//
+// Asm: VPUNPCKLQDQ, CPU Feature: AVX
+func (x Uint64x2) InterleaveLo(y Uint64x2) (z Uint64x2)
 
 /* InterleaveLoGrouped */
 
@@ -4332,6 +5477,252 @@ func (x Uint32x16) LessEqual(y Uint32x16) (z Mask32x16)
 //
 // Asm: VPCMPUQ, CPU Feature: AVX512
 func (x Uint64x8) LessEqual(y Uint64x8) (z Mask64x8)
+
+/* LookupMod */
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMB, CPU Feature: AVX512VBMI
+func (x Int8x16) LookupMod(indices Uint8x16) (z Int8x16)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMB, CPU Feature: AVX512VBMI
+func (x Uint8x16) LookupMod(indices Uint8x16) (z Uint8x16)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMB, CPU Feature: AVX512VBMI
+func (x Int8x32) LookupMod(indices Uint8x32) (z Int8x32)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMB, CPU Feature: AVX512VBMI
+func (x Uint8x32) LookupMod(indices Uint8x32) (z Uint8x32)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMB, CPU Feature: AVX512VBMI
+func (x Int8x64) LookupMod(indices Uint8x64) (z Int8x64)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMB, CPU Feature: AVX512VBMI
+func (x Uint8x64) LookupMod(indices Uint8x64) (z Uint8x64)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMW, CPU Feature: AVX512
+func (x Int16x8) LookupMod(indices Uint16x8) (z Int16x8)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMW, CPU Feature: AVX512
+func (x Uint16x8) LookupMod(indices Uint16x8) (z Uint16x8)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMW, CPU Feature: AVX512
+func (x Int16x16) LookupMod(indices Uint16x16) (z Int16x16)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMW, CPU Feature: AVX512
+func (x Uint16x16) LookupMod(indices Uint16x16) (z Uint16x16)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMW, CPU Feature: AVX512
+func (x Int16x32) LookupMod(indices Uint16x32) (z Int16x32)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMW, CPU Feature: AVX512
+func (x Uint16x32) LookupMod(indices Uint16x32) (z Uint16x32)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMPS, CPU Feature: AVX2
+func (x Float32x8) LookupMod(indices Uint32x8) (z Float32x8)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMD, CPU Feature: AVX2
+func (x Int32x8) LookupMod(indices Uint32x8) (z Int32x8)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMD, CPU Feature: AVX2
+func (x Uint32x8) LookupMod(indices Uint32x8) (z Uint32x8)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMPS, CPU Feature: AVX512
+func (x Float32x16) LookupMod(indices Uint32x16) (z Float32x16)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMD, CPU Feature: AVX512
+func (x Int32x16) LookupMod(indices Uint32x16) (z Int32x16)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMD, CPU Feature: AVX512
+func (x Uint32x16) LookupMod(indices Uint32x16) (z Uint32x16)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMPD, CPU Feature: AVX512
+func (x Float64x4) LookupMod(indices Uint64x4) (z Float64x4)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMQ, CPU Feature: AVX512
+func (x Int64x4) LookupMod(indices Uint64x4) (z Int64x4)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMQ, CPU Feature: AVX512
+func (x Uint64x4) LookupMod(indices Uint64x4) (z Uint64x4)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMPD, CPU Feature: AVX512
+func (x Float64x8) LookupMod(indices Uint64x8) (z Float64x8)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMQ, CPU Feature: AVX512
+func (x Int64x8) LookupMod(indices Uint64x8) (z Int64x8)
+
+// LookupMod selects elements of x indexed by indices modulo the vector length.
+// This operation is also commonly called permute, shuffle, or swizzle.
+//
+//	z[i] = x[indices[i] % len(x)]
+//
+// Asm: VPERMQ, CPU Feature: AVX512
+func (x Uint64x8) LookupMod(indices Uint64x8) (z Uint64x8)
+
+/* LookupModOrZero */
+
+// LookupModOrZero selects elements of x indexed by indices modulo the vector
+// length, or 0 for negative indices.
+//
+//	if indices[i] >= 0 {
+//	    z[i] = x[indices[i] % len(x)]
+//	} else {
+//	    z[i] = 0
+//	}
+//
+// Asm: VPSHUFB, CPU Feature: AVX
+func (x Int8x16) LookupModOrZero(indices Int8x16) (z Int8x16)
+
+// LookupModOrZero selects elements of x indexed by indices modulo the vector
+// length, or 0 for negative indices.
+//
+//	if indices[i] >= 0 {
+//	    z[i] = x[indices[i] % len(x)]
+//	} else {
+//	    z[i] = 0
+//	}
+//
+// Asm: VPSHUFB, CPU Feature: AVX
+func (x Uint8x16) LookupModOrZero(indices Int8x16) (z Uint8x16)
+
+/* LookupModOrZeroGrouped */
+
+// LookupModOrZeroGrouped divides x, indices, and z into groups of 128 bits and
+// performs [LookupModOrZero] on each group.
+//
+// Asm: VPSHUFB, CPU Feature: AVX2
+func (x Int8x32) LookupModOrZeroGrouped(indices Int8x32) (z Int8x32)
+
+// LookupModOrZeroGrouped divides x, indices, and z into groups of 128 bits and
+// performs [LookupModOrZero] on each group.
+//
+// Asm: VPSHUFB, CPU Feature: AVX512
+func (x Int8x64) LookupModOrZeroGrouped(indices Int8x64) (z Int8x64)
+
+// LookupModOrZeroGrouped divides x, indices, and z into groups of 128 bits and
+// performs [LookupModOrZero] on each group.
+//
+// Asm: VPSHUFB, CPU Feature: AVX2
+func (x Uint8x32) LookupModOrZeroGrouped(indices Int8x32) (z Uint8x32)
+
+// LookupModOrZeroGrouped divides x, indices, and z into groups of 128 bits and
+// performs [LookupModOrZero] on each group.
+//
+// Asm: VPSHUFB, CPU Feature: AVX512
+func (x Uint8x64) LookupModOrZeroGrouped(indices Int8x64) (z Uint8x64)
 
 /* Max */
 
@@ -5729,250 +7120,6 @@ func (x Uint64x8) Or(y Uint64x8) (z Uint64x8)
 // Asm: VPOR, CPU Feature: AVX
 func (x Uint64x2) Or(y Uint64x2) (z Uint64x2)
 
-/* Permute */
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMB, CPU Feature: AVX512VBMI
-func (x Int8x16) Permute(indices Uint8x16) (z Int8x16)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMB, CPU Feature: AVX512VBMI
-func (x Uint8x16) Permute(indices Uint8x16) (z Uint8x16)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMB, CPU Feature: AVX512VBMI
-func (x Int8x32) Permute(indices Uint8x32) (z Int8x32)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMB, CPU Feature: AVX512VBMI
-func (x Uint8x32) Permute(indices Uint8x32) (z Uint8x32)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMB, CPU Feature: AVX512VBMI
-func (x Int8x64) Permute(indices Uint8x64) (z Int8x64)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMB, CPU Feature: AVX512VBMI
-func (x Uint8x64) Permute(indices Uint8x64) (z Uint8x64)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMW, CPU Feature: AVX512
-func (x Int16x8) Permute(indices Uint16x8) (z Int16x8)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMW, CPU Feature: AVX512
-func (x Uint16x8) Permute(indices Uint16x8) (z Uint16x8)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMW, CPU Feature: AVX512
-func (x Int16x16) Permute(indices Uint16x16) (z Int16x16)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMW, CPU Feature: AVX512
-func (x Uint16x16) Permute(indices Uint16x16) (z Uint16x16)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMW, CPU Feature: AVX512
-func (x Int16x32) Permute(indices Uint16x32) (z Int16x32)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMW, CPU Feature: AVX512
-func (x Uint16x32) Permute(indices Uint16x32) (z Uint16x32)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMPS, CPU Feature: AVX2
-func (x Float32x8) Permute(indices Uint32x8) (z Float32x8)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMD, CPU Feature: AVX2
-func (x Int32x8) Permute(indices Uint32x8) (z Int32x8)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMD, CPU Feature: AVX2
-func (x Uint32x8) Permute(indices Uint32x8) (z Uint32x8)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMPS, CPU Feature: AVX512
-func (x Float32x16) Permute(indices Uint32x16) (z Float32x16)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMD, CPU Feature: AVX512
-func (x Int32x16) Permute(indices Uint32x16) (z Int32x16)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMD, CPU Feature: AVX512
-func (x Uint32x16) Permute(indices Uint32x16) (z Uint32x16)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMPD, CPU Feature: AVX512
-func (x Float64x4) Permute(indices Uint64x4) (z Float64x4)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMQ, CPU Feature: AVX512
-func (x Int64x4) Permute(indices Uint64x4) (z Int64x4)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMQ, CPU Feature: AVX512
-func (x Uint64x4) Permute(indices Uint64x4) (z Uint64x4)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMPD, CPU Feature: AVX512
-func (x Float64x8) Permute(indices Uint64x8) (z Float64x8)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMQ, CPU Feature: AVX512
-func (x Int64x8) Permute(indices Uint64x8) (z Int64x8)
-
-// Permute permutes x.
-//
-//	z[i] = x[indices[i] % len(x)]
-//
-// Asm: VPERMQ, CPU Feature: AVX512
-func (x Uint64x8) Permute(indices Uint64x8) (z Uint64x8)
-
-/* PermuteOrZero */
-
-// PermuteOrZero permutes x. If an index is negative, the result is 0.
-//
-//	if indices[i] >= 0 {
-//	    z[i] = x[indices[i] % len(x)]
-//	} else {
-//	    z[i] = 0
-//	}
-//
-// Asm: VPSHUFB, CPU Feature: AVX
-func (x Int8x16) PermuteOrZero(indices Int8x16) Int8x16
-
-// PermuteOrZero permutes x. If an index is negative, the result is 0.
-//
-//	if indices[i] >= 0 {
-//	    z[i] = x[indices[i] % len(x)]
-//	} else {
-//	    z[i] = 0
-//	}
-//
-// Asm: VPSHUFB, CPU Feature: AVX
-func (x Uint8x16) PermuteOrZero(indices Int8x16) Uint8x16
-
-/* PermuteOrZeroGrouped */
-
-// PermuteOrZeroGrouped permutes x within each 128-bit group. If an index is negative, the result is 0.
-//
-//	let vₙ be the n'th 128-bit group of vector v
-//	if indicesₙ[i] >= 0 {
-//	    zₙ[i] = xₙ[indicesₙ[i] % len(xₙ)]
-//	} else {
-//	    zₙ[i] = 0
-//	}
-//
-// Asm: VPSHUFB, CPU Feature: AVX2
-func (x Int8x32) PermuteOrZeroGrouped(indices Int8x32) Int8x32
-
-// PermuteOrZeroGrouped permutes x within each 128-bit group. If an index is negative, the result is 0.
-//
-//	let vₙ be the n'th 128-bit group of vector v
-//	if indicesₙ[i] >= 0 {
-//	    zₙ[i] = xₙ[indicesₙ[i] % len(xₙ)]
-//	} else {
-//	    zₙ[i] = 0
-//	}
-//
-// Asm: VPSHUFB, CPU Feature: AVX512
-func (x Int8x64) PermuteOrZeroGrouped(indices Int8x64) Int8x64
-
-// PermuteOrZeroGrouped permutes x within each 128-bit group. If an index is negative, the result is 0.
-//
-//	let vₙ be the n'th 128-bit group of vector v
-//	if indicesₙ[i] >= 0 {
-//	    zₙ[i] = xₙ[indicesₙ[i] % len(xₙ)]
-//	} else {
-//	    zₙ[i] = 0
-//	}
-//
-// Asm: VPSHUFB, CPU Feature: AVX2
-func (x Uint8x32) PermuteOrZeroGrouped(indices Int8x32) Uint8x32
-
-// PermuteOrZeroGrouped permutes x within each 128-bit group. If an index is negative, the result is 0.
-//
-//	let vₙ be the n'th 128-bit group of vector v
-//	if indicesₙ[i] >= 0 {
-//	    zₙ[i] = xₙ[indicesₙ[i] % len(xₙ)]
-//	} else {
-//	    zₙ[i] = 0
-//	}
-//
-// Asm: VPSHUFB, CPU Feature: AVX512
-func (x Uint8x64) PermuteOrZeroGrouped(indices Int8x64) Uint8x64
-
 /* Reciprocal */
 
 // Reciprocal computes an approximate reciprocal of each element.
@@ -6127,25 +7274,77 @@ func (x Uint64x8) RotateRight(shift Uint64x8) (z Uint64x8)
 
 /* Round */
 
-// Round rounds elements to the nearest integer, rounding ties to even.
+// Round returns the nearest integer value to each element of x, rounding ties
+// to even.
+//
+//	z[i] = roundToEven(x[i])
+//
+// Special cases follow IEEE 754: Round(±0) = ±0, Round(±Inf) = ±Inf,
+// Round(x) = -0 for -0.5 <= x < -0, and Round(NaN) = NaN. The sign and payload
+// of a NaN result are unspecified.
 //
 // Asm: VROUNDPS, CPU Feature: AVX
-func (x Float32x4) Round() Float32x4
+func (x Float32x4) Round() (z Float32x4)
 
-// Round rounds elements to the nearest integer, rounding ties to even.
+// Round returns the nearest integer value to each element of x, rounding ties
+// to even.
+//
+//	z[i] = roundToEven(x[i])
+//
+// Special cases follow IEEE 754: Round(±0) = ±0, Round(±Inf) = ±Inf,
+// Round(x) = -0 for -0.5 <= x < -0, and Round(NaN) = NaN. The sign and payload
+// of a NaN result are unspecified.
 //
 // Asm: VROUNDPS, CPU Feature: AVX
-func (x Float32x8) Round() Float32x8
+func (x Float32x8) Round() (z Float32x8)
 
-// Round rounds elements to the nearest integer, rounding ties to even.
+// Round returns the nearest integer value to each element of x, rounding ties
+// to even.
+//
+//	z[i] = roundToEven(x[i])
+//
+// Special cases follow IEEE 754: Round(±0) = ±0, Round(±Inf) = ±Inf,
+// Round(x) = -0 for -0.5 <= x < -0, and Round(NaN) = NaN. The sign and payload
+// of a NaN result are unspecified.
+//
+// Asm: VRNDSCALEPS, CPU Feature: AVX512
+func (x Float32x16) Round() (z Float32x16)
+
+// Round returns the nearest integer value to each element of x, rounding ties
+// to even.
+//
+//	z[i] = roundToEven(x[i])
+//
+// Special cases follow IEEE 754: Round(±0) = ±0, Round(±Inf) = ±Inf,
+// Round(x) = -0 for -0.5 <= x < -0, and Round(NaN) = NaN. The sign and payload
+// of a NaN result are unspecified.
 //
 // Asm: VROUNDPD, CPU Feature: AVX
-func (x Float64x2) Round() Float64x2
+func (x Float64x2) Round() (z Float64x2)
 
-// Round rounds elements to the nearest integer, rounding ties to even.
+// Round returns the nearest integer value to each element of x, rounding ties
+// to even.
+//
+//	z[i] = roundToEven(x[i])
+//
+// Special cases follow IEEE 754: Round(±0) = ±0, Round(±Inf) = ±Inf,
+// Round(x) = -0 for -0.5 <= x < -0, and Round(NaN) = NaN. The sign and payload
+// of a NaN result are unspecified.
 //
 // Asm: VROUNDPD, CPU Feature: AVX
-func (x Float64x4) Round() Float64x4
+func (x Float64x4) Round() (z Float64x4)
+
+// Round returns the nearest integer value to each element of x, rounding ties
+// to even.
+//
+//	z[i] = roundToEven(x[i])
+//
+// Special cases follow IEEE 754: Round(±0) = ±0, Round(±Inf) = ±Inf,
+// Round(x) = -0 for -0.5 <= x < -0, and Round(NaN) = NaN. The sign and payload
+// of a NaN result are unspecified.
+//
+// Asm: VRNDSCALEPD, CPU Feature: AVX512
+func (x Float64x8) Round() (z Float64x8)
 
 /* RoundScaled */
 
@@ -6319,215 +7518,279 @@ func (x Uint32x4) SHA256TwoRounds(y Uint32x4, z Uint32x4) Uint32x4
 
 /* SaturateToInt8 */
 
-// SaturateToInt8 converts element values to int8 with signed saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToInt8 converts each element of x to int8, saturating values
+// that are outside the range of int8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 32 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSWB, CPU Feature: AVX512
-func (x Int16x8) SaturateToInt8() Int8x16
+func (x Int16x32) SaturateToInt8() (z Int8x64)
 
-// SaturateToInt8 converts element values to int8 with signed saturation.
+// SaturateToInt8 converts each element of x to int8, saturating values
+// that are outside the range of int8.
 //
-// Asm: VPMOVSWB, CPU Feature: AVX512
-func (x Int16x16) SaturateToInt8() Int8x16
-
-// SaturateToInt8 converts element values to int8 with signed saturation.
+//	z[i] = sat(x[i])
 //
-// Asm: VPMOVSWB, CPU Feature: AVX512
-func (x Int16x32) SaturateToInt8() Int8x32
-
-// SaturateToInt8 converts element values to int8 with signed saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSDB, CPU Feature: AVX512
-func (x Int32x4) SaturateToInt8() Int8x16
+func (x Int32x4) SaturateToInt8() (z Int8x16)
 
-// SaturateToInt8 converts element values to int8 with signed saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToInt8 converts each element of x to int8, saturating values
+// that are outside the range of int8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSDB, CPU Feature: AVX512
-func (x Int32x8) SaturateToInt8() Int8x16
+func (x Int32x8) SaturateToInt8() (z Int8x32)
 
-// SaturateToInt8 converts element values to int8 with signed saturation.
+// SaturateToInt8 converts each element of x to int8, saturating values
+// that are outside the range of int8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 16 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSDB, CPU Feature: AVX512
-func (x Int32x16) SaturateToInt8() Int8x16
+func (x Int32x16) SaturateToInt8() (z Int8x64)
 
-// SaturateToInt8 converts element values to int8 with signed saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToInt8 converts each element of x to int8, saturating values
+// that are outside the range of int8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSQB, CPU Feature: AVX512
-func (x Int64x2) SaturateToInt8() Int8x16
+func (x Int64x2) SaturateToInt8() (z Int8x16)
 
-// SaturateToInt8 converts element values to int8 with signed saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToInt8 converts each element of x to int8, saturating values
+// that are outside the range of int8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSQB, CPU Feature: AVX512
-func (x Int64x4) SaturateToInt8() Int8x16
+func (x Int64x4) SaturateToInt8() (z Int8x32)
 
-// SaturateToInt8 converts element values to int8 with signed saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToInt8 converts each element of x to int8, saturating values
+// that are outside the range of int8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSQB, CPU Feature: AVX512
-func (x Int64x8) SaturateToInt8() Int8x16
+func (x Int64x8) SaturateToInt8() (z Int8x64)
 
 /* SaturateToInt16 */
 
-// SaturateToInt16 converts element values to int16 with signed saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToInt16 converts each element of x to int16, saturating values
+// that are outside the range of int16.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 16 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSDW, CPU Feature: AVX512
-func (x Int32x4) SaturateToInt16() Int16x8
+func (x Int32x16) SaturateToInt16() (z Int16x32)
 
-// SaturateToInt16 converts element values to int16 with signed saturation.
+// SaturateToInt16 converts each element of x to int16, saturating values
+// that are outside the range of int16.
 //
-// Asm: VPMOVSDW, CPU Feature: AVX512
-func (x Int32x8) SaturateToInt16() Int16x8
-
-// SaturateToInt16 converts element values to int16 with signed saturation.
+//	z[i] = sat(x[i])
 //
-// Asm: VPMOVSDW, CPU Feature: AVX512
-func (x Int32x16) SaturateToInt16() Int16x16
-
-// SaturateToInt16 converts element values to int16 with signed saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSQW, CPU Feature: AVX512
-func (x Int64x2) SaturateToInt16() Int16x8
+func (x Int64x2) SaturateToInt16() (z Int16x8)
 
-// SaturateToInt16 converts element values to int16 with signed saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToInt16 converts each element of x to int16, saturating values
+// that are outside the range of int16.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSQW, CPU Feature: AVX512
-func (x Int64x4) SaturateToInt16() Int16x8
+func (x Int64x4) SaturateToInt16() (z Int16x16)
 
-// SaturateToInt16 converts element values to int16 with signed saturation.
+// SaturateToInt16 converts each element of x to int16, saturating values
+// that are outside the range of int16.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSQW, CPU Feature: AVX512
-func (x Int64x8) SaturateToInt16() Int16x8
+func (x Int64x8) SaturateToInt16() (z Int16x32)
 
 /* SaturateToInt32 */
 
-// SaturateToInt32 converts element values to int32 with signed saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToInt32 converts each element of x to int32, saturating values
+// that are outside the range of int32.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVSQD, CPU Feature: AVX512
-func (x Int64x2) SaturateToInt32() Int32x4
-
-// SaturateToInt32 converts element values to int32 with signed saturation.
-//
-// Asm: VPMOVSQD, CPU Feature: AVX512
-func (x Int64x4) SaturateToInt32() Int32x4
-
-// SaturateToInt32 converts element values to int32 with signed saturation.
-//
-// Asm: VPMOVSQD, CPU Feature: AVX512
-func (x Int64x8) SaturateToInt32() Int32x8
+func (x Int64x8) SaturateToInt32() (z Int32x16)
 
 /* SaturateToUint8 */
 
-// SaturateToUint8 converts element values to uint8 with unsigned saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToUint8 converts each element of x to uint8, saturating values
+// that are outside the range of uint8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 32 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSWB, CPU Feature: AVX512
-func (x Uint16x8) SaturateToUint8() Uint8x16
+func (x Uint16x32) SaturateToUint8() (z Uint8x64)
 
-// SaturateToUint8 converts element values to uint8 with unsigned saturation.
+// SaturateToUint8 converts each element of x to uint8, saturating values
+// that are outside the range of uint8.
 //
-// Asm: VPMOVUSWB, CPU Feature: AVX512
-func (x Uint16x16) SaturateToUint8() Uint8x16
-
-// SaturateToUint8 converts element values to uint8 with unsigned saturation.
+//	z[i] = sat(x[i])
 //
-// Asm: VPMOVUSWB, CPU Feature: AVX512
-func (x Uint16x32) SaturateToUint8() Uint8x32
-
-// SaturateToUint8 converts element values to uint8 with unsigned saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSDB, CPU Feature: AVX512
-func (x Uint32x4) SaturateToUint8() Uint8x16
+func (x Uint32x4) SaturateToUint8() (z Uint8x16)
 
-// SaturateToUint8 converts element values to uint8 with unsigned saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToUint8 converts each element of x to uint8, saturating values
+// that are outside the range of uint8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSDB, CPU Feature: AVX512
-func (x Uint32x8) SaturateToUint8() Uint8x16
+func (x Uint32x8) SaturateToUint8() (z Uint8x32)
 
-// SaturateToUint8 converts element values to uint8 with unsigned saturation.
+// SaturateToUint8 converts each element of x to uint8, saturating values
+// that are outside the range of uint8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 16 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSDB, CPU Feature: AVX512
-func (x Uint32x16) SaturateToUint8() Uint8x16
+func (x Uint32x16) SaturateToUint8() (z Uint8x64)
 
-// SaturateToUint8 converts element values to uint8 with unsigned saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToUint8 converts each element of x to uint8, saturating values
+// that are outside the range of uint8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSQB, CPU Feature: AVX512
-func (x Uint64x2) SaturateToUint8() Uint8x16
+func (x Uint64x2) SaturateToUint8() (z Uint8x16)
 
-// SaturateToUint8 converts element values to uint8 with unsigned saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToUint8 converts each element of x to uint8, saturating values
+// that are outside the range of uint8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSQB, CPU Feature: AVX512
-func (x Uint64x4) SaturateToUint8() Uint8x16
+func (x Uint64x4) SaturateToUint8() (z Uint8x32)
 
-// SaturateToUint8 converts element values to uint8 with unsigned saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToUint8 converts each element of x to uint8, saturating values
+// that are outside the range of uint8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSQB, CPU Feature: AVX512
-func (x Uint64x8) SaturateToUint8() Uint8x16
+func (x Uint64x8) SaturateToUint8() (z Uint8x64)
 
 /* SaturateToUint16 */
 
-// SaturateToUint16 converts element values to uint16 with unsigned saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToUint16 converts each element of x to uint16, saturating values
+// that are outside the range of uint16.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 16 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSDW, CPU Feature: AVX512
-func (x Uint32x4) SaturateToUint16() Uint16x8
+func (x Uint32x16) SaturateToUint16() (z Uint16x32)
 
-// SaturateToUint16 converts element values to uint16 with unsigned saturation.
+// SaturateToUint16 converts each element of x to uint16, saturating values
+// that are outside the range of uint16.
 //
-// Asm: VPMOVUSDW, CPU Feature: AVX512
-func (x Uint32x8) SaturateToUint16() Uint16x8
-
-// SaturateToUint16 converts element values to uint16 with unsigned saturation.
+//	z[i] = sat(x[i])
 //
-// Asm: VPMOVUSDW, CPU Feature: AVX512
-func (x Uint32x16) SaturateToUint16() Uint16x16
-
-// SaturateToUint16 converts element values to uint16 with unsigned saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSQW, CPU Feature: AVX512
-func (x Uint64x2) SaturateToUint16() Uint16x8
+func (x Uint64x2) SaturateToUint16() (z Uint16x8)
 
-// SaturateToUint16 converts element values to uint16 with unsigned saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToUint16 converts each element of x to uint16, saturating values
+// that are outside the range of uint16.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSQW, CPU Feature: AVX512
-func (x Uint64x4) SaturateToUint16() Uint16x8
+func (x Uint64x4) SaturateToUint16() (z Uint16x16)
 
-// SaturateToUint16 converts element values to uint16 with unsigned saturation.
+// SaturateToUint16 converts each element of x to uint16, saturating values
+// that are outside the range of uint16.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSQW, CPU Feature: AVX512
-func (x Uint64x8) SaturateToUint16() Uint16x8
+func (x Uint64x8) SaturateToUint16() (z Uint16x32)
 
 /* SaturateToUint32 */
 
-// SaturateToUint32 converts element values to uint32 with unsigned saturation.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// SaturateToUint32 converts each element of x to uint32, saturating values
+// that are outside the range of uint32.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVUSQD, CPU Feature: AVX512
-func (x Uint64x2) SaturateToUint32() Uint32x4
-
-// SaturateToUint32 converts element values to uint32 with unsigned saturation.
-//
-// Asm: VPMOVUSQD, CPU Feature: AVX512
-func (x Uint64x4) SaturateToUint32() Uint32x4
-
-// SaturateToUint32 converts element values to uint32 with unsigned saturation.
-//
-// Asm: VPMOVUSQD, CPU Feature: AVX512
-func (x Uint64x8) SaturateToUint32() Uint32x8
+func (x Uint64x8) SaturateToUint32() (z Uint32x16)
 
 /* Scale */
 
@@ -6569,279 +7832,389 @@ func (x Float64x8) Scale(y Float64x8) Float64x8
 
 /* SetElem */
 
-// SetElem returns x with the index'th element set to y.
+// SetElem returns x with its i'th element set to y. If i >= 4, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x
+//	z[i] = y
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPINSRD, CPU Feature: AVX
-func (x Float32x4) SetElem(index uint8, y float32) Float32x4
+func (x Float32x4) SetElem(i uint8, y float32) (z Float32x4)
 
-// SetElem returns x with the index'th element set to y.
+// SetElem returns x with its i'th element set to y. If i >= 2, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x
+//	z[i] = y
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPINSRQ, CPU Feature: AVX
-func (x Float64x2) SetElem(index uint8, y float64) Float64x2
+func (x Float64x2) SetElem(i uint8, y float64) (z Float64x2)
 
-// SetElem returns x with the index'th element set to y.
+// SetElem returns x with its i'th element set to y. If i >= 16, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x
+//	z[i] = y
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPINSRB, CPU Feature: AVX
-func (x Int8x16) SetElem(index uint8, y int8) Int8x16
+func (x Int8x16) SetElem(i uint8, y int8) (z Int8x16)
 
-// SetElem returns x with the index'th element set to y.
+// SetElem returns x with its i'th element set to y. If i >= 8, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x
+//	z[i] = y
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPINSRW, CPU Feature: AVX
-func (x Int16x8) SetElem(index uint8, y int16) Int16x8
+func (x Int16x8) SetElem(i uint8, y int16) (z Int16x8)
 
-// SetElem returns x with the index'th element set to y.
+// SetElem returns x with its i'th element set to y. If i >= 4, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x
+//	z[i] = y
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPINSRD, CPU Feature: AVX
-func (x Int32x4) SetElem(index uint8, y int32) Int32x4
+func (x Int32x4) SetElem(i uint8, y int32) (z Int32x4)
 
-// SetElem returns x with the index'th element set to y.
+// SetElem returns x with its i'th element set to y. If i >= 2, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x
+//	z[i] = y
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPINSRQ, CPU Feature: AVX
-func (x Int64x2) SetElem(index uint8, y int64) Int64x2
+func (x Int64x2) SetElem(i uint8, y int64) (z Int64x2)
 
-// SetElem returns x with the index'th element set to y.
+// SetElem returns x with its i'th element set to y. If i >= 16, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x
+//	z[i] = y
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPINSRB, CPU Feature: AVX
-func (x Uint8x16) SetElem(index uint8, y uint8) Uint8x16
+func (x Uint8x16) SetElem(i uint8, y uint8) (z Uint8x16)
 
-// SetElem returns x with the index'th element set to y.
+// SetElem returns x with its i'th element set to y. If i >= 8, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x
+//	z[i] = y
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPINSRW, CPU Feature: AVX
-func (x Uint16x8) SetElem(index uint8, y uint16) Uint16x8
+func (x Uint16x8) SetElem(i uint8, y uint16) (z Uint16x8)
 
-// SetElem returns x with the index'th element set to y.
+// SetElem returns x with its i'th element set to y. If i >= 4, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x
+//	z[i] = y
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPINSRD, CPU Feature: AVX
-func (x Uint32x4) SetElem(index uint8, y uint32) Uint32x4
+func (x Uint32x4) SetElem(i uint8, y uint32) (z Uint32x4)
 
-// SetElem returns x with the index'th element set to y.
+// SetElem returns x with its i'th element set to y. If i >= 2, it panics.
 //
-// Performance: A non-constant value of index may result in significantly worse performance for this operation.
+//	z = x
+//	z[i] = y
+//
+// Performance: A non-constant value of i may result in significantly worse performance for this operation.
 //
 // Asm: VPINSRQ, CPU Feature: AVX
-func (x Uint64x2) SetElem(index uint8, y uint64) Uint64x2
+func (x Uint64x2) SetElem(i uint8, y uint64) (z Uint64x2)
 
 /* SetHi */
 
 // SetHi returns x with its upper half set to y.
 //
-// Asm: VINSERTF128, CPU Feature: AVX
-func (x Float32x8) SetHi(y Float32x4) Float32x8
-
-// SetHi returns x with its upper half set to y.
-//
-// Asm: VINSERTF64X4, CPU Feature: AVX512
-func (x Float32x16) SetHi(y Float32x8) Float32x16
-
-// SetHi returns x with its upper half set to y.
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 8
 //
 // Asm: VINSERTF128, CPU Feature: AVX
-func (x Float64x4) SetHi(y Float64x2) Float64x4
+func (x Float32x8) SetHi(y Float32x4) (z Float32x8)
 
 // SetHi returns x with its upper half set to y.
+//
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 16
 //
 // Asm: VINSERTF64X4, CPU Feature: AVX512
-func (x Float64x8) SetHi(y Float64x4) Float64x8
+func (x Float32x16) SetHi(y Float32x8) (z Float32x16)
 
 // SetHi returns x with its upper half set to y.
+//
+//	z = {x[0], x[1], y[0], y[1]}
+//
+// Asm: VINSERTF128, CPU Feature: AVX
+func (x Float64x4) SetHi(y Float64x2) (z Float64x4)
+
+// SetHi returns x with its upper half set to y.
+//
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 8
+//
+// Asm: VINSERTF64X4, CPU Feature: AVX512
+func (x Float64x8) SetHi(y Float64x4) (z Float64x8)
+
+// SetHi returns x with its upper half set to y.
+//
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 32
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Int8x32) SetHi(y Int8x16) Int8x32
+func (x Int8x32) SetHi(y Int8x16) (z Int8x32)
 
 // SetHi returns x with its upper half set to y.
 //
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 64
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Int8x64) SetHi(y Int8x32) Int8x64
+func (x Int8x64) SetHi(y Int8x32) (z Int8x64)
 
 // SetHi returns x with its upper half set to y.
+//
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 16
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Int16x16) SetHi(y Int16x8) Int16x16
+func (x Int16x16) SetHi(y Int16x8) (z Int16x16)
 
 // SetHi returns x with its upper half set to y.
 //
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 32
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Int16x32) SetHi(y Int16x16) Int16x32
+func (x Int16x32) SetHi(y Int16x16) (z Int16x32)
 
 // SetHi returns x with its upper half set to y.
+//
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 8
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Int32x8) SetHi(y Int32x4) Int32x8
+func (x Int32x8) SetHi(y Int32x4) (z Int32x8)
 
 // SetHi returns x with its upper half set to y.
 //
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 16
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Int32x16) SetHi(y Int32x8) Int32x16
+func (x Int32x16) SetHi(y Int32x8) (z Int32x16)
 
 // SetHi returns x with its upper half set to y.
+//
+//	z = {x[0], x[1], y[0], y[1]}
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Int64x4) SetHi(y Int64x2) Int64x4
+func (x Int64x4) SetHi(y Int64x2) (z Int64x4)
 
 // SetHi returns x with its upper half set to y.
 //
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 8
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Int64x8) SetHi(y Int64x4) Int64x8
+func (x Int64x8) SetHi(y Int64x4) (z Int64x8)
 
 // SetHi returns x with its upper half set to y.
+//
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 32
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Uint8x32) SetHi(y Uint8x16) Uint8x32
+func (x Uint8x32) SetHi(y Uint8x16) (z Uint8x32)
 
 // SetHi returns x with its upper half set to y.
 //
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 64
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Uint8x64) SetHi(y Uint8x32) Uint8x64
+func (x Uint8x64) SetHi(y Uint8x32) (z Uint8x64)
 
 // SetHi returns x with its upper half set to y.
+//
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 16
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Uint16x16) SetHi(y Uint16x8) Uint16x16
+func (x Uint16x16) SetHi(y Uint16x8) (z Uint16x16)
 
 // SetHi returns x with its upper half set to y.
 //
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 32
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Uint16x32) SetHi(y Uint16x16) Uint16x32
+func (x Uint16x32) SetHi(y Uint16x16) (z Uint16x32)
 
 // SetHi returns x with its upper half set to y.
+//
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 8
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Uint32x8) SetHi(y Uint32x4) Uint32x8
+func (x Uint32x8) SetHi(y Uint32x4) (z Uint32x8)
 
 // SetHi returns x with its upper half set to y.
 //
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 16
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Uint32x16) SetHi(y Uint32x8) Uint32x16
+func (x Uint32x16) SetHi(y Uint32x8) (z Uint32x16)
 
 // SetHi returns x with its upper half set to y.
+//
+//	z = {x[0], x[1], y[0], y[1]}
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Uint64x4) SetHi(y Uint64x2) Uint64x4
+func (x Uint64x4) SetHi(y Uint64x2) (z Uint64x4)
 
 // SetHi returns x with its upper half set to y.
 //
+//	z = {x[0], ..., x[n/2-1], y[0], y[1], ..., y[n/2-1]}, where n = 8
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Uint64x8) SetHi(y Uint64x4) Uint64x8
+func (x Uint64x8) SetHi(y Uint64x4) (z Uint64x8)
 
 /* SetLo */
 
 // SetLo returns x with its lower half set to y.
 //
-// Asm: VINSERTF128, CPU Feature: AVX
-func (x Float32x8) SetLo(y Float32x4) Float32x8
-
-// SetLo returns x with its lower half set to y.
-//
-// Asm: VINSERTF64X4, CPU Feature: AVX512
-func (x Float32x16) SetLo(y Float32x8) Float32x16
-
-// SetLo returns x with its lower half set to y.
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 8
 //
 // Asm: VINSERTF128, CPU Feature: AVX
-func (x Float64x4) SetLo(y Float64x2) Float64x4
+func (x Float32x8) SetLo(y Float32x4) (z Float32x8)
 
 // SetLo returns x with its lower half set to y.
+//
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 16
 //
 // Asm: VINSERTF64X4, CPU Feature: AVX512
-func (x Float64x8) SetLo(y Float64x4) Float64x8
+func (x Float32x16) SetLo(y Float32x8) (z Float32x16)
 
 // SetLo returns x with its lower half set to y.
+//
+//	z = {y[0], y[1], x[2], x[3]}
+//
+// Asm: VINSERTF128, CPU Feature: AVX
+func (x Float64x4) SetLo(y Float64x2) (z Float64x4)
+
+// SetLo returns x with its lower half set to y.
+//
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 8
+//
+// Asm: VINSERTF64X4, CPU Feature: AVX512
+func (x Float64x8) SetLo(y Float64x4) (z Float64x8)
+
+// SetLo returns x with its lower half set to y.
+//
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 32
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Int8x32) SetLo(y Int8x16) Int8x32
+func (x Int8x32) SetLo(y Int8x16) (z Int8x32)
 
 // SetLo returns x with its lower half set to y.
 //
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 64
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Int8x64) SetLo(y Int8x32) Int8x64
+func (x Int8x64) SetLo(y Int8x32) (z Int8x64)
 
 // SetLo returns x with its lower half set to y.
+//
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 16
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Int16x16) SetLo(y Int16x8) Int16x16
+func (x Int16x16) SetLo(y Int16x8) (z Int16x16)
 
 // SetLo returns x with its lower half set to y.
 //
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 32
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Int16x32) SetLo(y Int16x16) Int16x32
+func (x Int16x32) SetLo(y Int16x16) (z Int16x32)
 
 // SetLo returns x with its lower half set to y.
+//
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 8
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Int32x8) SetLo(y Int32x4) Int32x8
+func (x Int32x8) SetLo(y Int32x4) (z Int32x8)
 
 // SetLo returns x with its lower half set to y.
 //
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 16
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Int32x16) SetLo(y Int32x8) Int32x16
+func (x Int32x16) SetLo(y Int32x8) (z Int32x16)
 
 // SetLo returns x with its lower half set to y.
+//
+//	z = {y[0], y[1], x[2], x[3]}
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Int64x4) SetLo(y Int64x2) Int64x4
+func (x Int64x4) SetLo(y Int64x2) (z Int64x4)
 
 // SetLo returns x with its lower half set to y.
 //
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 8
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Int64x8) SetLo(y Int64x4) Int64x8
+func (x Int64x8) SetLo(y Int64x4) (z Int64x8)
 
 // SetLo returns x with its lower half set to y.
+//
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 32
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Uint8x32) SetLo(y Uint8x16) Uint8x32
+func (x Uint8x32) SetLo(y Uint8x16) (z Uint8x32)
 
 // SetLo returns x with its lower half set to y.
 //
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 64
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Uint8x64) SetLo(y Uint8x32) Uint8x64
+func (x Uint8x64) SetLo(y Uint8x32) (z Uint8x64)
 
 // SetLo returns x with its lower half set to y.
+//
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 16
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Uint16x16) SetLo(y Uint16x8) Uint16x16
+func (x Uint16x16) SetLo(y Uint16x8) (z Uint16x16)
 
 // SetLo returns x with its lower half set to y.
 //
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 32
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Uint16x32) SetLo(y Uint16x16) Uint16x32
+func (x Uint16x32) SetLo(y Uint16x16) (z Uint16x32)
 
 // SetLo returns x with its lower half set to y.
+//
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 8
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Uint32x8) SetLo(y Uint32x4) Uint32x8
+func (x Uint32x8) SetLo(y Uint32x4) (z Uint32x8)
 
 // SetLo returns x with its lower half set to y.
 //
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 16
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Uint32x16) SetLo(y Uint32x8) Uint32x16
+func (x Uint32x16) SetLo(y Uint32x8) (z Uint32x16)
 
 // SetLo returns x with its lower half set to y.
+//
+//	z = {y[0], y[1], x[2], x[3]}
 //
 // Asm: VINSERTI128, CPU Feature: AVX2
-func (x Uint64x4) SetLo(y Uint64x2) Uint64x4
+func (x Uint64x4) SetLo(y Uint64x2) (z Uint64x4)
 
 // SetLo returns x with its lower half set to y.
 //
+//	z = {y[0], y[1], ..., y[n/2-1], x[n/2], ..., x[n-1]}, where n = 8
+//
 // Asm: VINSERTI64X4, CPU Feature: AVX512
-func (x Uint64x8) SetLo(y Uint64x4) Uint64x8
+func (x Uint64x8) SetLo(y Uint64x4) (z Uint64x8)
 
 /* ShiftAllLeft */
 
@@ -7224,22 +8597,6 @@ func (x Int32x8) ShiftAllRight(shift uint64) (z Int32x8)
 //
 // Asm: VPSRAD, CPU Feature: AVX512
 func (x Int32x16) ShiftAllRight(shift uint64) (z Int32x16)
-
-// ShiftAllRight arithmetically shifts each element of x right by shift bits.
-// If shift is greater than the element width, the result is 0 or -1.
-//
-//	z[i] = x[i] >> shift
-//
-// Asm: VPSRAQ, CPU Feature: AVX512
-func (x Int64x2) ShiftAllRight(shift uint64) (z Int64x2)
-
-// ShiftAllRight arithmetically shifts each element of x right by shift bits.
-// If shift is greater than the element width, the result is 0 or -1.
-//
-//	z[i] = x[i] >> shift
-//
-// Asm: VPSRAQ, CPU Feature: AVX512
-func (x Int64x4) ShiftAllRight(shift uint64) (z Int64x4)
 
 // ShiftAllRight arithmetically shifts each element of x right by shift bits.
 // If shift is greater than the element width, the result is 0 or -1.
@@ -8487,25 +9844,71 @@ func (x Uint8x64) SumOf8AbsDiff(y Uint8x64) Uint64x8
 
 /* Trunc */
 
-// Trunc truncates elements towards zero.
+// Trunc returns the integer value of each element of x, rounded toward zero.
+//
+//	z[i] = trunc(x[i])
+//
+// Special cases follow IEEE 754: Trunc(±0) = ±0, Trunc(±Inf) = ±Inf,
+// Trunc(x) = -0 for -1 < x < -0, and Trunc(NaN) = NaN. The sign and payload of
+// a NaN result are unspecified.
 //
 // Asm: VROUNDPS, CPU Feature: AVX
-func (x Float32x4) Trunc() Float32x4
+func (x Float32x4) Trunc() (z Float32x4)
 
-// Trunc truncates elements towards zero.
+// Trunc returns the integer value of each element of x, rounded toward zero.
+//
+//	z[i] = trunc(x[i])
+//
+// Special cases follow IEEE 754: Trunc(±0) = ±0, Trunc(±Inf) = ±Inf,
+// Trunc(x) = -0 for -1 < x < -0, and Trunc(NaN) = NaN. The sign and payload of
+// a NaN result are unspecified.
 //
 // Asm: VROUNDPS, CPU Feature: AVX
-func (x Float32x8) Trunc() Float32x8
+func (x Float32x8) Trunc() (z Float32x8)
 
-// Trunc truncates elements towards zero.
+// Trunc returns the integer value of each element of x, rounded toward zero.
+//
+//	z[i] = trunc(x[i])
+//
+// Special cases follow IEEE 754: Trunc(±0) = ±0, Trunc(±Inf) = ±Inf,
+// Trunc(x) = -0 for -1 < x < -0, and Trunc(NaN) = NaN. The sign and payload of
+// a NaN result are unspecified.
+//
+// Asm: VRNDSCALEPS, CPU Feature: AVX512
+func (x Float32x16) Trunc() (z Float32x16)
+
+// Trunc returns the integer value of each element of x, rounded toward zero.
+//
+//	z[i] = trunc(x[i])
+//
+// Special cases follow IEEE 754: Trunc(±0) = ±0, Trunc(±Inf) = ±Inf,
+// Trunc(x) = -0 for -1 < x < -0, and Trunc(NaN) = NaN. The sign and payload of
+// a NaN result are unspecified.
 //
 // Asm: VROUNDPD, CPU Feature: AVX
-func (x Float64x2) Trunc() Float64x2
+func (x Float64x2) Trunc() (z Float64x2)
 
-// Trunc truncates elements towards zero.
+// Trunc returns the integer value of each element of x, rounded toward zero.
+//
+//	z[i] = trunc(x[i])
+//
+// Special cases follow IEEE 754: Trunc(±0) = ±0, Trunc(±Inf) = ±Inf,
+// Trunc(x) = -0 for -1 < x < -0, and Trunc(NaN) = NaN. The sign and payload of
+// a NaN result are unspecified.
 //
 // Asm: VROUNDPD, CPU Feature: AVX
-func (x Float64x4) Trunc() Float64x4
+func (x Float64x4) Trunc() (z Float64x4)
+
+// Trunc returns the integer value of each element of x, rounded toward zero.
+//
+//	z[i] = trunc(x[i])
+//
+// Special cases follow IEEE 754: Trunc(±0) = ±0, Trunc(±Inf) = ±Inf,
+// Trunc(x) = -0 for -1 < x < -0, and Trunc(NaN) = NaN. The sign and payload of
+// a NaN result are unspecified.
+//
+// Asm: VRNDSCALEPD, CPU Feature: AVX512
+func (x Float64x8) Trunc() (z Float64x8)
 
 /* TruncScaled */
 
@@ -8597,215 +10000,279 @@ func (x Float64x8) TruncScaledResidue(prec uint8) Float64x8
 
 /* TruncToInt8 */
 
-// TruncToInt8 truncates element values to int8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToInt8 converts each element of x to int8 by discarding its high
+// bits.
+//
+//	z[i] = int8(x[i])
+//
+// The results are stored in the low 32 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVWB, CPU Feature: AVX512
-func (x Int16x8) TruncToInt8() Int8x16
+func (x Int16x32) TruncToInt8() (z Int8x64)
 
-// TruncToInt8 truncates element values to int8.
+// TruncToInt8 converts each element of x to int8 by discarding its high
+// bits.
 //
-// Asm: VPMOVWB, CPU Feature: AVX512
-func (x Int16x16) TruncToInt8() Int8x16
-
-// TruncToInt8 truncates element values to int8.
+//	z[i] = int8(x[i])
 //
-// Asm: VPMOVWB, CPU Feature: AVX512
-func (x Int16x32) TruncToInt8() Int8x32
-
-// TruncToInt8 truncates element values to int8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVDB, CPU Feature: AVX512
-func (x Int32x4) TruncToInt8() Int8x16
+func (x Int32x4) TruncToInt8() (z Int8x16)
 
-// TruncToInt8 truncates element values to int8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToInt8 converts each element of x to int8 by discarding its high
+// bits.
+//
+//	z[i] = int8(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVDB, CPU Feature: AVX512
-func (x Int32x8) TruncToInt8() Int8x16
+func (x Int32x8) TruncToInt8() (z Int8x32)
 
-// TruncToInt8 truncates element values to int8.
+// TruncToInt8 converts each element of x to int8 by discarding its high
+// bits.
+//
+//	z[i] = int8(x[i])
+//
+// The results are stored in the low 16 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVDB, CPU Feature: AVX512
-func (x Int32x16) TruncToInt8() Int8x16
+func (x Int32x16) TruncToInt8() (z Int8x64)
 
-// TruncToInt8 truncates element values to int8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToInt8 converts each element of x to int8 by discarding its high
+// bits.
+//
+//	z[i] = int8(x[i])
+//
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQB, CPU Feature: AVX512
-func (x Int64x2) TruncToInt8() Int8x16
+func (x Int64x2) TruncToInt8() (z Int8x16)
 
-// TruncToInt8 truncates element values to int8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToInt8 converts each element of x to int8 by discarding its high
+// bits.
+//
+//	z[i] = int8(x[i])
+//
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQB, CPU Feature: AVX512
-func (x Int64x4) TruncToInt8() Int8x16
+func (x Int64x4) TruncToInt8() (z Int8x32)
 
-// TruncToInt8 truncates element values to int8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToInt8 converts each element of x to int8 by discarding its high
+// bits.
+//
+//	z[i] = int8(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQB, CPU Feature: AVX512
-func (x Int64x8) TruncToInt8() Int8x16
+func (x Int64x8) TruncToInt8() (z Int8x64)
 
 /* TruncToInt16 */
 
-// TruncToInt16 truncates element values to int16.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToInt16 converts each element of x to int16 by discarding its high
+// bits.
+//
+//	z[i] = int16(x[i])
+//
+// The results are stored in the low 16 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVDW, CPU Feature: AVX512
-func (x Int32x4) TruncToInt16() Int16x8
+func (x Int32x16) TruncToInt16() (z Int16x32)
 
-// TruncToInt16 truncates element values to int16.
+// TruncToInt16 converts each element of x to int16 by discarding its high
+// bits.
 //
-// Asm: VPMOVDW, CPU Feature: AVX512
-func (x Int32x8) TruncToInt16() Int16x8
-
-// TruncToInt16 truncates element values to int16.
+//	z[i] = int16(x[i])
 //
-// Asm: VPMOVDW, CPU Feature: AVX512
-func (x Int32x16) TruncToInt16() Int16x16
-
-// TruncToInt16 truncates element values to int16.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQW, CPU Feature: AVX512
-func (x Int64x2) TruncToInt16() Int16x8
+func (x Int64x2) TruncToInt16() (z Int16x8)
 
-// TruncToInt16 truncates element values to int16.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToInt16 converts each element of x to int16 by discarding its high
+// bits.
+//
+//	z[i] = int16(x[i])
+//
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQW, CPU Feature: AVX512
-func (x Int64x4) TruncToInt16() Int16x8
+func (x Int64x4) TruncToInt16() (z Int16x16)
 
-// TruncToInt16 truncates element values to int16.
+// TruncToInt16 converts each element of x to int16 by discarding its high
+// bits.
+//
+//	z[i] = int16(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQW, CPU Feature: AVX512
-func (x Int64x8) TruncToInt16() Int16x8
+func (x Int64x8) TruncToInt16() (z Int16x32)
 
 /* TruncToInt32 */
 
-// TruncToInt32 truncates element values to int32.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToInt32 converts each element of x to int32 by discarding its high
+// bits.
+//
+//	z[i] = int32(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQD, CPU Feature: AVX512
-func (x Int64x2) TruncToInt32() Int32x4
-
-// TruncToInt32 truncates element values to int32.
-//
-// Asm: VPMOVQD, CPU Feature: AVX512
-func (x Int64x4) TruncToInt32() Int32x4
-
-// TruncToInt32 truncates element values to int32.
-//
-// Asm: VPMOVQD, CPU Feature: AVX512
-func (x Int64x8) TruncToInt32() Int32x8
+func (x Int64x8) TruncToInt32() (z Int32x16)
 
 /* TruncToUint8 */
 
-// TruncToUint8 truncates element values to uint8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToUint8 converts each element of x to uint8 by discarding its high
+// bits.
+//
+//	z[i] = uint8(x[i])
+//
+// The results are stored in the low 32 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVWB, CPU Feature: AVX512
-func (x Uint16x8) TruncToUint8() Uint8x16
+func (x Uint16x32) TruncToUint8() (z Uint8x64)
 
-// TruncToUint8 truncates element values to uint8.
+// TruncToUint8 converts each element of x to uint8 by discarding its high
+// bits.
 //
-// Asm: VPMOVWB, CPU Feature: AVX512
-func (x Uint16x16) TruncToUint8() Uint8x16
-
-// TruncToUint8 truncates element values to uint8.
+//	z[i] = uint8(x[i])
 //
-// Asm: VPMOVWB, CPU Feature: AVX512
-func (x Uint16x32) TruncToUint8() Uint8x32
-
-// TruncToUint8 truncates element values to uint8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVDB, CPU Feature: AVX512
-func (x Uint32x4) TruncToUint8() Uint8x16
+func (x Uint32x4) TruncToUint8() (z Uint8x16)
 
-// TruncToUint8 truncates element values to uint8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToUint8 converts each element of x to uint8 by discarding its high
+// bits.
+//
+//	z[i] = uint8(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVDB, CPU Feature: AVX512
-func (x Uint32x8) TruncToUint8() Uint8x16
+func (x Uint32x8) TruncToUint8() (z Uint8x32)
 
-// TruncToUint8 truncates element values to uint8.
+// TruncToUint8 converts each element of x to uint8 by discarding its high
+// bits.
+//
+//	z[i] = uint8(x[i])
+//
+// The results are stored in the low 16 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVDB, CPU Feature: AVX512
-func (x Uint32x16) TruncToUint8() Uint8x16
+func (x Uint32x16) TruncToUint8() (z Uint8x64)
 
-// TruncToUint8 truncates element values to uint8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToUint8 converts each element of x to uint8 by discarding its high
+// bits.
+//
+//	z[i] = uint8(x[i])
+//
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQB, CPU Feature: AVX512
-func (x Uint64x2) TruncToUint8() Uint8x16
+func (x Uint64x2) TruncToUint8() (z Uint8x16)
 
-// TruncToUint8 truncates element values to uint8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToUint8 converts each element of x to uint8 by discarding its high
+// bits.
+//
+//	z[i] = uint8(x[i])
+//
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQB, CPU Feature: AVX512
-func (x Uint64x4) TruncToUint8() Uint8x16
+func (x Uint64x4) TruncToUint8() (z Uint8x32)
 
-// TruncToUint8 truncates element values to uint8.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToUint8 converts each element of x to uint8 by discarding its high
+// bits.
+//
+//	z[i] = uint8(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQB, CPU Feature: AVX512
-func (x Uint64x8) TruncToUint8() Uint8x16
+func (x Uint64x8) TruncToUint8() (z Uint8x64)
 
 /* TruncToUint16 */
 
-// TruncToUint16 truncates element values to uint16.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToUint16 converts each element of x to uint16 by discarding its high
+// bits.
+//
+//	z[i] = uint16(x[i])
+//
+// The results are stored in the low 16 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVDW, CPU Feature: AVX512
-func (x Uint32x4) TruncToUint16() Uint16x8
+func (x Uint32x16) TruncToUint16() (z Uint16x32)
 
-// TruncToUint16 truncates element values to uint16.
+// TruncToUint16 converts each element of x to uint16 by discarding its high
+// bits.
 //
-// Asm: VPMOVDW, CPU Feature: AVX512
-func (x Uint32x8) TruncToUint16() Uint16x8
-
-// TruncToUint16 truncates element values to uint16.
+//	z[i] = uint16(x[i])
 //
-// Asm: VPMOVDW, CPU Feature: AVX512
-func (x Uint32x16) TruncToUint16() Uint16x16
-
-// TruncToUint16 truncates element values to uint16.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// The results are stored in the low 2 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQW, CPU Feature: AVX512
-func (x Uint64x2) TruncToUint16() Uint16x8
+func (x Uint64x2) TruncToUint16() (z Uint16x8)
 
-// TruncToUint16 truncates element values to uint16.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToUint16 converts each element of x to uint16 by discarding its high
+// bits.
+//
+//	z[i] = uint16(x[i])
+//
+// The results are stored in the low 4 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQW, CPU Feature: AVX512
-func (x Uint64x4) TruncToUint16() Uint16x8
+func (x Uint64x4) TruncToUint16() (z Uint16x16)
 
-// TruncToUint16 truncates element values to uint16.
+// TruncToUint16 converts each element of x to uint16 by discarding its high
+// bits.
+//
+//	z[i] = uint16(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQW, CPU Feature: AVX512
-func (x Uint64x8) TruncToUint16() Uint16x8
+func (x Uint64x8) TruncToUint16() (z Uint16x32)
 
 /* TruncToUint32 */
 
-// TruncToUint32 truncates element values to uint32.
-// Results are packed to low elements in the returned vector, its upper elements are zeroed.
+// TruncToUint32 converts each element of x to uint32 by discarding its high
+// bits.
+//
+//	z[i] = uint32(x[i])
+//
+// The results are stored in the low 8 elements of z.
+// The remaining elements of z are zero.
 //
 // Asm: VPMOVQD, CPU Feature: AVX512
-func (x Uint64x2) TruncToUint32() Uint32x4
-
-// TruncToUint32 truncates element values to uint32.
-//
-// Asm: VPMOVQD, CPU Feature: AVX512
-func (x Uint64x4) TruncToUint32() Uint32x4
-
-// TruncToUint32 truncates element values to uint32.
-//
-// Asm: VPMOVQD, CPU Feature: AVX512
-func (x Uint64x8) TruncToUint32() Uint32x8
+func (x Uint64x8) TruncToUint32() (z Uint32x16)
 
 /* Xor */
 
@@ -10467,10 +11934,14 @@ func (x Uint8x16) BitsToInt8() (z Int8x16)
 
 // ConvertToInt8 converts each element of x to int8.
 //
+//	z[i] = int8(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint8x16) ConvertToInt8() (z Int8x16)
 
 // ConvertToUint8 converts each element of x to uint8.
+//
+//	z[i] = uint8(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int8x16) ConvertToUint8() (z Uint8x16)
@@ -10597,10 +12068,14 @@ func (x Uint8x32) BitsToInt8() (z Int8x32)
 
 // ConvertToInt8 converts each element of x to int8.
 //
+//	z[i] = int8(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint8x32) ConvertToInt8() (z Int8x32)
 
 // ConvertToUint8 converts each element of x to uint8.
+//
+//	z[i] = uint8(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int8x32) ConvertToUint8() (z Uint8x32)
@@ -10727,10 +12202,14 @@ func (x Uint8x64) BitsToInt8() (z Int8x64)
 
 // ConvertToInt8 converts each element of x to int8.
 //
+//	z[i] = int8(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint8x64) ConvertToInt8() (z Int8x64)
 
 // ConvertToUint8 converts each element of x to uint8.
+//
+//	z[i] = uint8(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int8x64) ConvertToUint8() (z Uint8x64)
@@ -10866,10 +12345,14 @@ func (x Uint16x8) BitsToInt16() (z Int16x8)
 
 // ConvertToInt16 converts each element of x to int16.
 //
+//	z[i] = int16(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint16x8) ConvertToInt16() (z Int16x8)
 
 // ConvertToUint16 converts each element of x to uint16.
+//
+//	z[i] = uint16(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int16x8) ConvertToUint16() (z Uint16x8)
@@ -10996,10 +12479,14 @@ func (x Uint16x16) BitsToInt16() (z Int16x16)
 
 // ConvertToInt16 converts each element of x to int16.
 //
+//	z[i] = int16(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint16x16) ConvertToInt16() (z Int16x16)
 
 // ConvertToUint16 converts each element of x to uint16.
+//
+//	z[i] = uint16(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int16x16) ConvertToUint16() (z Uint16x16)
@@ -11126,10 +12613,14 @@ func (x Uint16x32) BitsToInt16() (z Int16x32)
 
 // ConvertToInt16 converts each element of x to int16.
 //
+//	z[i] = int16(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint16x32) ConvertToInt16() (z Int16x32)
 
 // ConvertToUint16 converts each element of x to uint16.
+//
+//	z[i] = uint16(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int16x32) ConvertToUint16() (z Uint16x32)
@@ -11271,10 +12762,14 @@ func (x Uint32x4) BitsToInt32() (z Int32x4)
 
 // ConvertToInt32 converts each element of x to int32.
 //
+//	z[i] = int32(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint32x4) ConvertToInt32() (z Int32x4)
 
 // ConvertToUint32 converts each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int32x4) ConvertToUint32() (z Uint32x4)
@@ -11407,10 +12902,14 @@ func (x Uint32x8) BitsToInt32() (z Int32x8)
 
 // ConvertToInt32 converts each element of x to int32.
 //
+//	z[i] = int32(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint32x8) ConvertToInt32() (z Int32x8)
 
 // ConvertToUint32 converts each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int32x8) ConvertToUint32() (z Uint32x8)
@@ -11543,10 +13042,14 @@ func (x Uint32x16) BitsToInt32() (z Int32x16)
 
 // ConvertToInt32 converts each element of x to int32.
 //
+//	z[i] = int32(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint32x16) ConvertToInt32() (z Int32x16)
 
 // ConvertToUint32 converts each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int32x16) ConvertToUint32() (z Uint32x16)
@@ -11688,10 +13191,14 @@ func (x Uint64x2) BitsToInt64() (z Int64x2)
 
 // ConvertToInt64 converts each element of x to int64.
 //
+//	z[i] = int64(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint64x2) ConvertToInt64() (z Int64x2)
 
 // ConvertToUint64 converts each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int64x2) ConvertToUint64() (z Uint64x2)
@@ -11824,10 +13331,14 @@ func (x Uint64x4) BitsToInt64() (z Int64x4)
 
 // ConvertToInt64 converts each element of x to int64.
 //
+//	z[i] = int64(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint64x4) ConvertToInt64() (z Int64x4)
 
 // ConvertToUint64 converts each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int64x4) ConvertToUint64() (z Uint64x4)
@@ -11960,10 +13471,14 @@ func (x Uint64x8) BitsToInt64() (z Int64x8)
 
 // ConvertToInt64 converts each element of x to int64.
 //
+//	z[i] = int64(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint64x8) ConvertToInt64() (z Int64x8)
 
 // ConvertToUint64 converts each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int64x8) ConvertToUint64() (z Uint64x8)
@@ -12052,11 +13567,6 @@ func (x Mask8x16) And(y Mask8x16) (z Mask8x16)
 // CPU Feature: AVX
 func (x Mask8x16) AndNot(y Mask8x16) (z Mask8x16)
 
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX
-func (x Mask8x16) Equal(y Mask8x16) (z Mask8x16)
-
 // Or returns the bitwise OR of x and y.
 //
 //	z[i] = x[i] | y[i]
@@ -12091,11 +13601,6 @@ func (x Mask8x32) And(y Mask8x32) (z Mask8x32)
 //
 // CPU Feature: AVX2
 func (x Mask8x32) AndNot(y Mask8x32) (z Mask8x32)
-
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX2
-func (x Mask8x32) Equal(y Mask8x32) (z Mask8x32)
 
 // Or returns the bitwise OR of x and y.
 //
@@ -12132,11 +13637,6 @@ func (x Mask8x64) And(y Mask8x64) (z Mask8x64)
 // CPU Feature: AVX512
 func (x Mask8x64) AndNot(y Mask8x64) (z Mask8x64)
 
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX512
-func (x Mask8x64) Equal(y Mask8x64) (z Mask8x64)
-
 // Or returns the bitwise OR of x and y.
 //
 //	z[i] = x[i] | y[i]
@@ -12171,11 +13671,6 @@ func (x Mask16x8) And(y Mask16x8) (z Mask16x8)
 //
 // CPU Feature: AVX
 func (x Mask16x8) AndNot(y Mask16x8) (z Mask16x8)
-
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX
-func (x Mask16x8) Equal(y Mask16x8) (z Mask16x8)
 
 // Or returns the bitwise OR of x and y.
 //
@@ -12212,11 +13707,6 @@ func (x Mask16x16) And(y Mask16x16) (z Mask16x16)
 // CPU Feature: AVX2
 func (x Mask16x16) AndNot(y Mask16x16) (z Mask16x16)
 
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX2
-func (x Mask16x16) Equal(y Mask16x16) (z Mask16x16)
-
 // Or returns the bitwise OR of x and y.
 //
 //	z[i] = x[i] | y[i]
@@ -12251,11 +13741,6 @@ func (x Mask16x32) And(y Mask16x32) (z Mask16x32)
 //
 // CPU Feature: AVX512
 func (x Mask16x32) AndNot(y Mask16x32) (z Mask16x32)
-
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX512
-func (x Mask16x32) Equal(y Mask16x32) (z Mask16x32)
 
 // Or returns the bitwise OR of x and y.
 //
@@ -12292,11 +13777,6 @@ func (x Mask32x4) And(y Mask32x4) (z Mask32x4)
 // CPU Feature: AVX
 func (x Mask32x4) AndNot(y Mask32x4) (z Mask32x4)
 
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX
-func (x Mask32x4) Equal(y Mask32x4) (z Mask32x4)
-
 // Or returns the bitwise OR of x and y.
 //
 //	z[i] = x[i] | y[i]
@@ -12331,11 +13811,6 @@ func (x Mask32x8) And(y Mask32x8) (z Mask32x8)
 //
 // CPU Feature: AVX2
 func (x Mask32x8) AndNot(y Mask32x8) (z Mask32x8)
-
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX2
-func (x Mask32x8) Equal(y Mask32x8) (z Mask32x8)
 
 // Or returns the bitwise OR of x and y.
 //
@@ -12372,11 +13847,6 @@ func (x Mask32x16) And(y Mask32x16) (z Mask32x16)
 // CPU Feature: AVX512
 func (x Mask32x16) AndNot(y Mask32x16) (z Mask32x16)
 
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX512
-func (x Mask32x16) Equal(y Mask32x16) (z Mask32x16)
-
 // Or returns the bitwise OR of x and y.
 //
 //	z[i] = x[i] | y[i]
@@ -12411,11 +13881,6 @@ func (x Mask64x2) And(y Mask64x2) (z Mask64x2)
 //
 // CPU Feature: AVX
 func (x Mask64x2) AndNot(y Mask64x2) (z Mask64x2)
-
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX
-func (x Mask64x2) Equal(y Mask64x2) (z Mask64x2)
 
 // Or returns the bitwise OR of x and y.
 //
@@ -12452,11 +13917,6 @@ func (x Mask64x4) And(y Mask64x4) (z Mask64x4)
 // CPU Feature: AVX2
 func (x Mask64x4) AndNot(y Mask64x4) (z Mask64x4)
 
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX2
-func (x Mask64x4) Equal(y Mask64x4) (z Mask64x4)
-
 // Or returns the bitwise OR of x and y.
 //
 //	z[i] = x[i] | y[i]
@@ -12491,11 +13951,6 @@ func (x Mask64x8) And(y Mask64x8) (z Mask64x8)
 //
 // CPU Feature: AVX512
 func (x Mask64x8) AndNot(y Mask64x8) (z Mask64x8)
-
-// Equal returns a mask indicating which elements of x and y are equal.
-//
-// CPU Feature: AVX512
-func (x Mask64x8) Equal(y Mask64x8) (z Mask64x8)
 
 // Or returns the bitwise OR of x and y.
 //

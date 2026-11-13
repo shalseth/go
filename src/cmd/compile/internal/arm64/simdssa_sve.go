@@ -14,7 +14,8 @@ func ssaGenSIMDSVEValue(s *ssagen.State, v *ssa.Value) bool {
 	var p *obj.Prog
 	switch v.Op {
 	case ssaop.OpARM64ZABSB,
-		ssaop.OpARM64ZNEGB:
+		ssaop.OpARM64ZNEGB,
+		ssaop.OpARM64ZCNTB:
 		p = simdZkv(s, v, arm64.ARNG_B)
 
 	case ssaop.OpARM64ZFABSD,
@@ -23,13 +24,15 @@ func ssaGenSIMDSVEValue(s *ssagen.State, v *ssa.Value) bool {
 		ssaop.OpARM64ZFRINTMD,
 		ssaop.OpARM64ZFNEGD,
 		ssaop.OpARM64ZNEGD,
+		ssaop.OpARM64ZCNTD,
 		ssaop.OpARM64ZFRINTND,
 		ssaop.OpARM64ZFSQRTD,
 		ssaop.OpARM64ZFRINTZD:
 		p = simdZkv(s, v, arm64.ARNG_D)
 
 	case ssaop.OpARM64ZABSH,
-		ssaop.OpARM64ZNEGH:
+		ssaop.OpARM64ZNEGH,
+		ssaop.OpARM64ZCNTH:
 		p = simdZkv(s, v, arm64.ARNG_H)
 
 	case ssaop.OpARM64ZFABSS,
@@ -39,6 +42,7 @@ func ssaGenSIMDSVEValue(s *ssagen.State, v *ssa.Value) bool {
 		ssaop.OpARM64ZFRINTMS,
 		ssaop.OpARM64ZFNEGS,
 		ssaop.OpARM64ZNEGS,
+		ssaop.OpARM64ZCNTS,
 		ssaop.OpARM64ZFRINTNS,
 		ssaop.OpARM64ZFSQRTS,
 		ssaop.OpARM64ZFRINTZS:
@@ -47,6 +51,10 @@ func ssaGenSIMDSVEValue(s *ssagen.State, v *ssa.Value) bool {
 	case ssaop.OpARM64ZADDB,
 		ssaop.OpARM64ZSQADDB,
 		ssaop.OpARM64ZUQADDB,
+		ssaop.OpARM64ZUZP1B,
+		ssaop.OpARM64ZUZP2B,
+		ssaop.OpARM64ZZIP2B,
+		ssaop.OpARM64ZZIP1B,
 		ssaop.OpARM64ZMULB,
 		ssaop.OpARM64ZSMULHB,
 		ssaop.OpARM64ZUMULHB,
@@ -61,6 +69,10 @@ func ssaGenSIMDSVEValue(s *ssagen.State, v *ssa.Value) bool {
 		ssaop.OpARM64ZUQADDD,
 		ssaop.OpARM64ZANDD,
 		ssaop.OpARM64ZBICD,
+		ssaop.OpARM64ZUZP1D,
+		ssaop.OpARM64ZUZP2D,
+		ssaop.OpARM64ZZIP2D,
+		ssaop.OpARM64ZZIP1D,
 		ssaop.OpARM64ZFMULD,
 		ssaop.OpARM64ZMULD,
 		ssaop.OpARM64ZSMULHD,
@@ -76,6 +88,10 @@ func ssaGenSIMDSVEValue(s *ssagen.State, v *ssa.Value) bool {
 	case ssaop.OpARM64ZADDH,
 		ssaop.OpARM64ZSQADDH,
 		ssaop.OpARM64ZUQADDH,
+		ssaop.OpARM64ZUZP1H,
+		ssaop.OpARM64ZUZP2H,
+		ssaop.OpARM64ZZIP2H,
+		ssaop.OpARM64ZZIP1H,
 		ssaop.OpARM64ZMULH,
 		ssaop.OpARM64ZSMULHH,
 		ssaop.OpARM64ZUMULHH,
@@ -88,6 +104,10 @@ func ssaGenSIMDSVEValue(s *ssagen.State, v *ssa.Value) bool {
 		ssaop.OpARM64ZADDS,
 		ssaop.OpARM64ZSQADDS,
 		ssaop.OpARM64ZUQADDS,
+		ssaop.OpARM64ZUZP1S,
+		ssaop.OpARM64ZUZP2S,
+		ssaop.OpARM64ZZIP2S,
+		ssaop.OpARM64ZZIP1S,
 		ssaop.OpARM64ZFMULS,
 		ssaop.OpARM64ZMULS,
 		ssaop.OpARM64ZSMULHS,
@@ -309,7 +329,8 @@ func ssaGenSIMDSVEValue(s *ssagen.State, v *ssa.Value) bool {
 		p = simdZ2kvPredWide(s, v, arm64.ARNG_S)
 
 	case ssaop.OpARM64ZABSMergingB,
-		ssaop.OpARM64ZNEGMergingB:
+		ssaop.OpARM64ZNEGMergingB,
+		ssaop.OpARM64ZCNTMergingB:
 		p = simdZ2kvPredResultInArg0(s, v, arm64.ARNG_B)
 
 	case ssaop.OpARM64ZFABSMergingD,
@@ -318,13 +339,15 @@ func ssaGenSIMDSVEValue(s *ssagen.State, v *ssa.Value) bool {
 		ssaop.OpARM64ZFRINTMMergingD,
 		ssaop.OpARM64ZFNEGMergingD,
 		ssaop.OpARM64ZNEGMergingD,
+		ssaop.OpARM64ZCNTMergingD,
 		ssaop.OpARM64ZFRINTNMergingD,
 		ssaop.OpARM64ZFSQRTMergingD,
 		ssaop.OpARM64ZFRINTZMergingD:
 		p = simdZ2kvPredResultInArg0(s, v, arm64.ARNG_D)
 
 	case ssaop.OpARM64ZABSMergingH,
-		ssaop.OpARM64ZNEGMergingH:
+		ssaop.OpARM64ZNEGMergingH,
+		ssaop.OpARM64ZCNTMergingH:
 		p = simdZ2kvPredResultInArg0(s, v, arm64.ARNG_H)
 
 	case ssaop.OpARM64ZFABSMergingS,
@@ -334,6 +357,7 @@ func ssaGenSIMDSVEValue(s *ssagen.State, v *ssa.Value) bool {
 		ssaop.OpARM64ZFRINTMMergingS,
 		ssaop.OpARM64ZFNEGMergingS,
 		ssaop.OpARM64ZNEGMergingS,
+		ssaop.OpARM64ZCNTMergingS,
 		ssaop.OpARM64ZFRINTNMergingS,
 		ssaop.OpARM64ZFSQRTMergingS,
 		ssaop.OpARM64ZFRINTZMergingS:

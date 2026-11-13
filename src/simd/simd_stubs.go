@@ -43,11 +43,21 @@ func (x Int8s) AndNot(y Int8s) (z Int8s)
 
 // ConvertToUint8 converts each element of x to uint8.
 //
+//	z[i] = uint8(x[i])
+//
 // This wraps unrepresentable values.
 func (x Int8s) ConvertToUint8() (z Uint8s)
 
 // Equal returns a mask indicating which elements of x and y are equal.
 func (x Int8s) Equal(y Int8s) (z Mask8s)
+
+// ExtendToInt16 sign-extends each element of x to int16.
+//
+//	z[i] = int16(x[i])
+//
+// Only the low z.Len() elements of x are converted.
+// The remaining elements of x are ignored.
+func (x Int8s) ExtendToInt16() (z Int16s)
 
 // Greater returns a mask indicating which elements of x are greater than y.
 //
@@ -59,6 +69,12 @@ func (x Int8s) Greater(y Int8s) (z Mask8s)
 //
 //	z[i] = x[i] >= y[i]
 func (x Int8s) GreaterEqual(y Int8s) (z Mask8s)
+
+// HiToLo returns a vector whose low half is the high half of x and whose high
+// half is zero.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1], 0, ..., 0}, where n = x.Len()
+func (x Int8s) HiToLo() (z Int8s)
 
 // IfElse returns a vector with elements from x where mask is true, and y where
 // mask is false.
@@ -79,6 +95,15 @@ func (x Int8s) Less(y Int8s) (z Mask8s)
 //
 //	z[i] = x[i] <= y[i]
 func (x Int8s) LessEqual(y Int8s) (z Mask8s)
+
+// LookupOrZero permutes x, returning 0 for out-of-range indices.
+//
+//	if indices[i] < x.Len() {
+//	    z[i] = x[indices[i]]
+//	} else {
+//	    z[i] = 0
+//	}
+func (x Int8s) LookupOrZero(indices Uint8s) (z Int8s)
 
 // Masked returns a vector with elements from x where mask is true, and zero
 // elsewhere.
@@ -199,11 +224,21 @@ func (x Int16s) AndNot(y Int16s) (z Int16s)
 
 // ConvertToUint16 converts each element of x to uint16.
 //
+//	z[i] = uint16(x[i])
+//
 // This wraps unrepresentable values.
 func (x Int16s) ConvertToUint16() (z Uint16s)
 
 // Equal returns a mask indicating which elements of x and y are equal.
 func (x Int16s) Equal(y Int16s) (z Mask16s)
+
+// ExtendToInt32 sign-extends each element of x to int32.
+//
+//	z[i] = int32(x[i])
+//
+// Only the low z.Len() elements of x are converted.
+// The remaining elements of x are ignored.
+func (x Int16s) ExtendToInt32() (z Int32s)
 
 // Greater returns a mask indicating which elements of x are greater than y.
 //
@@ -215,6 +250,12 @@ func (x Int16s) Greater(y Int16s) (z Mask16s)
 //
 //	z[i] = x[i] >= y[i]
 func (x Int16s) GreaterEqual(y Int16s) (z Mask16s)
+
+// HiToLo returns a vector whose low half is the high half of x and whose high
+// half is zero.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1], 0, ..., 0}, where n = x.Len()
+func (x Int16s) HiToLo() (z Int16s)
 
 // IfElse returns a vector with elements from x where mask is true, and y where
 // mask is false.
@@ -280,6 +321,24 @@ func (x Int16s) Or(y Int16s) (z Int16s)
 //	z = x[0] + x[1] + ...
 func (x Int16s) ReduceSum() (z int16)
 
+// SaturateToInt8 converts each element of x to int8, saturating values
+// that are outside the range of int8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Int16s) SaturateToInt8() (z Int8s)
+
+// SaturateToUint8 converts each element of x to uint8, saturating values
+// that are outside the range of uint8. Negative values become 0.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Int16s) SaturateToUint8() (z Uint8s)
+
 // ShiftAllLeft shifts each element of x left by shift bits.
 // If shift is greater than the element width, the result is 0.
 //
@@ -319,6 +378,15 @@ func (x Int16s) ToBits() (z Uint16s)
 //	z[i] = x[i] != 0
 func (x Int16s) ToMask() (z Mask16s)
 
+// TruncToInt8 converts each element of x to int8 by discarding its high
+// bits.
+//
+//	z[i] = int8(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Int16s) TruncToInt8() (z Int8s)
+
 // Xor returns the bitwise XOR of x and y.
 //
 //	z[i] = x[i] ^ y[i]
@@ -355,15 +423,27 @@ func (x Int32s) And(y Int32s) (z Int32s)
 func (x Int32s) AndNot(y Int32s) (z Int32s)
 
 // ConvertToFloat32 converts each element of x to float32.
+//
+//	z[i] = float32(x[i])
 func (x Int32s) ConvertToFloat32() (z Float32s)
 
 // ConvertToUint32 converts each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
 //
 // This wraps unrepresentable values.
 func (x Int32s) ConvertToUint32() (z Uint32s)
 
 // Equal returns a mask indicating which elements of x and y are equal.
 func (x Int32s) Equal(y Int32s) (z Mask32s)
+
+// ExtendToInt64 sign-extends each element of x to int64.
+//
+//	z[i] = int64(x[i])
+//
+// Only the low z.Len() elements of x are converted.
+// The remaining elements of x are ignored.
+func (x Int32s) ExtendToInt64() (z Int64s)
 
 // Greater returns a mask indicating which elements of x are greater than y.
 //
@@ -375,6 +455,12 @@ func (x Int32s) Greater(y Int32s) (z Mask32s)
 //
 //	z[i] = x[i] >= y[i]
 func (x Int32s) GreaterEqual(y Int32s) (z Mask32s)
+
+// HiToLo returns a vector whose low half is the high half of x and whose high
+// half is zero.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1], 0, ..., 0}, where n = x.Len()
+func (x Int32s) HiToLo() (z Int32s)
 
 // IfElse returns a vector with elements from x where mask is true, and y where
 // mask is false.
@@ -440,6 +526,24 @@ func (x Int32s) Or(y Int32s) (z Int32s)
 //	z = x[0] + x[1] + ...
 func (x Int32s) ReduceSum() (z int32)
 
+// SaturateToInt16 converts each element of x to int16, saturating values
+// that are outside the range of int16.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Int32s) SaturateToInt16() (z Int16s)
+
+// SaturateToUint16 converts each element of x to uint16, saturating values
+// that are outside the range of uint16. Negative values become 0.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Int32s) SaturateToUint16() (z Uint16s)
+
 // ShiftAllLeft shifts each element of x left by shift bits.
 // If shift is greater than the element width, the result is 0.
 //
@@ -474,6 +578,15 @@ func (x Int32s) ToBits() (z Uint32s)
 //	z[i] = x[i] != 0
 func (x Int32s) ToMask() (z Mask32s)
 
+// TruncToInt16 converts each element of x to int16 by discarding its high
+// bits.
+//
+//	z[i] = int16(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Int32s) TruncToInt16() (z Int16s)
+
 // Xor returns the bitwise XOR of x and y.
 //
 //	z[i] = x[i] ^ y[i]
@@ -490,6 +603,9 @@ func LoadInt64sPart(s []int64) (z Int64s, n int)
 // BroadcastInt64s returns a vector with the input x assigned to all elements of the
 // result.
 func BroadcastInt64s(x int64) (z Int64s)
+
+// Abs returns the elementwise absolute value of x.
+func (x Int64s) Abs() (z Uint64s)
 
 // Add adds x and y elementwise.
 //
@@ -508,6 +624,8 @@ func (x Int64s) AndNot(y Int64s) (z Int64s)
 
 // ConvertToUint64 converts each element of x to uint64.
 //
+//	z[i] = uint64(x[i])
+//
 // This wraps unrepresentable values.
 func (x Int64s) ConvertToUint64() (z Uint64s)
 
@@ -524,6 +642,12 @@ func (x Int64s) Greater(y Int64s) (z Mask64s)
 //
 //	z[i] = x[i] >= y[i]
 func (x Int64s) GreaterEqual(y Int64s) (z Mask64s)
+
+// HiToLo returns a vector whose low half is the high half of x and whose high
+// half is zero.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1], 0, ..., 0}, where n = x.Len()
+func (x Int64s) HiToLo() (z Int64s)
 
 // IfElse returns a vector with elements from x where mask is true, and y where
 // mask is false.
@@ -569,11 +693,35 @@ func (x Int64s) NotEqual(y Int64s) (z Mask64s)
 //	z[i] = x[i] | y[i]
 func (x Int64s) Or(y Int64s) (z Int64s)
 
+// SaturateToInt32 converts each element of x to int32, saturating values
+// that are outside the range of int32.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Int64s) SaturateToInt32() (z Int32s)
+
+// SaturateToUint32 converts each element of x to uint32, saturating values
+// that are outside the range of uint32. Negative values become 0.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Int64s) SaturateToUint32() (z Uint32s)
+
 // ShiftAllLeft shifts each element of x left by shift bits.
 // If shift is greater than the element width, the result is 0.
 //
 //	z[i] = x[i] << shift
 func (x Int64s) ShiftAllLeft(shift uint64) (z Int64s)
+
+// ShiftAllRight arithmetically shifts each element of x right by shift bits.
+// If shift is greater than the element width, the result is 0 or -1.
+//
+//	z[i] = x[i] >> shift
+func (x Int64s) ShiftAllRight(shift uint64) (z Int64s)
 
 // Store stores the elements of x into a slice. If len(s) < x.Len(), it panics.
 func (x Int64s) Store(s []int64)
@@ -596,6 +744,15 @@ func (x Int64s) ToBits() (z Uint64s)
 //
 //	z[i] = x[i] != 0
 func (x Int64s) ToMask() (z Mask64s)
+
+// TruncToInt32 converts each element of x to int32 by discarding its high
+// bits.
+//
+//	z[i] = int32(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Int64s) TruncToInt32() (z Int32s)
 
 // Xor returns the bitwise XOR of x and y.
 //
@@ -644,11 +801,38 @@ func (x Uint8s) BitsToInt8() (z Int8s)
 
 // ConvertToInt8 converts each element of x to int8.
 //
+//	z[i] = int8(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint8s) ConvertToInt8() (z Int8s)
 
 // Equal returns a mask indicating which elements of x and y are equal.
 func (x Uint8s) Equal(y Uint8s) (z Mask8s)
+
+// ExtendToUint16 zero-extends each element of x to uint16.
+//
+//	z[i] = uint16(x[i])
+//
+// Only the low z.Len() elements of x are converted.
+// The remaining elements of x are ignored.
+func (x Uint8s) ExtendToUint16() (z Uint16s)
+
+// Greater returns a mask indicating which elements of x are greater than y.
+//
+//	z[i] = x[i] > y[i]
+func (x Uint8s) Greater(y Uint8s) (z Mask8s)
+
+// GreaterEqual returns a mask indicating which elements of x are greater than
+// or equal to y.
+//
+//	z[i] = x[i] >= y[i]
+func (x Uint8s) GreaterEqual(y Uint8s) (z Mask8s)
+
+// HiToLo returns a vector whose low half is the high half of x and whose high
+// half is zero.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1], 0, ..., 0}, where n = x.Len()
+func (x Uint8s) HiToLo() (z Uint8s)
 
 // IfElse returns a vector with elements from x where mask is true, and y where
 // mask is false.
@@ -658,6 +842,17 @@ func (x Uint8s) IfElse(mask Mask8s, y Uint8s) (z Uint8s)
 
 // Len returns the number of elements in x.
 func (x Uint8s) Len() int
+
+// Less returns a mask indicating which elements of x are less than y.
+//
+//	z[i] = x[i] < y[i]
+func (x Uint8s) Less(y Uint8s) (z Mask8s)
+
+// LessEqual returns a mask indicating which elements of x are less than or
+// equal to y.
+//
+//	z[i] = x[i] <= y[i]
+func (x Uint8s) LessEqual(y Uint8s) (z Mask8s)
 
 // Masked returns a vector with elements from x where mask is true, and zero
 // elsewhere.
@@ -803,11 +998,21 @@ func (x Uint16s) BitsToInt16() (z Int16s)
 
 // ConvertToInt16 converts each element of x to int16.
 //
+//	z[i] = int16(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint16s) ConvertToInt16() (z Int16s)
 
 // Equal returns a mask indicating which elements of x and y are equal.
 func (x Uint16s) Equal(y Uint16s) (z Mask16s)
+
+// ExtendToUint32 zero-extends each element of x to uint32.
+//
+//	z[i] = uint32(x[i])
+//
+// Only the low z.Len() elements of x are converted.
+// The remaining elements of x are ignored.
+func (x Uint16s) ExtendToUint32() (z Uint32s)
 
 // Greater returns a mask indicating which elements of x are greater than y.
 //
@@ -819,6 +1024,12 @@ func (x Uint16s) Greater(y Uint16s) (z Mask16s)
 //
 //	z[i] = x[i] >= y[i]
 func (x Uint16s) GreaterEqual(y Uint16s) (z Mask16s)
+
+// HiToLo returns a vector whose low half is the high half of x and whose high
+// half is zero.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1], 0, ..., 0}, where n = x.Len()
+func (x Uint16s) HiToLo() (z Uint16s)
 
 // IfElse returns a vector with elements from x where mask is true, and y where
 // mask is false.
@@ -922,6 +1133,15 @@ func (x Uint16s) RotateAllLeft(shift uint64) (z Uint16s)
 //	z[i] = rotateRight(x[i], shift)
 func (x Uint16s) RotateAllRight(shift uint64) (z Uint16s)
 
+// SaturateToUint8 converts each element of x to uint8, saturating values
+// that are outside the range of uint8.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Uint16s) SaturateToUint8() (z Uint8s)
+
 // ShiftAllLeft shifts each element of x left by shift bits.
 // If shift is greater than the element width, the result is 0.
 //
@@ -952,6 +1172,15 @@ func (x Uint16s) Sub(y Uint16s) (z Uint16s)
 //
 //	z[i] = sat(x[i] - y[i])
 func (x Uint16s) SubSaturated(y Uint16s) (z Uint16s)
+
+// TruncToUint8 converts each element of x to uint8 by discarding its high
+// bits.
+//
+//	z[i] = uint8(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Uint16s) TruncToUint8() (z Uint8s)
 
 // Xor returns the bitwise XOR of x and y.
 //
@@ -993,11 +1222,21 @@ func (x Uint32s) BitsToInt32() (z Int32s)
 
 // ConvertToInt32 converts each element of x to int32.
 //
+//	z[i] = int32(x[i])
+//
 // This wraps unrepresentable values.
 func (x Uint32s) ConvertToInt32() (z Int32s)
 
 // Equal returns a mask indicating which elements of x and y are equal.
 func (x Uint32s) Equal(y Uint32s) (z Mask32s)
+
+// ExtendToUint64 zero-extends each element of x to uint64.
+//
+//	z[i] = uint64(x[i])
+//
+// Only the low z.Len() elements of x are converted.
+// The remaining elements of x are ignored.
+func (x Uint32s) ExtendToUint64() (z Uint64s)
 
 // Greater returns a mask indicating which elements of x are greater than y.
 //
@@ -1009,6 +1248,12 @@ func (x Uint32s) Greater(y Uint32s) (z Mask32s)
 //
 //	z[i] = x[i] >= y[i]
 func (x Uint32s) GreaterEqual(y Uint32s) (z Mask32s)
+
+// HiToLo returns a vector whose low half is the high half of x and whose high
+// half is zero.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1], 0, ..., 0}, where n = x.Len()
+func (x Uint32s) HiToLo() (z Uint32s)
 
 // IfElse returns a vector with elements from x where mask is true, and y where
 // mask is false.
@@ -1112,6 +1357,15 @@ func (x Uint32s) RotateAllLeft(shift uint64) (z Uint32s)
 //	z[i] = rotateRight(x[i], shift)
 func (x Uint32s) RotateAllRight(shift uint64) (z Uint32s)
 
+// SaturateToUint16 converts each element of x to uint16, saturating values
+// that are outside the range of uint16.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Uint32s) SaturateToUint16() (z Uint16s)
+
 // ShiftAllLeft shifts each element of x left by shift bits.
 // If shift is greater than the element width, the result is 0.
 //
@@ -1137,6 +1391,15 @@ func (x Uint32s) String() string
 //
 //	z[i] = x[i] - y[i]
 func (x Uint32s) Sub(y Uint32s) (z Uint32s)
+
+// TruncToUint16 converts each element of x to uint16 by discarding its high
+// bits.
+//
+//	z[i] = uint16(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Uint32s) TruncToUint16() (z Uint16s)
 
 // Xor returns the bitwise XOR of x and y.
 //
@@ -1204,6 +1467,17 @@ func (x Uint64s) BitsToInt64() (z Int64s)
 //	= (x^6 + x^5 + x^1)
 func (x Uint64s) CarrylessMultiplyEven(y Uint64s) (z Uint64s)
 
+// CarrylessMultiplyEvenOdd computes the elementwise carryless multiplication of
+// even-indexed elements of x and odd-indexed elements of y. The result of each
+// carryless multiply is twice the width of the input elements. The high bits
+// are stored in elements z[2*i+1] and the low bits are stored in elements
+// z[2*i].
+//
+//	concat(z[2*i+1], z[2*i]) = clmul(x[2*i], y[2*i+1])
+//
+// See [CarrylessMultiplyEven] for details about carryless multiply.
+func (x Uint64s) CarrylessMultiplyEvenOdd(y Uint64s) (z Uint64s)
+
 // CarrylessMultiplyOdd computes the elementwise carryless multiplication of
 // odd-indexed elements of x and y. The result of each carryless multiply is
 // twice the width of the input elements. The high bits are stored in elements
@@ -1214,7 +1488,20 @@ func (x Uint64s) CarrylessMultiplyEven(y Uint64s) (z Uint64s)
 // See [CarrylessMultiplyEven] for details about carryless multiply.
 func (x Uint64s) CarrylessMultiplyOdd(y Uint64s) (z Uint64s)
 
+// CarrylessMultiplyOddEven computes the elementwise carryless multiplication of
+// odd-indexed elements of x and even-indexed elements of y. The result of each
+// carryless multiply is twice the width of the input elements. The high bits
+// are stored in elements z[2*i+1] and the low bits are stored in elements
+// z[2*i].
+//
+//	concat(z[2*i+1], z[2*i]) = clmul(x[2*i+1], y[2*i])
+//
+// See [CarrylessMultiplyEven] for details about carryless multiply.
+func (x Uint64s) CarrylessMultiplyOddEven(y Uint64s) (z Uint64s)
+
 // ConvertToInt64 converts each element of x to int64.
+//
+//	z[i] = int64(x[i])
 //
 // This wraps unrepresentable values.
 func (x Uint64s) ConvertToInt64() (z Int64s)
@@ -1232,6 +1519,12 @@ func (x Uint64s) Greater(y Uint64s) (z Mask64s)
 //
 //	z[i] = x[i] >= y[i]
 func (x Uint64s) GreaterEqual(y Uint64s) (z Mask64s)
+
+// HiToLo returns a vector whose low half is the high half of x and whose high
+// half is zero.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1], 0, ..., 0}, where n = x.Len()
+func (x Uint64s) HiToLo() (z Uint64s)
 
 // IfElse returns a vector with elements from x where mask is true, and y where
 // mask is false.
@@ -1315,6 +1608,15 @@ func (x Uint64s) RotateAllLeft(shift uint64) (z Uint64s)
 //	z[i] = rotateRight(x[i], shift)
 func (x Uint64s) RotateAllRight(shift uint64) (z Uint64s)
 
+// SaturateToUint32 converts each element of x to uint32, saturating values
+// that are outside the range of uint32.
+//
+//	z[i] = sat(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Uint64s) SaturateToUint32() (z Uint32s)
+
 // ShiftAllLeft shifts each element of x left by shift bits.
 // If shift is greater than the element width, the result is 0.
 //
@@ -1341,6 +1643,15 @@ func (x Uint64s) String() string
 //	z[i] = x[i] - y[i]
 func (x Uint64s) Sub(y Uint64s) (z Uint64s)
 
+// TruncToUint32 converts each element of x to uint32 by discarding its high
+// bits.
+//
+//	z[i] = uint32(x[i])
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Uint64s) TruncToUint32() (z Uint32s)
+
 // Xor returns the bitwise XOR of x and y.
 //
 //	z[i] = x[i] ^ y[i]
@@ -1366,7 +1677,27 @@ func (x Float32s) Abs() (z Float32s)
 //	z[i] = x[i] + y[i]
 func (x Float32s) Add(y Float32s) (z Float32s)
 
+// Ceil returns the least integer value greater than or equal to each element
+// of x.
+//
+//	z[i] = ceil(x[i])
+//
+// Special cases follow IEEE 754: Ceil(±0) = ±0, Ceil(±Inf) = ±Inf, Ceil(x) = -0
+// for -1 < x < -0, and Ceil(NaN) = NaN. The sign and payload of a NaN result
+// are unspecified.
+func (x Float32s) Ceil() (z Float32s)
+
+// ConvertToFloat64 converts each element of x to float64.
+//
+//	z[i] = float64(x[i])
+//
+// Only the low z.Len() elements of x are converted.
+// The remaining elements of x are ignored.
+func (x Float32s) ConvertToFloat64() (z Float64s)
+
 // ConvertToInt32 converts each element of x to int32.
+//
+//	z[i] = int32(x[i])
 //
 // When a conversion is inexact, this truncates the result (rounds toward zero).
 // If the converted result would be outside the representable range, the result
@@ -1385,6 +1716,15 @@ func (x Float32s) Div(y Float32s) (z Float32s)
 // Equal returns a mask indicating which elements of x and y are equal.
 func (x Float32s) Equal(y Float32s) (z Mask32s)
 
+// Floor returns the greatest integer value less than or equal to each element
+// of x.
+//
+//	z[i] = floor(x[i])
+//
+// Special cases follow IEEE 754: Floor(±0) = ±0, Floor(±Inf) = ±Inf, and
+// Floor(NaN) = NaN. The sign and payload of a NaN result are unspecified.
+func (x Float32s) Floor() (z Float32s)
+
 // Greater returns a mask indicating which elements of x are greater than y.
 //
 //	z[i] = x[i] > y[i]
@@ -1395,6 +1735,12 @@ func (x Float32s) Greater(y Float32s) (z Mask32s)
 //
 //	z[i] = x[i] >= y[i]
 func (x Float32s) GreaterEqual(y Float32s) (z Mask32s)
+
+// HiToLo returns a vector whose low half is the high half of x and whose high
+// half is zero.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1], 0, ..., 0}, where n = x.Len()
+func (x Float32s) HiToLo() (z Float32s)
 
 // IfElse returns a vector with elements from x where mask is true, and y where
 // mask is false.
@@ -1494,6 +1840,16 @@ func (x Float32s) NotEqual(y Float32s) (z Mask32s)
 //	z = ((x[0] + x[1]) + (x[2] + x[3])) + ...
 func (x Float32s) ReduceSum() (z float32)
 
+// Round returns the nearest integer value to each element of x, rounding ties
+// to even.
+//
+//	z[i] = roundToEven(x[i])
+//
+// Special cases follow IEEE 754: Round(±0) = ±0, Round(±Inf) = ±Inf,
+// Round(x) = -0 for -0.5 <= x < -0, and Round(NaN) = NaN. The sign and payload
+// of a NaN result are unspecified.
+func (x Float32s) Round() (z Float32s)
+
 // Sqrt returns the elementwise square root of x.
 //
 //	z[i] = sqrt(x[i])
@@ -1520,6 +1876,15 @@ func (x Float32s) Sub(y Float32s) (z Float32s)
 // ToBits returns the IEEE 754 binary representation of each element of x.
 func (x Float32s) ToBits() (z Uint32s)
 
+// Trunc returns the integer value of each element of x, rounded toward zero.
+//
+//	z[i] = trunc(x[i])
+//
+// Special cases follow IEEE 754: Trunc(±0) = ±0, Trunc(±Inf) = ±Inf,
+// Trunc(x) = -0 for -1 < x < -0, and Trunc(NaN) = NaN. The sign and payload of
+// a NaN result are unspecified.
+func (x Float32s) Trunc() (z Float32s)
+
 // LoadFloat64s loads a slice into a vector. If len(s) < z.Len(), it panics.
 func LoadFloat64s(s []float64) (z Float64s)
 
@@ -1540,6 +1905,27 @@ func (x Float64s) Abs() (z Float64s)
 //	z[i] = x[i] + y[i]
 func (x Float64s) Add(y Float64s) (z Float64s)
 
+// Ceil returns the least integer value greater than or equal to each element
+// of x.
+//
+//	z[i] = ceil(x[i])
+//
+// Special cases follow IEEE 754: Ceil(±0) = ±0, Ceil(±Inf) = ±Inf, Ceil(x) = -0
+// for -1 < x < -0, and Ceil(NaN) = NaN. The sign and payload of a NaN result
+// are unspecified.
+func (x Float64s) Ceil() (z Float64s)
+
+// ConvertToFloat32 converts each element of x to float32.
+//
+//	z[i] = float32(x[i])
+//
+// The results are rounded to the nearest representable value, or ±inf if they
+// cannot be represented.
+//
+// The results are stored in the low x.Len() elements of z.
+// The remaining elements of z are zero.
+func (x Float64s) ConvertToFloat32() (z Float32s)
+
 // Div divides x by y elementwise.
 //
 //	z[i] = x[i] / y[i]
@@ -1552,6 +1938,15 @@ func (x Float64s) Div(y Float64s) (z Float64s)
 // Equal returns a mask indicating which elements of x and y are equal.
 func (x Float64s) Equal(y Float64s) (z Mask64s)
 
+// Floor returns the greatest integer value less than or equal to each element
+// of x.
+//
+//	z[i] = floor(x[i])
+//
+// Special cases follow IEEE 754: Floor(±0) = ±0, Floor(±Inf) = ±Inf, and
+// Floor(NaN) = NaN. The sign and payload of a NaN result are unspecified.
+func (x Float64s) Floor() (z Float64s)
+
 // Greater returns a mask indicating which elements of x are greater than y.
 //
 //	z[i] = x[i] > y[i]
@@ -1562,6 +1957,12 @@ func (x Float64s) Greater(y Float64s) (z Mask64s)
 //
 //	z[i] = x[i] >= y[i]
 func (x Float64s) GreaterEqual(y Float64s) (z Mask64s)
+
+// HiToLo returns a vector whose low half is the high half of x and whose high
+// half is zero.
+//
+//	z = {x[n/2], x[n/2+1], ..., x[n-1], 0, ..., 0}, where n = x.Len()
+func (x Float64s) HiToLo() (z Float64s)
 
 // IfElse returns a vector with elements from x where mask is true, and y where
 // mask is false.
@@ -1661,6 +2062,16 @@ func (x Float64s) NotEqual(y Float64s) (z Mask64s)
 //	z = ((x[0] + x[1]) + (x[2] + x[3])) + ...
 func (x Float64s) ReduceSum() (z float64)
 
+// Round returns the nearest integer value to each element of x, rounding ties
+// to even.
+//
+//	z[i] = roundToEven(x[i])
+//
+// Special cases follow IEEE 754: Round(±0) = ±0, Round(±Inf) = ±Inf,
+// Round(x) = -0 for -0.5 <= x < -0, and Round(NaN) = NaN. The sign and payload
+// of a NaN result are unspecified.
+func (x Float64s) Round() (z Float64s)
+
 // Sqrt returns the elementwise square root of x.
 //
 //	z[i] = sqrt(x[i])
@@ -1687,6 +2098,15 @@ func (x Float64s) Sub(y Float64s) (z Float64s)
 // ToBits returns the IEEE 754 binary representation of each element of x.
 func (x Float64s) ToBits() (z Uint64s)
 
+// Trunc returns the integer value of each element of x, rounded toward zero.
+//
+//	z[i] = trunc(x[i])
+//
+// Special cases follow IEEE 754: Trunc(±0) = ±0, Trunc(±Inf) = ±Inf,
+// Trunc(x) = -0 for -1 < x < -0, and Trunc(NaN) = NaN. The sign and payload of
+// a NaN result are unspecified.
+func (x Float64s) Trunc() (z Float64s)
+
 // All returns true when all positions in mask x are true.
 func (x Mask8s) All() bool
 
@@ -1702,9 +2122,6 @@ func (x Mask8s) AndNot(y Mask8s) (z Mask8s)
 
 // Any returns true when any position in mask x is true.
 func (x Mask8s) Any() bool
-
-// Equal returns a mask indicating which elements of x and y are equal.
-func (x Mask8s) Equal(y Mask8s) (z Mask8s)
 
 // None returns true when no positions in mask x are set.
 func (x Mask8s) None() bool
@@ -1752,9 +2169,6 @@ func (x Mask16s) AndNot(y Mask16s) (z Mask16s)
 // Any returns true when any position in mask x is true.
 func (x Mask16s) Any() bool
 
-// Equal returns a mask indicating which elements of x and y are equal.
-func (x Mask16s) Equal(y Mask16s) (z Mask16s)
-
 // None returns true when no positions in mask x are set.
 func (x Mask16s) None() bool
 
@@ -1801,9 +2215,6 @@ func (x Mask32s) AndNot(y Mask32s) (z Mask32s)
 // Any returns true when any position in mask x is true.
 func (x Mask32s) Any() bool
 
-// Equal returns a mask indicating which elements of x and y are equal.
-func (x Mask32s) Equal(y Mask32s) (z Mask32s)
-
 // None returns true when no positions in mask x are set.
 func (x Mask32s) None() bool
 
@@ -1849,9 +2260,6 @@ func (x Mask64s) AndNot(y Mask64s) (z Mask64s)
 
 // Any returns true when any position in mask x is true.
 func (x Mask64s) Any() bool
-
-// Equal returns a mask indicating which elements of x and y are equal.
-func (x Mask64s) Equal(y Mask64s) (z Mask64s)
 
 // None returns true when no positions in mask x are set.
 func (x Mask64s) None() bool

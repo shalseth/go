@@ -7,6 +7,7 @@
 package simd_test
 
 import (
+	"math/rand"
 	"runtime"
 	"simd"
 	"simd/internal/test_helpers"
@@ -126,6 +127,8 @@ func TestInt64s(t *testing.T) {
 	load := simd.LoadInt64s
 	shifts := test_helpers.Shift64s()
 	test_helpers.TestV2Ve(t, values, load, simd.Int64s.Neg, test_helpers.Neg)
+	// Include the extremes: Abs(MinInt64) is 1<<63.
+	test_helpers.TestV2Ve(t, append(slices.Clone(values), -1<<63, 1<<63-1), load, simd.Int64s.Abs, test_helpers.Abs)
 	test_helpers.TestVV2Ve(t, values, load, simd.Int64s.Add, test_helpers.Add)
 	test_helpers.TestVV2Ve(t, values, load, simd.Int64s.Sub, test_helpers.Sub)
 	test_helpers.TestVV2Ve(t, values, load, simd.Int64s.And, test_helpers.And)
@@ -133,6 +136,7 @@ func TestInt64s(t *testing.T) {
 	test_helpers.TestVV2Ve(t, values, load, simd.Int64s.Xor, test_helpers.Xor)
 	test_helpers.TestVV2Ve(t, values, load, simd.Int64s.AndNot, test_helpers.AndNot)
 	test_helpers.TestVR2Ve(t, values, shifts, load, simd.Int64s.ShiftAllLeft, test_helpers.ShiftLeft)
+	test_helpers.TestVR2Ve(t, values, shifts, load, simd.Int64s.ShiftAllRight, test_helpers.ShiftRight)
 	test_helpers.TestVV2Me(t, values, load, simd.Int64s.Equal, test_helpers.Equal)
 	test_helpers.TestVV2Me(t, values, load, simd.Int64s.NotEqual, test_helpers.NotEqual)
 	test_helpers.TestVV2Me(t, values, load, simd.Int64s.Less, test_helpers.Less)
@@ -150,7 +154,6 @@ func TestMask8s(t *testing.T) {
 	test_helpers.TestMM2Me(t, load, simd.Mask8s.Or, test_helpers.Or)
 	test_helpers.TestMM2Me(t, load, simd.Mask8s.Xor, test_helpers.Xor)
 	test_helpers.TestMM2Me(t, load, simd.Mask8s.AndNot, test_helpers.AndNot)
-	test_helpers.TestMM2Me(t, load, simd.Mask8s.Equal, test_helpers.Xnor)
 	test_helpers.TestM2Me(t, load, simd.Mask8s.Not, test_helpers.Not)
 }
 
@@ -160,7 +163,6 @@ func TestMask16s(t *testing.T) {
 	test_helpers.TestMM2Me(t, load, simd.Mask16s.Or, test_helpers.Or)
 	test_helpers.TestMM2Me(t, load, simd.Mask16s.Xor, test_helpers.Xor)
 	test_helpers.TestMM2Me(t, load, simd.Mask16s.AndNot, test_helpers.AndNot)
-	test_helpers.TestMM2Me(t, load, simd.Mask16s.Equal, test_helpers.Xnor)
 	test_helpers.TestM2Me(t, load, simd.Mask16s.Not, test_helpers.Not)
 }
 
@@ -170,7 +172,6 @@ func TestMask32s(t *testing.T) {
 	test_helpers.TestMM2Me(t, load, simd.Mask32s.Or, test_helpers.Or)
 	test_helpers.TestMM2Me(t, load, simd.Mask32s.Xor, test_helpers.Xor)
 	test_helpers.TestMM2Me(t, load, simd.Mask32s.AndNot, test_helpers.AndNot)
-	test_helpers.TestMM2Me(t, load, simd.Mask32s.Equal, test_helpers.Xnor)
 	test_helpers.TestM2Me(t, load, simd.Mask32s.Not, test_helpers.Not)
 }
 
@@ -180,7 +181,6 @@ func TestMask64s(t *testing.T) {
 	test_helpers.TestMM2Me(t, load, simd.Mask64s.Or, test_helpers.Or)
 	test_helpers.TestMM2Me(t, load, simd.Mask64s.Xor, test_helpers.Xor)
 	test_helpers.TestMM2Me(t, load, simd.Mask64s.AndNot, test_helpers.AndNot)
-	test_helpers.TestMM2Me(t, load, simd.Mask64s.Equal, test_helpers.Xnor)
 	test_helpers.TestM2Me(t, load, simd.Mask64s.Not, test_helpers.Not)
 }
 
@@ -201,6 +201,10 @@ func TestUint8s(t *testing.T) {
 	test_helpers.TestVV2Ve(t, values, load, simd.Uint8s.Min, test_helpers.Min)
 	test_helpers.TestVV2Me(t, values, load, simd.Uint8s.Equal, test_helpers.Equal)
 	test_helpers.TestVV2Me(t, values, load, simd.Uint8s.NotEqual, test_helpers.NotEqual)
+	test_helpers.TestVV2Me(t, values, load, simd.Uint8s.Less, test_helpers.Less)
+	test_helpers.TestVV2Me(t, values, load, simd.Uint8s.LessEqual, test_helpers.LessEqual)
+	test_helpers.TestVV2Me(t, values, load, simd.Uint8s.Greater, test_helpers.Greater)
+	test_helpers.TestVV2Me(t, values, load, simd.Uint8s.GreaterEqual, test_helpers.GreaterEqual)
 
 	// TODO: untested methods: AddSaturated, Average, BitsToInt8, ConvertToInt8,
 	// IfElse, Len, Masked, Not, ReduceSum (tested in TestReduceSum),
@@ -213,6 +217,10 @@ func TestFloat32s(t *testing.T) {
 	load := simd.LoadFloat32s
 	test_helpers.TestV2Ve(t, values, load, simd.Float32s.Neg, test_helpers.Neg)
 	test_helpers.TestV2Ve(t, values, load, simd.Float32s.Abs, test_helpers.Abs)
+	test_helpers.TestV2Ve(t, test_helpers.RoundingFloat32s(), load, simd.Float32s.Round, test_helpers.Round)
+	test_helpers.TestV2Ve(t, test_helpers.RoundingFloat32s(), load, simd.Float32s.Ceil, test_helpers.Ceil)
+	test_helpers.TestV2Ve(t, test_helpers.RoundingFloat32s(), load, simd.Float32s.Floor, test_helpers.Floor)
+	test_helpers.TestV2Ve(t, test_helpers.RoundingFloat32s(), load, simd.Float32s.Trunc, test_helpers.Trunc)
 	test_helpers.TestVV2Ve(t, values, load, simd.Float32s.Add, test_helpers.Add)
 	test_helpers.TestVV2Ve(t, values, load, simd.Float32s.Sub, test_helpers.Sub)
 	test_helpers.TestVV2Ve(t, values, load, simd.Float32s.Mul, test_helpers.Mul)
@@ -240,6 +248,10 @@ func TestFloat64s(t *testing.T) {
 	load := simd.LoadFloat64s
 	test_helpers.TestV2Ve(t, values, load, simd.Float64s.Neg, test_helpers.Neg)
 	test_helpers.TestV2Ve(t, values, load, simd.Float64s.Abs, test_helpers.Abs)
+	test_helpers.TestV2Ve(t, test_helpers.RoundingFloat64s(), load, simd.Float64s.Round, test_helpers.Round)
+	test_helpers.TestV2Ve(t, test_helpers.RoundingFloat64s(), load, simd.Float64s.Ceil, test_helpers.Ceil)
+	test_helpers.TestV2Ve(t, test_helpers.RoundingFloat64s(), load, simd.Float64s.Floor, test_helpers.Floor)
+	test_helpers.TestV2Ve(t, test_helpers.RoundingFloat64s(), load, simd.Float64s.Trunc, test_helpers.Trunc)
 	test_helpers.TestVV2Ve(t, values, load, simd.Float64s.Add, test_helpers.Add)
 	test_helpers.TestVV2Ve(t, values, load, simd.Float64s.Sub, test_helpers.Sub)
 	test_helpers.TestVV2Ve(t, values, load, simd.Float64s.Mul, test_helpers.Mul)
@@ -380,6 +392,39 @@ func TestBroadcast(t *testing.T) {
 	testBroadcast(t, float64(112233445599887766), simd.BroadcastFloat64s)
 }
 
+func testHiToLo[E number, V interface {
+	HasStoreLen[E]
+	HiToLo() V
+}](t *testing.T, load func([]E) V) {
+	t.Helper()
+	var zero V
+	n := zero.Len()
+	x := make([]E, n)
+	for i := range x {
+		x[i] = E(i + 1)
+	}
+	got := make([]E, n)
+	load(x).HiToLo().Store(got)
+	want := make([]E, n)
+	copy(want, x[n/2:])
+	if !slices.Equal(want, got) {
+		t.Errorf("%T.HiToLo(%v): want %v, got %v", zero, x, want, got)
+	}
+}
+
+func TestHiToLo(t *testing.T) {
+	testHiToLo(t, simd.LoadInt8s)
+	testHiToLo(t, simd.LoadInt16s)
+	testHiToLo(t, simd.LoadInt32s)
+	testHiToLo(t, simd.LoadInt64s)
+	testHiToLo(t, simd.LoadUint8s)
+	testHiToLo(t, simd.LoadUint16s)
+	testHiToLo(t, simd.LoadUint32s)
+	testHiToLo(t, simd.LoadUint64s)
+	testHiToLo(t, simd.LoadFloat32s)
+	testHiToLo(t, simd.LoadFloat64s)
+}
+
 func TestMaskToInt(t *testing.T) {
 	topBits := simd.BroadcastUint8s(0x80)
 	got := make([]int8, topBits.Len())
@@ -503,4 +548,62 @@ func TestMaskTrailingZeros(t *testing.T) {
 	testMaskTrailingZeros(t, simd.LoadUint16s)
 	testMaskTrailingZeros(t, simd.LoadUint32s)
 	testMaskTrailingZeros(t, simd.LoadUint64s)
+}
+
+func TestLookupOrZero(t *testing.T) {
+	var z simd.Int8s
+	x := make([]int8, z.Len())
+	indices := make([]uint8, z.Len())
+
+	for i := range z.Len() {
+		a, b := rand.Int31n(256), rand.Int31n(256)
+		x[i] = int8(a - 128)
+		indices[i] = uint8(b)
+	}
+
+	v := simd.LoadInt8s(x)
+	u := simd.LoadUint8s(indices)
+
+	got := make([]int8, v.Len())
+	want := make([]int8, v.Len())
+	for i := range want {
+		j := indices[i]
+		if int(j) < len(want) {
+			want[i] = x[j]
+		}
+	}
+	v.LookupOrZero(u).StorePart(got)
+	if !slices.Equal(want, got) {
+		t.Errorf("Wanted %v, got %v", want, got)
+	}
+}
+
+func TestStoreShort(t *testing.T) {
+	// Store panics if the slice is shorter than the vector, and StorePart
+	// stores as much as fits.
+	x := simd.BroadcastInt8s(1)
+	s := make([]int8, x.Len()-1)
+	if n := x.StorePart(s); n != len(s) || slices.ContainsFunc(s, func(e int8) bool { return e != 1 }) {
+		t.Errorf("StorePart into %d elements returned %d and stored %v", len(s), n, s)
+	}
+	defer func() {
+		if recover() == nil {
+			t.Errorf("Store into %d elements of a %d-element vector didn't panic", len(s), x.Len())
+		}
+	}()
+	x.Store(s)
+}
+
+func TestStoreShortFloat64s(t *testing.T) {
+	x := simd.BroadcastFloat64s(1)
+	s := make([]float64, x.Len()-1)
+	if n := x.StorePart(s); n != len(s) || slices.ContainsFunc(s, func(e float64) bool { return e != 1 }) {
+		t.Errorf("StorePart into %d elements returned %d and stored %v", len(s), n, s)
+	}
+	defer func() {
+		if recover() == nil {
+			t.Errorf("Store into %d elements of a %d-element vector didn't panic", len(s), x.Len())
+		}
+	}()
+	x.Store(s)
 }

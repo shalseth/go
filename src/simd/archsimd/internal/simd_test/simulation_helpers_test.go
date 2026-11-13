@@ -420,6 +420,10 @@ func absSlice[T number](x []T) []T {
 	return map1[T](abs)(x)
 }
 
+func onesCountSlice[T integer](x []T) []T {
+	return map1[T](onesCount)(x)
+}
+
 // intDiv divides like SVE SDIV/UDIV, where Go's operator would panic:
 // division by zero yields zero, and the minimum signed value divided by -1
 // yields itself.
@@ -597,6 +601,14 @@ func transposeSlice[T number](laneBits int, odd bool) func(x, y []T) []T {
 		out[base+2*i] = x[base+2*i+offOne]
 		out[base+2*i+1] = y[base+2*i+offOne]
 	})
+}
+
+// hiToLoSlice moves the high half of x to the low half and zeroes the high
+// half.
+func hiToLoSlice[T number](x []T) []T {
+	out := make([]T, len(x))
+	copy(out, x[len(x)/2:])
+	return out
 }
 
 func sqrtSlice[T float](x []T) []T {

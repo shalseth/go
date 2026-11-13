@@ -508,6 +508,7 @@ type g struct {
 	//    param may point to a savedOpenDeferState.
 	param        unsafe.Pointer
 	atomicstatus atomic.Uint32
+	wasmCont     wasmContPerG // GOWASM=stackswitch only; fills the padding before goid
 	goid         uint64
 	schedlink    guintptr
 	waitsince    int64      // approx time when the g become blocked
@@ -1220,7 +1221,12 @@ type _panic struct {
 	// The current stack frame that we're running deferred calls for.
 	pc uintptr
 	sp unsafe.Pointer
-	fp unsafe.Pointer
+	// fp is a plain integer rather than an unsafe.Pointer so that it does not
+	// keep the stack object it points at alive. On amd64 it is the address of
+	// the frame's argument area, so a pointer there resurrects a dead argument
+	// during the scan that runs while deferred calls execute. copystack moves
+	// it explicitly in adjustpanics.
+	fp uintptr
 
 	// retpc stores the PC where the panic should jump back to, if the
 	// function last returned by _panic.nextDefer() recovers the panic.
@@ -1229,6 +1235,8 @@ type _panic struct {
 	// Extra state for handling open-coded defers.
 	deferBitsPtr *uint8
 	slotsPtr     unsafe.Pointer
+
+	recoverAtToken *recoverAtToken // identify this panic to gorecoverat
 
 	recovered   bool // whether this panic has been recovered
 	repanicked  bool // whether this panic repanicked

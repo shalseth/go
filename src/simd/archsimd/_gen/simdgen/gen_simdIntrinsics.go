@@ -113,7 +113,6 @@ func simd{{GetSIMDTag}}Intrinsics(addF func(pkg, fn string, b intrinsicBuilder, 
 	addF(simdPackage, "{{.Name}}.AndNot", opLen2(ssaop.OpAndNot{{.ReshapedVectorWithAndOr}}, types.TypeVec{{.Size}}), {{GetSysArch}})
 {{- end}}
 	addF(simdPackage, "{{.Name}}.Xor", opLen2(ssaop.OpXor{{.ReshapedVectorWithAndOr}}, types.TypeVec{{.Size}}), {{GetSysArch}})
-	addF(simdPackage, "{{.Name}}.Equal", opLen2(ssaop.OpEqual{{.VectorCounterpart}}, types.TypeVec{{.Size}}), {{GetSysArch}})
 {{- if eq GetSysArch "sys.ARM64"}}
 	addF(simdPackage, "{{.Name}}.Not", opLen1(ssaop.OpNot{{.ReshapedVectorWithAndOr}}, types.TypeVec{{.Size}}), {{GetSysArch}})
 {{- else}}
@@ -131,6 +130,9 @@ func simd{{GetSIMDTag}}Intrinsics(addF func(pkg, fn string, b intrinsicBuilder, 
 
 	var maskedLoadStore = templateNamed("maskedLoadStore", `	addF(simdPackage, "load{{.Name}}ArrayMasked", simdMaskedLoad(ssaop.OpLoadMasked{{.ElemBits}}), sys.AMD64)
 	addF(simdPackage, "{{.Name}}.StoreArrayMasked", simdMaskedStore(ssaop.OpStoreMasked{{.ElemBits}}), sys.AMD64)`)
+
+	var maskedIfElse = templateNamed("maskedIfElse", `	addF(simdPackage, "{{.Name}}.Masked", opLen2(ssaop.OpMasked{{.MaskedOpSuffix}}, types.TypeVec{{.Size}}), sys.AMD64)
+	addF(simdPackage, "{{.Name}}.IfElse", opLen3(ssaop.OpIfElse{{.MaskedOpSuffix}}, types.TypeVec{{.Size}}), sys.AMD64)`)
 
 	var vectorConversion = templateNamed("vectorConversion", `	addF(simdPackage, "{{.Tsrc.Name}}.As{{.Tdst.Name}}", func(s *state, n *ir.CallExpr, args []*ssa.Value) *ssa.Value { return args[0] }, {{GetSysArch}})`)
 
@@ -227,6 +229,9 @@ func simd{{GetSIMDTag}}Intrinsics(addF func(pkg, fn string, b intrinsicBuilder, 
 	// TODO: Reconsider for ARM64 SVE which supports predicated loads/stores.
 	if CurrentArch().Arch == "amd64" {
 		for _, typ := range typesFromTypeMap(typeMap) {
+			if !typ.IsMask() && !typ.IsScalable() {
+				doTemplate(maskedIfElse, typ)
+			}
 			if typ.MaskedLoadStoreFilter() {
 				doTemplate(maskedLoadStore, typ)
 			}
