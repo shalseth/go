@@ -31,7 +31,7 @@ is pushed:
 Rough costs on the T7: `make.bash` ~3 min, `dist test -k` ~10-12 min. On the
 T4: `make.bash` ~12 min, `dist test -k` ~40 min, `emerge go-9999` ~12 min.
 
-**The port is expected to test clean**: 25 phases, zero failures. That is the
+**The port is expected to test clean**: 21 phases, zero failures. That is the
 standard every merge is held to, so there is no need to capture a fresh
 baseline first. Any failure is a real result: investigate it, do not explain it
 away.
@@ -78,6 +78,17 @@ then re-apply the small delta in its new home*:
 Watch for a delta upstream has since made redundant: taking upstream then
 leaves an unused variable behind and the build fails on "declared and not
 used". Delete the leftovers as part of the same resolution.
+
+`--theirs` takes the whole file, including the hunks of ours that merged
+cleanly and were never in conflict. Re-apply every hunk of the delta that is
+still needed, not just the conflicted one, and before committing compare each
+resolved file against upstream:
+
+    git diff upstream/master -- <file>      # must show what is left of ours
+
+In 2026-11 a dropped non-conflicting hunk in `cmd/link/internal/ld/data.go`
+(the executable data segment that holds the sparc64 PLT) still built, and
+then crashed every internally linked cgo test binary at startup.
 
 ---
 
@@ -172,11 +183,11 @@ internal-link cgo bug stayed hidden for six days, with every run reaching two
 phases out of twenty-two.
 
     grep -cE '^--- FAIL' /root/mergebuild-k.log     # expect 0
-    grep -c '^#####' /root/mergebuild-k.log         # expect 25 phases
+    grep -c '^#####' /root/mergebuild-k.log         # expect 21 phases
     grep -c 'test timed out' /root/mergebuild-k.log # expect 0
     grep -c 'signal:' /root/mergebuild-k.log        # expect 0
 
-Zero failures across 25 phases is the pass condition, with nothing skipped for
+Zero failures across 21 phases is the pass condition, with nothing skipped for
 the port: the `cmd/objdump` and `cmd/pprof` disassembly tests used to skip
 through `mustHaveDisasm` and have run since the sparc64 disassembler landed
 (2026-09-14).
